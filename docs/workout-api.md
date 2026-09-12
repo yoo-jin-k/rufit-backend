@@ -78,3 +78,12 @@ View: `id`, `startedAt`, `finishedAt`(진행 중 null), `version`, `sets`.
 - 응답: `exerciseName`, `items[{workoutId,finishedAt,sets}]`, `page`, `size`, `totalElements`, `hasNext`.
 - 같은 운동 세션에 해당 종목이 여러 세트 있어도 세션은 한 번만 반환하고 세트의 원래 순서를 보존한다.
 - 진행 중인 운동과 다른 사람의 기록은 제외한다. 기록이 없으면 200과 빈 items. page 0~10000, size 1~50.
+
+## 진행 중 운동 취소
+
+`POST /api/v1/workouts/{id}/cancel`에 `{ "version": 최신버전, "confirmed": true }`를 보낸다. 화면에서 취소 확인을 받은 뒤 호출해야 하며 confirmed 누락·false는 400이다.
+
+- 취소 후 View의 `cancelledAt`에 시각이 기록된다. 완료시각은 null이고 휴식은 해제한다. 입력 내용은 취소된 초안에 보존되며 완료 기록/종목별 이전 기록/진행 중 복구에서 제외한다.
+- 새로운 운동을 시작할 수 있다. 취소된 운동은 다시 수정하거나 완료할 수 없으며 409를 반환한다.
+- 최초 생성에 사용한 Idempotency-Key를 재전송하면 취소된 기존 View가 반환된다. 네트워크 재시도로 취소한 운동이 되살아나지 않는다.
+- 완료한 운동의 취소와 취소된 초안 재개는 지원하지 않는다. 기록의 실제 삭제 정책은 별도 기능이다.

@@ -16,6 +16,7 @@ public class Workout {
     @Column(nullable = false, length = 100) private String ownerName;
     @Column(nullable = false) private Instant startedAt;
     private Instant finishedAt;
+    private Instant cancelledAt;
     @Version private Long version;
     @ElementCollection
     @CollectionTable(name = "workout_entries", joinColumns = @JoinColumn(name = "workout_id"))
@@ -85,10 +86,16 @@ public class Workout {
             restEndsAt = null; restSetIndex = null;
         }
     }
+    void cancel(Instant now) {
+        requireActive();
+        if (now.isBefore(startedAt)) throw new IllegalArgumentException("취소 시간이 시작 시간보다 빠릅니다.");
+        cancelledAt = now; restEndsAt = null; restSetIndex = null;
+    }
+    Instant cancelledAt() { return cancelledAt; }
     void skipRest() { requireActive(); restEndsAt = null; restSetIndex = null; }
     List<Integer> completedSetIndexes() { return completedSetIndexes.stream().sorted().toList(); }
     Instant restEndsAt() { return restEndsAt; }
-    private void requireActive() { if (finishedAt != null) throw new WorkoutConflict("이미 종료한 운동입니다."); }
+    private void requireActive() { if (finishedAt != null || cancelledAt != null) throw new WorkoutConflict("이미 종료한 운동입니다."); }
     UUID id() { return id; }
     String owner() { return ownerName; }
     Instant startedAt() { return startedAt; }
