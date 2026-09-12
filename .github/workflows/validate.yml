@@ -21,7 +21,7 @@ jobs:
           POSTGRES_PASSWORD: ci-test-only
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U rufit_test -d rufit_test"
+          --health-cmd "pg_isready -h 127.0.0.1 -U rufit_test -d rufit_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DB_URL: jdbc:postgresql://localhost:5432/rufit_test
@@ -50,4 +50,16 @@ jobs:
         with:
           name: backend-data-recovery
           path: target/backup-restore-result.json
+          if-no-files-found: error
+      - name: Build verified runtime image
+        run: docker build -t rufit-backend:verify .
+      - name: Verify container restart and default access policy
+        run: python3 scripts/smoke-container.py
+        timeout-minutes: 5
+        env:
+          RUFIT_TEST_CONTAINER: ${{ job.services.postgres.id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-container-runtime
+          path: target/container-runtime-result.json
           if-no-files-found: error
