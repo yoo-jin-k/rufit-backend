@@ -26,12 +26,21 @@ public class WorkoutController {
     public View update(@PathVariable UUID id, @Valid @RequestBody Edit request, Principal principal) { return service.update(id, principal.getName(), request); }
     @PostMapping("/{id}/finish")
     public View finish(@PathVariable UUID id, @Valid @RequestBody Revision request, Principal principal) { return service.finish(id, principal.getName(), request.version()); }
+    @PutMapping("/{id}/sets/{setIndex}/completion")
+    public View complete(@PathVariable UUID id, @PathVariable int setIndex, @Valid @RequestBody Completion request, Principal principal) {
+        return service.complete(id, principal.getName(), setIndex, request);
+    }
+    @PostMapping("/{id}/rest/skip")
+    public View skipRest(@PathVariable UUID id, @Valid @RequestBody Revision request, Principal principal) {
+        return service.skipRest(id, principal.getName(), request.version());
+    }
+    public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @Min(0) @Max(3600) int restSeconds) {}
     public record SetInput(@NotBlank @Size(max=80) String exerciseName,
         @NotNull @DecimalMin("0") @DecimalMax("1500") @Digits(integer=4, fraction=2) BigDecimal weight,
         @Min(1) @Max(1000) int reps) {}
     public record Edit(@NotNull @PositiveOrZero Long version, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record Revision(@NotNull @PositiveOrZero Long version) {}
-    public record View(UUID id, Instant startedAt, Instant finishedAt, long version, List<SetInput> sets) {
-        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps())).toList()); }
+    public record View(UUID id, Instant startedAt, Instant finishedAt, long version, List<SetInput> sets, List<Integer> completedSetIndexes, Instant restEndsAt) {
+        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps())).toList(), w.completedSetIndexes(), w.restEndsAt()); }
     }
 }

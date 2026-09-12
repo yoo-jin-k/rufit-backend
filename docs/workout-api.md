@@ -41,3 +41,12 @@ View: `id`, `startedAt`, `finishedAt`(진행 중 null), `version`, `sets`.
 1. HTTP Basic 인증으로 GET /api/v1/csrf를 호출하고 세션 쿠키를 보관한다.
 2. 응답의 headerName 헤더에 token을 넣고 같은 세션 쿠키 및 Basic 인증으로 POST/PUT을 호출한다.
 3. 개발 인증·CSRF 획득도 통합 테스트에서 실제 Basic 자격 증명으로 확인한다.
+
+## 세트 완료와 휴식
+
+- PUT /api/v1/workouts/{id}/sets/{setIndex}/completion: `version`, `completed`, `restSeconds`(0~3600).
+- setIndex는 현재 sets 배열의 0부터 시작하는 위치다. 목록 전체 교체 시 완료 상태와 휴식은 초기화되며 반드시 최신 version을 사용한다.
+- POST /api/v1/workouts/{id}/rest/skip: `version`.
+- 응답에 completedSetIndexes와 restEndsAt(UTC 절대시각)을 포함한다. 앱은 max(0, restEndsAt - 현재시각)으로 남은 시간을 표시한다. 서버는 초마다 카운터를 저장하지 않는다.
+- 같은 세트를 이미 완료한 상태에서 다시 완료해도 휴식 종료시각을 늘리지 않는다. 해당 세트 완료 취소와 운동 종료는 연결된 휴식을 해제한다.
+- 운동 종료는 미완료 세트가 있어도 허용하며 완료 여부를 기록에 보존한다. 집계는 완료 여부를 구분해야 한다.

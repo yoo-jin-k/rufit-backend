@@ -81,6 +81,23 @@ class WorkoutApiTests {
             .content("{\"version\":0,\"sets\":[{\"exerciseName\":\"스쿼트\",\"weight\":0,\"reps\":1}]}"))
             .andExpect(status().isNotFound());
     }
+    @Test void setCompletionAndRestPersistAcrossRequests() throws Exception {
+        String id = start();
+        String updated = edit(id, "{\"version\":0,\"sets\":[{\"exerciseName\":\"스쿼트\",\"weight\":40,\"reps\":10}]}")
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        Number version = JsonPath.read(updated, "$.version");
+        String completed = mvc.perform(put("/api/v1/workouts/"+id+"/sets/0/completion").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+",\"completed\":true,\"restSeconds\":90}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.completedSetIndexes[0]").value(0)).andExpect(jsonPath("$.restEndsAt").isNotEmpty())
+            .andReturn().getResponse().getContentAsString();
+        version = JsonPath.read(completed, "$.version");
+        String deadline = JsonPath.read(completed, "$.restEndsAt");
+        mvc.perform(get("/api/v1/workouts/"+id).with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.restEndsAt").value(deadline));
+        mvc.perform(post("/api/v1/workouts/"+id+"/rest/skip").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.restEndsAt").isEmpty());
+    }
     @Test void historyIncludesOnlyOwnCompletedWorkouts() throws Exception {
         String id = start();
         String updated = edit(id, "{\"version\":0,\"sets\":[{\"exerciseName\":\"스쿼트\",\"weight\":40,\"reps\":10}]}")

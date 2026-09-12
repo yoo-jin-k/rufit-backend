@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "workouts")
@@ -19,19 +21,40 @@ public class Workout {
     @CollectionTable(name = "workout_entries", joinColumns = @JoinColumn(name = "workout_id"))
     @OrderColumn(name = "entry_order")
     private List<Entry> entries = new ArrayList<>();
+    @ElementCollection
+    @CollectionTable(name="completed_workout_sets", joinColumns=@JoinColumn(name="workout_id"))
+    @Column(name="set_index", nullable=false)
+    private Set<Integer> completedSetIndexes = new HashSet<>();
+    private Instant restEndsAt;
+    private Integer restSetIndex;
     protected Workout() {}
     Workout(UUID id, String owner, Instant now) { this.id = id; ownerName = owner; startedAt = now; }
     void replaceEntries(List<Entry> replacement) {
         requireActive();
         if (replacement.isEmpty() || replacement.size() > 300) throw new IllegalArgumentException("세트는 1~300개여야 합니다.");
         entries.clear(); entries.addAll(replacement);
+        completedSetIndexes.clear(); restEndsAt = null; restSetIndex = null;
     }
     void finish(Instant now) {
         requireActive();
         if (entries.isEmpty()) throw new IllegalArgumentException("세트를 입력한 후 종료해 주세요.");
         if (now.isBefore(startedAt)) throw new IllegalArgumentException("종료 시간이 시작 시간보다 빠릅니다.");
-        finishedAt = now;
+        finishedAt = now; restEndsAt = null; restSetIndex = null;
     }
+    void completeSet(int index, boolean completed, int restSeconds, Instant now) {
+        requireActive();
+        if (index < 0 || index >= entries.size() || restSeconds < 0 || restSeconds > 3600)
+            throw new IllegalArgumentException("세트 번호와 휴식 시간(0~3600초)을 확인해 주세요.");
+        if (completed && completedSetIndexes.add(index)) {
+            restEndsAt = restSeconds == 0 ? null : now.plusSeconds(restSeconds);
+            restSetIndex = restSeconds == 0 ? null : index;
+        } else if (!completed && completedSetIndexes.remove(index) && java.util.Objects.equals(restSetIndex, index)) {
+            restEndsAt = null; restSetIndex = null;
+        }
+    }
+    void skipRest() { requireActive(); restEndsAt = null; restSetIndex = null; }
+    List<Integer> completedSetIndexes() { return completedSetIndexes.stream().sorted().toList(); }
+    Instant restEndsAt() { return restEndsAt; }
     private void requireActive() { if (finishedAt != null) throw new WorkoutConflict("이미 종료한 운동입니다."); }
     UUID id() { return id; }
     String owner() { return ownerName; }

@@ -23,7 +23,7 @@ public class WorkoutService {
     }
     public View start(String owner) {
         if (repository.findByOwnerNameAndFinishedAtIsNull(owner).isPresent()) throw new WorkoutConflict("진행 중인 운동이 있습니다.");
-        return View.from(repository.saveAndFlush(new Workout(UUID.randomUUID(), owner, Instant.now())));
+        return View.from(repository.saveAndFlush(new Workout(UUID.randomUUID(), owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS))));
     }
     @Transactional(readOnly=true)
     public View get(UUID id, String owner) { return View.from(owned(id, owner)); }
@@ -33,7 +33,16 @@ public class WorkoutService {
         return View.from(repository.saveAndFlush(w));
     }
     public View finish(UUID id, String owner, long version) {
-        Workout w = owned(id, owner); checkVersion(w, version); w.finish(Instant.now());
+        Workout w = owned(id, owner); checkVersion(w, version); w.finish(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        return View.from(repository.saveAndFlush(w));
+    }
+    public View complete(UUID id, String owner, int index, Completion request) {
+        Workout w = owned(id, owner); checkVersion(w, request.version());
+        w.completeSet(index, request.completed(), request.restSeconds(), Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        return View.from(repository.saveAndFlush(w));
+    }
+    public View skipRest(UUID id, String owner, long version) {
+        Workout w = owned(id, owner); checkVersion(w, version); w.skipRest();
         return View.from(repository.saveAndFlush(w));
     }
     private Workout owned(UUID id, String owner) {
