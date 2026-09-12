@@ -11,6 +11,12 @@ interface WorkoutRepository extends JpaRepository<Workout, UUID> {
         """)
     Page<Workout> findExerciseHistory(@org.springframework.data.repository.query.Param("owner") String owner,
         @org.springframework.data.repository.query.Param("exerciseName") String exerciseName, Pageable pageable);
+    @org.springframework.data.jpa.repository.Query("""
+        select w from Workout w where w.ownerName=:owner and w.finishedAt is not null
+        and exists (select e from Workout candidate join candidate.entries e where candidate.id=w.id and e.exerciseId=:exerciseId)
+        """)
+    Page<Workout> findExerciseHistoryById(@org.springframework.data.repository.query.Param("owner") String owner,
+        @org.springframework.data.repository.query.Param("exerciseId") UUID exerciseId, Pageable pageable);
     Page<Workout> findByOwnerNameAndFinishedAtIsNotNull(String owner, Pageable pageable);
     Optional<Workout> findByIdAndOwnerName(UUID id, String ownerName);
     Optional<Workout> findByOwnerNameAndFinishedAtIsNullAndCancelledAtIsNull(String ownerName);

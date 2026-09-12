@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ExerciseCatalogTests {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
-    @BeforeEach void clean() { jdbc.update("delete from exercises where owner_name is not null"); }
+    @BeforeEach void clean() { jdbc.update("delete from workouts"); jdbc.update("delete from routines"); jdbc.update("delete from exercises where owner_name is not null"); }
     private String create(String owner,String key,String name) throws Exception {
         return mvc.perform(post("/api/v1/exercises").header("Idempotency-Key",key).with(user(owner)).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\""+name+"\",\"bodyPart\":\"LEGS\",\"equipment\":\"OTHER\"}"))

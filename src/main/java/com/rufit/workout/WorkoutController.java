@@ -29,9 +29,9 @@ public class WorkoutController {
     public History history(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size, Principal principal) { return service.history(principal.getName(), page, size); }
     public record History(List<View> items, int page, int size, long totalElements, boolean hasNext) {}
     @GetMapping("/exercise-history")
-    public ExerciseHistory exerciseHistory(@RequestParam String exerciseName, @RequestParam(defaultValue="0") int page,
+    public ExerciseHistory exerciseHistory(@RequestParam(required=false) String exerciseName, @RequestParam(required=false) UUID exerciseId, @RequestParam(defaultValue="0") int page,
         @RequestParam(defaultValue="10") int size, Principal principal) {
-        return service.exerciseHistory(principal.getName(), exerciseName, page, size);
+        return service.exerciseHistory(principal.getName(), exerciseName, exerciseId, page, size);
     }
     public record ExerciseRecord(UUID workoutId, Instant finishedAt, List<SetInput> sets) {}
     public record ExerciseHistory(String exerciseName, List<ExerciseRecord> items, int page, int size, long totalElements, boolean hasNext) {}
@@ -78,13 +78,15 @@ public class WorkoutController {
     public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @Schema(requiredMode=Schema.RequiredMode.REQUIRED) @Min(0) @Max(3600) int restSeconds) {}
     public record SetInput(@NotBlank @Size(max=80) String exerciseName,
         @NotNull @DecimalMin("0") @DecimalMax("1500") @Digits(integer=4, fraction=2) BigDecimal weight,
-        @Schema(requiredMode=Schema.RequiredMode.REQUIRED) @Min(1) @Max(1000) int reps) {}
+        @Schema(requiredMode=Schema.RequiredMode.REQUIRED) @Min(1) @Max(1000) int reps, @Schema(nullable=true) UUID exerciseId) {
+        public SetInput(String exerciseName, BigDecimal weight, int reps) { this(exerciseName,weight,reps,null); }
+    }
     public record SetEdit(@NotNull @PositiveOrZero Long version, @NotNull @Valid SetInput set) {}
     public record Edit(@NotNull @PositiveOrZero Long version, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record FinishRequest(@NotNull @PositiveOrZero Long version, @Schema(nullable=true, defaultValue="false") Boolean discardIncomplete) {}
     public record Revision(@NotNull @PositiveOrZero Long version) {}
     @Schema(requiredProperties={"id", "startedAt", "finishedAt", "cancelledAt", "sourceRoutineId", "version", "sets", "completedSetIndexes", "restEndsAt"})
     public record View(UUID id, Instant startedAt, @Schema(nullable=true) Instant finishedAt, @Schema(nullable=true) Instant cancelledAt, @Schema(nullable=true) UUID sourceRoutineId, long version, List<SetInput> sets, List<Integer> completedSetIndexes, @Schema(nullable=true) Instant restEndsAt) {
-        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.sourceRoutineId(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps())).toList(), w.completedSetIndexes(), w.restEndsAt()); }
+        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.sourceRoutineId(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId())).toList(), w.completedSetIndexes(), w.restEndsAt()); }
     }
 }

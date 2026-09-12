@@ -14,7 +14,8 @@ import static com.rufit.workout.WorkoutController.*;
 public class WorkoutService {
     private final WorkoutRepository repository;
     private final RetiredWorkoutKeys retired;
-    WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired) { this.repository = repository; this.retired = retired; }
+    private final ExerciseSetResolver resolver;
+    WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired, ExerciseSetResolver resolver) { this.repository = repository; this.retired = retired; this.resolver=resolver; }
     @Transactional(readOnly=true)
     public History history(String owner, int page, int size) {
         if (page < 0 || page > 10000 || size < 1 || size > 100) throw new IllegalArgumentException("페이지와 조회 개수 범위를 확인해 주세요.");
@@ -23,17 +24,18 @@ public class WorkoutService {
         return new History(records.map(View::from).toList(), page, size, records.getTotalElements(), records.hasNext());
     }
     @Transactional(readOnly=true)
-    public ExerciseHistory exerciseHistory(String owner, String exerciseName, int page, int size) {
-        if (exerciseName == null || exerciseName.isBlank() || exerciseName.trim().length() > 80)
+    public ExerciseHistory exerciseHistory(String owner, String exerciseName, UUID exerciseId, int page, int size) {
+        if ((exerciseId == null && (exerciseName == null || exerciseName.isBlank() || exerciseName.trim().length() > 80)) || (exerciseId != null && exerciseName != null))
             throw new IllegalArgumentException("운동 이름은 1~80자여야 합니다.");
         if (page < 0 || page > 10000 || size < 1 || size > 50)
             throw new IllegalArgumentException("페이지와 조회 개수 범위를 확인해 주세요.");
-        String name = exerciseName.trim();
-        Page<Workout> records = repository.findExerciseHistory(owner, name,
-            PageRequest.of(page, size, Sort.by(Sort.Order.desc("finishedAt"), Sort.Order.desc("id"))));
+        String name = exerciseId == null ? exerciseName.trim() : resolver.name(owner, exerciseId);
+        Pageable pagination=PageRequest.of(page,size,Sort.by(Sort.Order.desc("finishedAt"),Sort.Order.desc("id")));
+        Page<Workout> records = exerciseId == null ? repository.findExerciseHistory(owner,name,pagination)
+            : repository.findExerciseHistoryById(owner,exerciseId,pagination);
         var items = records.map(w -> new ExerciseRecord(w.id(), w.finishedAt(),
-            w.entries().stream().filter(e -> e.name().equals(name))
-                .map(e -> new SetInput(e.name(), e.weight(), e.reps())).toList())).toList();
+            w.entries().stream().filter(e -> exerciseId == null ? e.name().equals(name) : exerciseId.equals(e.exerciseId()))
+                .map(e -> new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId())).toList())).toList();
         return new ExerciseHistory(name, items, page, size, records.getTotalElements(), records.hasNext());
     }
     public View start(String owner) { return start(owner, UUID.randomUUID()); }
@@ -68,24 +70,24 @@ public class WorkoutService {
     public View get(UUID id, String owner) { return View.from(owned(id, owner)); }
     public View update(UUID id, String owner, Edit request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());
-        w.replaceEntries(request.sets().stream().map(s -> new Workout.Entry(s.exerciseName(), s.weight(), s.reps())).toList());
+        w.replaceEntries(resolver.resolve(owner,request.sets(),w.entries()));
         return View.from(repository.saveAndFlush(w));
     }
     public View correctHistory(UUID id, String owner, Edit request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());
-        w.correctHistory(request.sets().stream().map(s -> new Workout.Entry(s.exerciseName(), s.weight(), s.reps())).toList());
+        w.correctHistory(resolver.resolve(owner,request.sets(),w.entries()));
         return View.from(repository.saveAndFlush(w));
     }
     public View editSet(UUID id, String owner, int index, SetEdit request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());
         SetInput set = request.set();
-        w.editSet(index, new Workout.Entry(set.exerciseName(), set.weight(), set.reps()));
+        w.editSet(index, resolver.resolve(owner,java.util.List.of(set),w.entries()).getFirst());
         return View.from(repository.saveAndFlush(w));
     }
     public View appendSet(UUID id, String owner, SetEdit request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());
         SetInput set = request.set();
-        w.appendSet(new Workout.Entry(set.exerciseName(), set.weight(), set.reps()));
+        w.appendSet(resolver.resolve(owner,java.util.List.of(set),w.entries()).getFirst());
         return View.from(repository.saveAndFlush(w));
     }
     public View removeSet(UUID id, String owner, int index, long version) {

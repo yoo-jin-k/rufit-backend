@@ -32,6 +32,6 @@ public class RoutineController {
     public record Create(@NotBlank @Size(max=80) String title, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record Edit(@NotNull @PositiveOrZero Long version, @NotBlank @Size(max=80) String title, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record View(UUID id, String title, long version, List<WorkoutController.SetInput> sets) {
-        static View from(Routine r) { return new View(r.id, r.title, r.version, r.entries.stream().map(e -> new WorkoutController.SetInput(e.name(), e.weight(), e.reps())).toList()); }
+        static View from(Routine r) { return new View(r.id, r.title, r.version, r.entries.stream().map(e -> new WorkoutController.SetInput(e.name(), e.weight(), e.reps(), e.exerciseId())).toList()); }
     }
 }

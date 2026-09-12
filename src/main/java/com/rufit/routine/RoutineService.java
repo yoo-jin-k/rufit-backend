@@ -15,13 +15,14 @@ public class RoutineService {
     private final RoutineRepository repository;
     private final WorkoutService workouts;
     private final RetiredRoutineKeys retired;
-    RoutineService(RoutineRepository repository, WorkoutService workouts, RetiredRoutineKeys retired) { this.repository=repository; this.workouts=workouts; this.retired=retired; }
+    private final ExerciseSetResolver resolver;
+    RoutineService(RoutineRepository repository, WorkoutService workouts, RetiredRoutineKeys retired, ExerciseSetResolver resolver) { this.repository=repository; this.workouts=workouts; this.retired=retired; this.resolver=resolver; }
     public View create(String owner, Create request, UUID requestId) {
         var replay = repository.findByIdAndOwnerName(requestId, owner);
         if (replay.isPresent()) return View.from(replay.get());
         if (retired.belongsTo(requestId, owner)) throw new ResponseStatusException(HttpStatus.GONE, "삭제한 루틴입니다.");
         if (retired.exists(requestId) || repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
-        return View.from(repository.saveAndFlush(new Routine(requestId, owner, request.title(), entries(request.sets()))));
+        return View.from(repository.saveAndFlush(new Routine(requestId, owner, request.title(), resolver.resolve(owner,request.sets(),List.of()))));
     }
     @Transactional(readOnly=true)
     public View get(UUID id, String owner) { return View.from(owned(id, owner)); }
@@ -33,12 +34,12 @@ public class RoutineService {
     public View update(UUID id, String owner, Edit request) {
         Routine r = owned(id, owner);
         if (!Objects.equals(r.version, request.version())) throw new WorkoutConflict("루틴이 변경되었습니다. 다시 조회해 주세요.");
-        r.replace(request.title(), entries(request.sets()));
+        r.replace(request.title(), resolver.resolve(owner,request.sets(),r.entries));
         return View.from(repository.saveAndFlush(r));
     }
     public WorkoutController.View start(UUID id, String owner, UUID requestId) {
         Routine r = owned(id, owner);
-        return workouts.startFromRoutine(owner, requestId, r.id, entries(View.from(r).sets()));
+        return workouts.startFromRoutine(owner, requestId, r.id, r.entries.stream().map(e -> new Workout.Entry(e.exerciseId(),e.name(),e.weight(),e.reps())).toList());
     }
     public void delete(UUID id, String owner, long version) {
         var found = repository.findByIdAndOwnerName(id, owner);
@@ -53,8 +54,5 @@ public class RoutineService {
     }
     private Routine owned(UUID id, String owner) {
         return repository.findByIdAndOwnerName(id, owner).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "루틴을 찾을 수 없습니다."));
-    }
-    private List<Workout.Entry> entries(List<WorkoutController.SetInput> sets) {
-        return sets.stream().map(s -> new Workout.Entry(s.exerciseName(), s.weight(), s.reps())).toList();
     }
 }
