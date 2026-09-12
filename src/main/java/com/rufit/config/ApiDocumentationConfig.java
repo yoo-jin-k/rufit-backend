@@ -28,6 +28,9 @@ public class ApiDocumentationConfig {
                     .forEach((status, description) -> operation.getResponses().putIfAbsent(status,
                         new ApiResponse().description(description).content(new Content().addMediaType("application/problem+json",
                             new MediaType().schema(new Schema<>().$ref("#/components/schemas/ApiProblem"))))));
+                operation.getResponses().values().forEach(response -> response.addHeaderObject("X-Request-Id",
+                    new io.swagger.v3.oas.models.headers.Header().description("Server-generated request identifier")
+                        .schema(new StringSchema().format("uuid"))));
             }));
         };
     }

@@ -126,7 +126,8 @@ class OidcAuthenticationTests {
             .andExpect(status().isUnauthorized()).andExpect(header().string("Access-Control-Allow-Origin", "https://app.rufit.test"));
         mvc.perform(get("/api/v1/me").header("Origin", "https://app.rufit.test")
             .header("Authorization", "Bearer "+token("alice")))
-            .andExpect(status().isOk()).andExpect(header().doesNotExist("Set-Cookie"));
+            .andExpect(status().isOk()).andExpect(header().doesNotExist("Set-Cookie"))
+            .andExpect(header().string("Access-Control-Expose-Headers","X-Request-Id"));
         mvc.perform(options("/api/v1/workouts").header("Origin", "https://app.rufit.test")
             .header("Access-Control-Request-Method", "DELETE"))
             .andExpect(status().isForbidden());

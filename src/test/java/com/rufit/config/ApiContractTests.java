@@ -34,6 +34,8 @@ class ApiContractTests {
         assertThat(properties(schemas, routineRefs.getFirst())).containsKeys("title", "sets").doesNotContainKey("finishedAt");
         Map<String, Object> paths = JsonPath.read(json, "$.paths");
         assertThat(paths).containsKeys("/api/v1/workouts/{id}/history", "/api/v1/workouts/{id}/delete", "/api/v1/workouts/calendar");
+        assertThat((String)JsonPath.read(json,"$.paths['/api/v1/workouts'].get.responses['200'].headers['X-Request-Id'].schema.format")).isEqualTo("uuid");
+        assertThat((String)JsonPath.read(json,"$.paths['/api/v1/workouts'].get.responses['401'].headers['X-Request-Id'].schema.format")).isEqualTo("uuid");
         Files.createDirectories(Path.of("target"));
         Files.writeString(Path.of("target/openapi.json"), json);
     }
