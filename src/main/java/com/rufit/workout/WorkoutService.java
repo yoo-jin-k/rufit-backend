@@ -71,6 +71,11 @@ public class WorkoutService {
         w.replaceEntries(request.sets().stream().map(s -> new Workout.Entry(s.exerciseName(), s.weight(), s.reps())).toList());
         return View.from(repository.saveAndFlush(w));
     }
+    public View correctHistory(UUID id, String owner, Edit request) {
+        Workout w = owned(id, owner); checkVersion(w, request.version());
+        w.correctHistory(request.sets().stream().map(s -> new Workout.Entry(s.exerciseName(), s.weight(), s.reps())).toList());
+        return View.from(repository.saveAndFlush(w));
+    }
     public View editSet(UUID id, String owner, int index, SetEdit request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());
         SetInput set = request.set();

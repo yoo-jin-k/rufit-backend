@@ -44,6 +44,13 @@ public class Workout {
         entries.clear(); entries.addAll(replacement);
         completedSetIndexes.clear(); restEndsAt = null; restSetIndex = null;
     }
+    void correctHistory(List<Entry> replacement) {
+        if (finishedAt == null) throw new WorkoutConflict("완료한 운동 기록만 정정할 수 있습니다.");
+        if (replacement.isEmpty() || replacement.size() > 300) throw new IllegalArgumentException("완료 세트는 1~300개여야 합니다.");
+        entries.clear(); entries.addAll(replacement);
+        completedSetIndexes.clear();
+        for (int i = 0; i < entries.size(); i++) completedSetIndexes.add(i);
+    }
     void editSet(int index, Entry replacement) {
         requireActive(); requireSetIndex(index);
         entries.set(index, replacement);

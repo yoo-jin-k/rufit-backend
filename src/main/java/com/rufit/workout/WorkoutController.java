@@ -56,6 +56,10 @@ public class WorkoutController {
     public View complete(@PathVariable UUID id, @PathVariable int setIndex, @Valid @RequestBody Completion request, Principal principal) {
         return service.complete(id, principal.getName(), setIndex, request);
     }
+    @PutMapping("/{id}/history")
+    public View correctHistory(@PathVariable UUID id, @Valid @RequestBody Edit request, Principal principal) {
+        return service.correctHistory(id, principal.getName(), request);
+    }
     @PostMapping("/{id}/delete") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteHistory(@PathVariable UUID id, @Valid @RequestBody DeleteRequest request, Principal principal) {
         service.deleteHistory(id, principal.getName(), request.version());
