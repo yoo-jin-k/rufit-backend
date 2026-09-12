@@ -38,7 +38,7 @@ public class OidcSecurityConfig {
         return http.cors(org.springframework.security.config.Customizer.withDefaults()).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .csrf(csrf -> csrf.disable())
             .requestCache(cache -> cache.disable())
-            .authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health").permitAll().anyRequest().authenticated())
+            .authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health","/actuator/health/liveness","/actuator/health/readiness").permitAll().anyRequest().authenticated())
             .exceptionHandling(handler -> handler.authenticationEntryPoint(errors::bearer).accessDeniedHandler(errors))
             .oauth2ResourceServer(resource -> resource.authenticationEntryPoint(errors::bearer).accessDeniedHandler(errors)
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(token -> new JwtAuthenticationToken(token, List.of(), ownerKey(token)))))

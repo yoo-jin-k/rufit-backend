@@ -28,7 +28,7 @@ public class RequestTraceFilter extends OncePerRequestFilter {
         finally {
             if(!request.isAsyncStarted() && request.getAttribute(LOGGED)==null) {
                 request.setAttribute(LOGGED,Boolean.TRUE);
-                if(!request.getRequestURI().equals("/actuator/health"))
+                if(!java.util.Set.of("/actuator/health","/actuator/health/liveness","/actuator/health/readiness").contains(request.getRequestURI()))
                     log.info("request completed method={} status={}",request.getMethod(),failed?500:response.getStatus());
             }
             if(previous==null) MDC.remove("requestId");else MDC.put("requestId",previous);

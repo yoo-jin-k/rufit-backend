@@ -9,6 +9,7 @@ import subprocess
 import time
 from urllib.parse import urlparse
 from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 import uuid
 from http_test_server import HttpTestServer
 from test_database import test_environment
@@ -28,6 +29,14 @@ if not any(int(mapping['HostPort'])==port for mapping in ports.get('5432/tcp',[]
     raise ValueError('Selected DB_URL must address the selected test container published port')
 restore_required=False
 
+def probe(server,kind,expected_status,expected_state):
+    try:
+        response=urlopen(server.base+'/actuator/health/'+kind,timeout=8)
+    except HTTPError as error: response=error
+    with response:
+        assert response.code==expected_status
+        assert json.loads(response.read())=={'status':expected_state}
+
 def start_database():
     docker('start',database)
     deadline=time.monotonic()+40
@@ -41,6 +50,8 @@ def start_database():
 try:
     with HttpTestServer(['--spring.datasource.hikari.connection-timeout=1000','--spring.datasource.hikari.validation-timeout=500']) as server:
         pid=server.process.pid
+        probe(server,'liveness',200,'UP')
+        probe(server,'readiness',200,'UP')
         _,workout=server.request('POST','/api/v1/workouts',key=str(uuid.uuid4()))
         workout_id=workout['id']
         draft={'operationId':str(uuid.uuid4()),'version':workout['version'],
@@ -50,6 +61,8 @@ try:
         pending={**draft,'operationId':str(uuid.uuid4()),'version':saved['workout']['version'],'note':'Retried after reconnection'}
         restore_required=True
         docker('stop','--time','10',database)
+        probe(server,'liveness',200,'UP')
+        probe(server,'readiness',503,'DOWN')
         errors=[]
         for method,path,body in [('GET','/api/v1/workouts/active',None),('PUT',f'/api/v1/workouts/{workout_id}/draft',pending)]*3:
             try: server.request(method,path,body)
@@ -69,6 +82,8 @@ try:
             except (HTTPError,URLError): time.sleep(0.2)
         else: raise RuntimeError('Application did not reconnect to PostgreSQL')
         assert server.process.pid==pid and server.process.poll() is None
+        probe(server,'liveness',200,'UP')
+        probe(server,'readiness',200,'UP')
         assert recovered['id']==workout_id and recovered['note']=='Before interruption'
         assert recovered['version']==saved['workout']['version'] and recovered['sets'][0]['weight']==25
         _,result=server.request('PUT',f'/api/v1/workouts/{workout_id}/draft',pending)
@@ -82,5 +97,6 @@ try:
 finally:
     if restore_required: start_database()
 result_path.write_text(json.dumps({'verifiedAt':datetime.now(timezone.utc).isoformat(),'outageStatuses':errors,
-    'sameJvm':True,'recordRecovered':True,'pendingOperationRetriedOnce':True,'databaseRunning':True},indent=2)+'\n')
+    'sameJvm':True,'recordRecovered':True,'pendingOperationRetriedOnce':True,'databaseRunning':True,
+    'livenessSurvivedOutage':True,'readinessRecovered':True,'probeDetailsHidden':True},indent=2)+'\n')
 print('PASS: test DB outage returns explicit 503; same JVM reconnects, recovers record and retries draft exactly once')

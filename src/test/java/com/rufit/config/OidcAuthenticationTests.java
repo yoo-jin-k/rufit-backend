@@ -69,6 +69,13 @@ class OidcAuthenticationTests {
         jwt.sign(new RSASSASigner(key)); return jwt.serialize();
     }
     private String token(String subject) throws Exception { return sign(claims(subject).build(), KEY); }
+    @Test void oidcAllowsAnonymousStatusProbesButKeepsOtherManagementPathsProtected() throws Exception {
+        for(String path:List.of("/actuator/health/liveness","/actuator/health/readiness"))
+            mvc.perform(get(path)).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.components").doesNotExist()).andExpect(header().doesNotExist("Set-Cookie"));
+        mvc.perform(get("/actuator/health/db")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
+    }
     @Test void realSignedBearerTokenWritesWithoutCookiesAndIsolatesOwners() throws Exception {
         String alice = token("alice-subject");
         String body = mvc.perform(post("/api/v1/workouts").header("Authorization", "Bearer "+alice))
