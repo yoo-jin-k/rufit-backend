@@ -3,6 +3,8 @@
 Java 21 · Spring Boot 4.1.1 · PostgreSQL · Maven Wrapper.
 프론트는 별도 `yoo-jin-k/rufit-frontend`에서 관리합니다.
 
+운동 시작부터 루틴·이력·세트/휴식·저장 복구까지의 API와 PostgreSQL 검증 기반을 구현했습니다. 현재 코드는 기능 브랜치의 검토 대상이며 운영 배포 상태가 아닙니다. [구현 현황과 남은 연결](docs/api-plan.md), [프론트 연결·검증 순서](docs/integration-guide.md)를 먼저 참고합니다.
+
 ## 실행
 
 1. Java 21을 선택합니다.
@@ -37,4 +39,7 @@ OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·
 - [운동·루틴 API와 입력 예시](docs/workout-api.md)
 - [구현 범위와 남은 작업](docs/api-plan.md)
 - [오류 계약](docs/error-contract.md)
+- [종목 카탈로그](docs/exercise-catalog.md) · [루틴 검색](docs/routine-search.md) · [기본 휴식 설정](docs/rest-preferences.md)
+- [비공개 프로필](docs/profile-api.md) · [서버 생존·준비 상태](docs/health-probes.md)
+- [DB 중단·백업 복원 검증](docs/backup-restore.md) · [컨테이너 실행](docs/container-runtime.md)
 - 실제 서버 재시작 검증: 테스트 DB 환경변수 설정 후 `python3 scripts/smoke-restart.py`

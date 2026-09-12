@@ -9,7 +9,7 @@
 | PUT /api/v1/workouts/{id}/exercises | 200 View | 운동 세트 목록 전체 교체 |
 | POST /api/v1/workouts/{id}/finish | 200 View | 운동 종료 |
 
-View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `version`, `sets`, `completedSetIndexes`, `restEndsAt`.
+View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `version`, `sets`, `completedSetIndexes`, `restEndsAt`, `restSetIndex`, `note`.
 미완료·미취소 시각, 자유 운동의 원본 루틴, 비활성 휴식 시각은 null이다. 세트는 현재 입력 순서와 운동 이름으로 구성한다.
 
 목록 교체 요청 예:
@@ -73,7 +73,7 @@ View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `versio
 
 `GET /api/v1/workouts/exercise-history?exerciseName=스쿼트&page=0&size=10`
 
-- 본인이 완료한 운동 중 이름이 정확히 일치하는 종목의 세트만 최신 완료시각순으로 반환한다. 앞뒤 공백은 제거하며 종목 ID 카탈로그 도입 전까지 이름을 기준으로 조회한다.
+- 본인이 완료한 운동 중 이름이 정확히 일치하는 종목의 세트만 최신 완료시각순으로 반환한다. 앞뒤 공백은 제거한다. `exerciseName` 대신 `exerciseId={UUID}`를 보내면 종목의 과거 이름이 바뀌어도 같은 ID의 기록을 조회한다. 두 선택자는 함께 사용할 수 없다.
 - 응답: `exerciseName`, `items[{workoutId,finishedAt,sets}]`, `page`, `size`, `totalElements`, `hasNext`.
 - 같은 운동 세션에 해당 종목이 여러 세트 있어도 세션은 한 번만 반환하고 세트의 원래 순서를 보존한다.
 - 진행 중인 운동과 다른 사람의 기록은 제외한다. 기록이 없으면 200과 빈 items. page 0~10000, size 1~50.
@@ -85,7 +85,7 @@ View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `versio
 - 취소 후 View의 `cancelledAt`에 시각이 기록된다. 완료시각은 null이고 휴식은 해제한다. 입력 내용은 취소된 초안에 보존되며 완료 기록/종목별 이전 기록/진행 중 복구에서 제외한다.
 - 새로운 운동을 시작할 수 있다. 취소된 운동은 다시 수정하거나 완료할 수 없으며 409를 반환한다.
 - 최초 생성에 사용한 Idempotency-Key를 재전송하면 취소된 기존 View가 반환된다. 네트워크 재시도로 취소한 운동이 되살아나지 않는다.
-- 완료한 운동의 취소와 취소된 초안 재개는 지원하지 않는다. 기록의 실제 삭제 정책은 별도 기능이다.
+- 완료한 운동의 취소와 취소된 초안 재개는 지원하지 않는다. 완료·취소 기록을 삭제하려면 아래 삭제 API에서 확인과 최신 버전을 보낸다.
 
 ## 월별 달력 집계
 
@@ -123,7 +123,8 @@ View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `versio
 - `GET /api/v1/routines?page=0`: 본인 루틴 배열, 페이지당 20개, page 0~10000.
 - `GET /api/v1/routines/{id}`: 본인 Routine View.
 - `PUT /api/v1/routines/{id}`: `{ "version": 최신버전, "title": "하체", "sets": [SetInput, ...] }`, 200 Routine View.
-- Routine View: `id`, `title`, `version`, `sets`. 루틴 제목 1~80자, 세트 1~300개. 수정은 진행 중인 운동 스냅샷에 영향을 주지 않는다.
+- Routine View: `id`, `title`, `version`, `sets`, `sourceRoutineId`, `sourceWorkoutId`. 출처 없는 일반 생성은 두 출처 필드가 null이다. 루틴 제목 1~80자, 세트 1~300개. 수정은 진행 중인 운동 스냅샷에 영향을 주지 않는다.
+- `GET /api/v1/routines/search`: 이름 검색과 전체 개수·다음 페이지 여부를 포함한다. [루틴 검색](routine-search.md)을 참고한다.
 - `GET /api/v1/workouts?page=0&size=20`: 본인 완료 이력 최신순. `items`, `page`, `size`, `totalElements`, `hasNext`. page 0~10000, size 1~100. 진행 중·취소·삭제 기록 제외.
 
 ## 루틴 저장 재시도와 삭제
