@@ -1,6 +1,6 @@
 # 운동기록 API v1
 
-기능 브랜치 구현이며 아직 운영 배포되지 않았다. 기본 프로필에서는 업무 API를 차단하며 test/local 프로필에서 인증한 요청으로 검증한다. 실제 회원·로그인은 후속 작업이다.
+기능 브랜치에서 구현·검증했으며 아직 운영 배포되지 않았다. 기본 프로필은 업무 API를 차단한다. local/test는 개발용 Basic+CSRF, oidc는 설정한 발급자의 토큰을 검증한다. 실제 로그인 제공자 등록과 모바일 로그인은 후속 작업이다.
 
 | 요청 | 응답 | 목적 |
 |---|---|---|
@@ -9,8 +9,8 @@
 | PUT /api/v1/workouts/{id}/exercises | 200 View | 운동 세트 목록 전체 교체 |
 | POST /api/v1/workouts/{id}/finish | 200 View | 운동 종료 |
 
-View: `id`, `startedAt`, `finishedAt`(진행 중 null), `version`, `sets`.
-세트는 현재 입력 순서와 운동 이름으로 구성한다. 개별 세트 식별자·완료·휴식은 후속 sets-rest 브랜치에서 확장한다.
+View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `version`, `sets`, `completedSetIndexes`, `restEndsAt`.
+미완료·미취소 시각, 자유 운동의 원본 루틴, 비활성 휴식 시각은 null이다. 세트는 현재 입력 순서와 운동 이름으로 구성한다.
 
 목록 교체 요청 예:
 
@@ -30,9 +30,8 @@ View: `id`, `startedAt`, `finishedAt`(진행 중 null), `version`, `sets`.
 - 유효하지 않은 요청 400; 미인증 401(local/test); 타인/없는 기록 404; 버전 충돌·종료 후 수정·중복 활성 운동 409.
 - 사용자별 진행 중 운동 최대 1개, DB 부분 유니크 인덱스로 동시 시작도 방어한다.
 - JPA @Version과 요청 version을 함께 사용한다.
-- CSRF 보호가 활성화되어 있다. 브라우저·세션 인증을 쓰는 클라이언트는 CSRF 토큰을 처리해야 한다. 테스트는 Spring Security csrf()로 검증한다.
-- start 요청 재시도는 현재 409이며 기존 운동을 돌려주는 멱등 응답은 아직 없다.
-- 오류 상세 정보 및 운영 인증 계약은 후속 검증이 필요하다.
+- local/test의 Basic 인증에는 CSRF 토큰이 필요하다. oidc 프로필은 쿠키 없이 Bearer 헤더를 사용한다. [인증 계약](authentication.md)을 참고한다.
+- 생성 재시도는 Idempotency-Key로 기존 결과를 조회한다. 수정 충돌은 최신 version을 다시 읽어 처리한다. 오류 형식은 [오류 계약](error-contract.md)을 참고한다.
 
 ## 로컬 API 확인
 
@@ -117,3 +116,12 @@ View: `id`, `startedAt`, `finishedAt`(진행 중 null), `version`, `sets`.
 `PUT /api/v1/workouts/{id}/history`에 `{ "version": 최신버전, "sets": [SetInput, ...] }`를 보낸다. 본인이 완료한 기록만 정정할 수 있고 입력한 1~300개 세트는 모두 완료한 세트로 보존한다. 시작·완료 시각은 유지한다. 결과는 200 View이며 이전 종목 기록과 달력 집계에도 즉시 반영한다.
 
 진행 중·취소한 운동은 409, 다른 사용자 404, 오래된 버전 409, 빈 목록이나 잘못된 수치는 400이다. 운동을 수행 중 편집하는 API와 분리되어 있으며 이 API로 진행 상태를 다시 열지는 않는다.
+
+## 루틴 관리와 완료 이력 목록
+
+- `POST /api/v1/routines`: `{ "title": "하체", "sets": [SetInput, ...] }`, 201 Routine View.
+- `GET /api/v1/routines?page=0`: 본인 루틴 배열, 페이지당 20개, page 0~10000.
+- `GET /api/v1/routines/{id}`: 본인 Routine View.
+- `PUT /api/v1/routines/{id}`: `{ "version": 최신버전, "title": "하체", "sets": [SetInput, ...] }`, 200 Routine View.
+- Routine View: `id`, `title`, `version`, `sets`. 루틴 제목 1~80자, 세트 1~300개. 수정은 진행 중인 운동 스냅샷에 영향을 주지 않는다.
+- `GET /api/v1/workouts?page=0&size=20`: 본인 완료 이력 최신순. `items`, `page`, `size`, `totalElements`, `hasNext`. page 0~10000, size 1~100. 진행 중·취소·삭제 기록 제외.

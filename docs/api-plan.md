@@ -1,19 +1,17 @@
-# 기능별 API 구현 순서
+# 구현 현황과 다음 단계
 
-현재는 초기구조 단계다. 아래는 구현 계약이며 아직 동작하는 API 목록이 아니다.
+현재 동작하는 API 계약은 [운동·루틴 API](workout-api.md), [인증](authentication.md), [오류 응답](error-contract.md)에 정리한다. 런타임에서 생성한 OpenAPI 명세를 함께 검증한다.
 
-| 브랜치 | API | 핵심 검증 |
-|---|---|---|
-| feature/workout-record | POST /api/v1/workouts, GET /{id}, PUT /{id}/exercises, POST /{id}/finish | 본인 데이터만 접근, 입력 검증, 트랜잭션, 완료 후 수정 차단 |
-| feature/routine | POST/GET/PUT /api/v1/routines, POST /{id}/start | 루틴 소유권, 복사된 운동과 원본 분리 |
-| feature/history | GET /api/v1/workouts?status=COMPLETED | 페이지 제한, 정렬, 완료 기록만 조회 |
-| feature/sets-rest | PUT /api/v1/workouts/{id}/sets/{setId} | 완료/취소, 휴식 종료시각, 중복 요청 |
-| feature/save-recovery | GET /api/v1/workouts/active, 버전 기반 PUT | 낙관적 락, 오래된 변경 거부, 재시도, DB 복구 |
+| 영역 | 구현·검증한 범위 |
+|---|---|
+| 운동 기록 | 시작, 입력, 개별 세트 추가/수정/삭제, 완료 조건, 확인 취소 |
+| 루틴 | 저장/조회/수정, 독립 스냅샷 시작, 동일 키 재시도 보호 |
+| 이전 기록 | 완료 이력, 종목별 이력, 완료 기록 정정/삭제 |
+| 세트/휴식 | 완료·취소, 절대 휴식 종료시각, 건너뛰기 |
+| 저장/복구 | 활성 운동 복구, 낙관적 잠금, 생성 키 재시도, 실제 JVM 재시작 |
+| 집계 | 시간대별 월간 달력, 운동 횟수·완료 세트·중량×횟수·경과시간 |
+| 인증 | 개발용 Basic+CSRF, 명시적 OIDC 서명·issuer·audience·시간 검증 |
 
-- 모든 시간은 서버 UTC Instant를 기준으로 응답한다.
-- 소유자는 인증된 사용자에서 얻고 요청 body의 ownerId를 신뢰하지 않는다.
-- 운동 세트: 무게 0~1500kg, 소수점 2자리; 횟수 1~1000. 맨몸 운동은 0kg 허용.
-- 오류는 상태코드와 읽을 수 있는 메시지를 포함한다. 다른 사용자 기록은 404로 처리한다.
-- 운동 생성 재시도에는 클라이언트 UUID/idempotency key를 고려한다.
-- 기본 프로필은 업무 API를 차단한다. local/test 개발 인증은 운영 로그인 구현 완료와 구분한다.
-- 각 PR에 실제 테스트 개수·PostgreSQL 검증 여부·미구현 영역을 기록한다.
+후속: 실제 로그인 제공자와 모바일 PKCE/갱신 연결, 화면의 서버 상태 연결, 오프라인 변경 병합, 회원·탈퇴·계정 연결 정책, 실기기 검증. 프론트 디자인은 추후 Figma 작업에 맞춰 변경한다.
+
+main/develop은 직접 수정하지 않고 feature/*의 검증 결과를 develop PR로 제출한다. 현재 누적 PR은 의존 순서대로 검토해야 한다. 배포·병합 완료와 코드 구현 완료는 구분한다.

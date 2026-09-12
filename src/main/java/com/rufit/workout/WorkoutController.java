@@ -1,6 +1,7 @@
 package com.rufit.workout;
 
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -74,15 +75,16 @@ public class WorkoutController {
     public View skipRest(@PathVariable UUID id, @Valid @RequestBody Revision request, Principal principal) {
         return service.skipRest(id, principal.getName(), request.version());
     }
-    public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @Min(0) @Max(3600) int restSeconds) {}
+    public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @Schema(requiredMode=Schema.RequiredMode.REQUIRED) @Min(0) @Max(3600) int restSeconds) {}
     public record SetInput(@NotBlank @Size(max=80) String exerciseName,
         @NotNull @DecimalMin("0") @DecimalMax("1500") @Digits(integer=4, fraction=2) BigDecimal weight,
-        @Min(1) @Max(1000) int reps) {}
+        @Schema(requiredMode=Schema.RequiredMode.REQUIRED) @Min(1) @Max(1000) int reps) {}
     public record SetEdit(@NotNull @PositiveOrZero Long version, @NotNull @Valid SetInput set) {}
     public record Edit(@NotNull @PositiveOrZero Long version, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
-    public record FinishRequest(@NotNull @PositiveOrZero Long version, Boolean discardIncomplete) {}
+    public record FinishRequest(@NotNull @PositiveOrZero Long version, @Schema(nullable=true, defaultValue="false") Boolean discardIncomplete) {}
     public record Revision(@NotNull @PositiveOrZero Long version) {}
-    public record View(UUID id, Instant startedAt, Instant finishedAt, Instant cancelledAt, UUID sourceRoutineId, long version, List<SetInput> sets, List<Integer> completedSetIndexes, Instant restEndsAt) {
+    @Schema(requiredProperties={"id", "startedAt", "finishedAt", "cancelledAt", "sourceRoutineId", "version", "sets", "completedSetIndexes", "restEndsAt"})
+    public record View(UUID id, Instant startedAt, @Schema(nullable=true) Instant finishedAt, @Schema(nullable=true) Instant cancelledAt, @Schema(nullable=true) UUID sourceRoutineId, long version, List<SetInput> sets, List<Integer> completedSetIndexes, @Schema(nullable=true) Instant restEndsAt) {
         static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.sourceRoutineId(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps())).toList(), w.completedSetIndexes(), w.restEndsAt()); }
     }
 }

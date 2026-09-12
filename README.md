@@ -11,7 +11,7 @@ Java 21 · Spring Boot 4.1.1 · PostgreSQL · Maven Wrapper.
 4. `http://127.0.0.1:8080/actuator/health`에서 상태를 확인합니다.
 
 DB_URL(기본 localhost:5433/rufit), DB_USERNAME(기본 rufit), DB_PASSWORD로 연결을 지정합니다.
-운영 인증 연동 전에는 기본 프로필에서 업무 API를 차단합니다. 로컬 기능 테스트는 `local` 프로필과 Spring Security의 개발 인증을 사용하며 CSRF 보호를 유지합니다. 실제 배포용 인증은 아직 구현하지 않았습니다.
+운영 인증 연동 전에는 기본 프로필에서 업무 API를 차단합니다. 로컬 기능 테스트는 `local` 프로필과 Spring Security의 개발 인증을 사용하며 CSRF 보호를 유지합니다. OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·모바일 로그인은 후속 작업입니다.
 
 ## 검증
 
@@ -23,3 +23,16 @@ H2로 PostgreSQL 호환성 검증을 대체하지 않습니다.
 
 `feature/project-setup` → `develop` PR. 이후 `feature/workout-record`, `feature/routine`, `feature/history`, `feature/sets-rest`, `feature/save-recovery` 순서로 진행합니다.
 main 직접 수정 금지. 기능마다 DB·API·검증을 함께 구현합니다. 미병합 PR 의존성은 PR 본문에 명시합니다.
+
+## API 명세와 인증 구현 상태
+
+OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·모바일 로그인·운영 배포는 아직입니다. [인증 설정](docs/authentication.md)을 참고합니다.
+
+`RUFIT_API_DOCS_ENABLED=true`로 명시적으로 켜면 인증 후 `/v3/api-docs`에서 OpenAPI 3.0 JSON을 조회할 수 있습니다. 기본값은 비활성입니다. 명세도 업무 API와 동일한 인증 보호를 받습니다. Swagger UI는 포함하지 않습니다.
+
+`./mvnw verify`는 응답 스키마 이름 충돌과 null 필드를 검사하고 `target/openapi.json`을 생성합니다. CI의 `backend-api-contract` 아티팩트에서 내려받을 수 있습니다. local/test로 생성한 명세는 개발용 Basic 인증을 표시하며 oidc 실행 명세는 Bearer 인증을 표시합니다.
+
+- [운동·루틴 API와 입력 예시](docs/workout-api.md)
+- [구현 범위와 남은 작업](docs/api-plan.md)
+- [오류 계약](docs/error-contract.md)
+- 실제 서버 재시작 검증: 테스트 DB 환경변수 설정 후 `python3 scripts/smoke-restart.py`
