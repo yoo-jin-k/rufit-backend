@@ -53,6 +53,7 @@ class OidcAuthenticationTests {
         } catch (Exception e) { throw new IllegalStateException(e); }
     }
     @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) {
+        registry.add("rufit.allowed-origins", () -> "https://app.rufit.test");
         registry.add("rufit.auth.issuer", () -> ISSUER);
         registry.add("rufit.auth.audience", () -> "rufit-api");
         registry.add("rufit.auth.jwk-set-uri", () -> "http://127.0.0.1:"+JWKS.getAddress().getPort()+"/jwks");
@@ -100,5 +101,34 @@ class OidcAuthenticationTests {
         String body = mvc.perform(post("/api/v1/workouts").header("Authorization", "Bearer "+first))
             .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         mvc.perform(get("/api/v1/workouts/"+JsonPath.read(body, "$.id")).header("Authorization", "Bearer "+second)).andExpect(status().isNotFound());
+    }
+    @Test void currentAccountIsStableAcrossTokensAndIsolatedAcrossSubjects() throws Exception {
+        String first = mvc.perform(get("/api/v1/me").header("Authorization", "Bearer "+token("alice")))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(first, "$.id");
+        org.junit.jupiter.api.Assertions.assertTrue(id.startsWith("oidc:") && id.length() == 69);
+        mvc.perform(get("/api/v1/me").header("Authorization", "Bearer "+token("alice")))
+            .andExpect(jsonPath("$.id").value(id));
+        mvc.perform(get("/api/v1/me").header("Authorization", "Bearer "+token("bob")))
+            .andExpect(jsonPath("$.id").value(org.hamcrest.Matchers.not(id)));
+        mvc.perform(get("/api/v1/me")).andExpect(status().isUnauthorized());
+    }
+    @Test void corsAllowsOnlyConfiguredBrowserOriginAndNeverBypassesAuthentication() throws Exception {
+        mvc.perform(options("/api/v1/workouts").header("Origin", "https://app.rufit.test")
+            .header("Access-Control-Request-Method", "POST")
+            .header("Access-Control-Request-Headers", "authorization,content-type,idempotency-key"))
+            .andExpect(status().isOk()).andExpect(header().string("Access-Control-Allow-Origin", "https://app.rufit.test"))
+            .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"));
+        mvc.perform(options("/api/v1/workouts").header("Origin", "https://untrusted.test")
+            .header("Access-Control-Request-Method", "POST"))
+            .andExpect(status().isForbidden()).andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+        mvc.perform(get("/api/v1/me").header("Origin", "https://app.rufit.test"))
+            .andExpect(status().isUnauthorized()).andExpect(header().string("Access-Control-Allow-Origin", "https://app.rufit.test"));
+        mvc.perform(get("/api/v1/me").header("Origin", "https://app.rufit.test")
+            .header("Authorization", "Bearer "+token("alice")))
+            .andExpect(status().isOk()).andExpect(header().doesNotExist("Set-Cookie"));
+        mvc.perform(options("/api/v1/workouts").header("Origin", "https://app.rufit.test")
+            .header("Access-Control-Request-Method", "DELETE"))
+            .andExpect(status().isForbidden());
     }
 }

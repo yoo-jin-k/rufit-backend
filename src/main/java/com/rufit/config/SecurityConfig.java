@@ -12,7 +12,7 @@ public class SecurityConfig {
     @Bean
     @Profile("!local & !test & !oidc")
     SecurityFilterChain lockedByDefault(HttpSecurity http, ApiSecurityErrors errors) throws Exception {
-        return http.authorizeHttpRequests(auth -> auth
+        return http.cors(org.springframework.security.config.Customizer.withDefaults()).authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().denyAll())
                 .exceptionHandling(handler -> handler.accessDeniedHandler(errors)
@@ -24,7 +24,7 @@ public class SecurityConfig {
     @Profile("!oidc & (local | test)")
     SecurityFilterChain development(HttpSecurity http, ApiSecurityErrors errors) throws Exception {
         // CSRF stays enabled: cookie/browser clients must not issue unprotected writes.
-        return http.authorizeHttpRequests(auth -> auth
+        return http.cors(org.springframework.security.config.Customizer.withDefaults()).authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated())
                 .exceptionHandling(handler -> handler.authenticationEntryPoint(errors).accessDeniedHandler(errors))

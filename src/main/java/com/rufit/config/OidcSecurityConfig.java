@@ -35,7 +35,7 @@ public class OidcSecurityConfig {
     @Bean
     SecurityFilterChain oidc(HttpSecurity http, ApiSecurityErrors errors) throws Exception {
         // This profile accepts Authorization-header bearer tokens only, never cookies or Basic credentials.
-        return http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        return http.cors(org.springframework.security.config.Customizer.withDefaults()).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .csrf(csrf -> csrf.disable())
             .requestCache(cache -> cache.disable())
             .authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health").permitAll().anyRequest().authenticated())
