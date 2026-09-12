@@ -8,6 +8,7 @@ class WorkoutDomainTests {
     @Test void completeWorkoutAndPreventFurtherEditing() {
         Workout w = new Workout(UUID.randomUUID(), "alice", Instant.EPOCH);
         w.replaceEntries(List.of(new Workout.Entry("푸시업", BigDecimal.ZERO, 10)));
+        w.completeSet(0, true, 0, Instant.EPOCH);
         w.finish(Instant.EPOCH.plusSeconds(60));
         assertThat(w.finishedAt()).isEqualTo(Instant.EPOCH.plusSeconds(60));
         assertThatThrownBy(() -> w.replaceEntries(List.of())).isInstanceOf(WorkoutConflict.class);

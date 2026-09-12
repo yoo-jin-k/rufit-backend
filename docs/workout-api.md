@@ -49,7 +49,9 @@ View: `id`, `startedAt`, `finishedAt`(진행 중 null), `version`, `sets`.
 - POST /api/v1/workouts/{id}/rest/skip: `version`.
 - 응답에 completedSetIndexes와 restEndsAt(UTC 절대시각)을 포함한다. 앱은 max(0, restEndsAt - 현재시각)으로 남은 시간을 표시한다. 서버는 초마다 카운터를 저장하지 않는다.
 - 같은 세트를 이미 완료한 상태에서 다시 완료해도 휴식 종료시각을 늘리지 않는다. 해당 세트 완료 취소와 운동 종료는 연결된 휴식을 해제한다.
-- 운동 종료는 미완료 세트가 있어도 허용하며 완료 여부를 기록에 보존한다. 집계는 완료 여부를 구분해야 한다.
+- 운동 종료는 완료한 세트가 최소 1개 필요하다. 미완료 세트가 있으면 409 `INCOMPLETE_SETS_CONFIRMATION_REQUIRED`를 반환하며 기록은 변경하지 않는다.
+- 사용자가 미완료 세트 제외에 동의한 뒤 `POST /{id}/finish`에 `{ "version": 최신버전, "discardIncomplete": true }`를 보내면 완료 세트만 순서대로 보존하고 종료한다. 생략 시 false이며 모두 완료했다면 확인 없이 종료한다.
+- 근거: [개발 실행판 POL-06](https://www.notion.so/3d9b67c8d01381c8b8bec2c5d9696c64).
 
 ## 저장 재시도·복구
 

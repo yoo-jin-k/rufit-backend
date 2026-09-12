@@ -30,6 +30,12 @@ class WorkoutApiTests {
         return mvc.perform(put("/api/v1/workouts/" + id + "/exercises").with(user("alice")).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content(json));
     }
+    private Number completeFirstSet(String id, Number version) throws Exception {
+        String response = mvc.perform(put("/api/v1/workouts/"+id+"/sets/0/completion").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+",\"completed\":true,\"restSeconds\":0}"))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        return JsonPath.read(response, "$.version");
+    }
     @Test void actualBasicAuthenticationAndCsrfToken() throws Exception {
         var result = mvc.perform(get("/api/v1/csrf").with(httpBasic("local-test", "test-only-password")))
             .andExpect(status().isOk()).andReturn();
@@ -50,6 +56,7 @@ class WorkoutApiTests {
         Number version = JsonPath.read(response, "$.version");
         mvc.perform(get("/api/v1/workouts/"+id).with(user("alice")))
             .andExpect(status().isOk()).andExpect(jsonPath("$.sets[0].reps").value(10));
+        version = completeFirstSet(id, version);
         mvc.perform(post("/api/v1/workouts/"+id+"/finish").with(user("alice")).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+"}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.finishedAt").isNotEmpty());
@@ -116,6 +123,7 @@ class WorkoutApiTests {
         String updated = edit(id, "{\"version\":0,\"sets\":[{\"exerciseName\":\"스쿼트\",\"weight\":40,\"reps\":10}]}")
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         Number version = JsonPath.read(updated, "$.version");
+        version = completeFirstSet(id, version);
         mvc.perform(post("/api/v1/workouts/"+id+"/finish").with(user("alice")).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+"}")).andExpect(status().isOk());
         start();
@@ -133,5 +141,23 @@ class WorkoutApiTests {
         mvc.perform(post("/api/v1/workouts/"+id+"/finish").with(user("alice")).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0}"))
             .andExpect(status().isBadRequest());
+    }
+    @Test void finishingPartialWorkoutRequiresConfirmationAndPersistsOnlyCompletedSets() throws Exception {
+        String id = start();
+        String response = edit(id, """
+            {"version":0,"sets":[{"exerciseName":"스쿼트","weight":40,"reps":10},{"exerciseName":"푸시업","weight":0,"reps":8}]}
+            """).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        Number version = completeFirstSet(id, JsonPath.read(response, "$.version"));
+        mvc.perform(post("/api/v1/workouts/"+id+"/finish").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+"}"))
+            .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INCOMPLETE_SETS_CONFIRMATION_REQUIRED"));
+        mvc.perform(get("/api/v1/workouts/"+id).with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.sets.length()").value(2)).andExpect(jsonPath("$.finishedAt").isEmpty());
+        mvc.perform(post("/api/v1/workouts/"+id+"/finish").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+",\"discardIncomplete\":true}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.sets.length()").value(1));
+        mvc.perform(get("/api/v1/workouts/"+id).with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.sets[0].exerciseName").value("스쿼트"))
+            .andExpect(jsonPath("$.completedSetIndexes[0]").value(0)).andExpect(jsonPath("$.finishedAt").isNotEmpty());
     }
 }

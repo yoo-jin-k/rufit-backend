@@ -35,10 +35,18 @@ public class Workout {
         entries.clear(); entries.addAll(replacement);
         completedSetIndexes.clear(); restEndsAt = null; restSetIndex = null;
     }
-    void finish(Instant now) {
+    void finish(Instant now) { finish(now, false); }
+    void finish(Instant now, boolean discardIncomplete) {
         requireActive();
-        if (entries.isEmpty()) throw new IllegalArgumentException("세트를 입력한 후 종료해 주세요.");
+        if (completedSetIndexes.isEmpty()) throw new IllegalArgumentException("완료한 세트가 1개 이상 있어야 종료할 수 있습니다.");
         if (now.isBefore(startedAt)) throw new IllegalArgumentException("종료 시간이 시작 시간보다 빠릅니다.");
+        if (completedSetIndexes.size() != entries.size()) {
+            if (!discardIncomplete) throw new WorkoutConflict("INCOMPLETE_SETS_CONFIRMATION_REQUIRED", "미완료 세트를 제외하고 종료할지 확인해 주세요.");
+            List<Entry> completed = completedSetIndexes().stream().map(entries::get).toList();
+            entries.clear(); entries.addAll(completed);
+            completedSetIndexes.clear();
+            for (int i = 0; i < entries.size(); i++) completedSetIndexes.add(i);
+        }
         finishedAt = now; restEndsAt = null; restSetIndex = null;
     }
     void completeSet(int index, boolean completed, int restSeconds, Instant now) {

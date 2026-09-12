@@ -25,7 +25,7 @@ public class ApiErrors extends ResponseEntityExceptionHandler {
     }
     @ExceptionHandler(WorkoutConflict.class)
     ProblemDetail conflict(WorkoutConflict e) {
-        return problem(HttpStatus.CONFLICT, "STATE_CONFLICT", e.getMessage());
+        return problem(HttpStatus.CONFLICT, e.code(), e.getMessage());
     }
     @ExceptionHandler({ObjectOptimisticLockingFailureException.class, DataIntegrityViolationException.class})
     ProblemDetail concurrentWrite(Exception e) {

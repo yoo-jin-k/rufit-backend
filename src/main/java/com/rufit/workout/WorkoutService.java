@@ -40,8 +40,8 @@ public class WorkoutService {
         w.replaceEntries(request.sets().stream().map(s -> new Workout.Entry(s.exerciseName(), s.weight(), s.reps())).toList());
         return View.from(repository.saveAndFlush(w));
     }
-    public View finish(UUID id, String owner, long version) {
-        Workout w = owned(id, owner); checkVersion(w, version); w.finish(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+    public View finish(UUID id, String owner, long version, boolean discardIncomplete) {
+        Workout w = owned(id, owner); checkVersion(w, version); w.finish(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS), discardIncomplete);
         return View.from(repository.saveAndFlush(w));
     }
     public View complete(UUID id, String owner, int index, Completion request) {
