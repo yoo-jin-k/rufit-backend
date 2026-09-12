@@ -21,7 +21,7 @@ public class RoutineService {
     public View create(String owner, Create request, UUID requestId) {
         var replay = repository.findByIdAndOwnerName(requestId, owner);
         if (replay.isPresent()) {
-            if (replay.get().sourceRoutineId != null) throw new WorkoutConflict("복사 요청에 사용한 식별자입니다.");
+            if (replay.get().sourceRoutineId != null || replay.get().sourceWorkoutId != null) throw new WorkoutConflict("복사 요청에 사용한 식별자입니다.");
             return View.from(replay.get());
         }
         if (retired.belongsTo(requestId, owner)) throw new ResponseStatusException(HttpStatus.GONE, "삭제한 루틴입니다.");
@@ -43,6 +43,23 @@ public class RoutineService {
         Routine copy=new Routine(requestId,owner,request.title(),entries);
         copy.sourceRoutineId=source.id;
         return View.from(repository.saveAndFlush(copy));
+    }
+    public View fromWorkout(UUID workoutId,String owner,Copy request,UUID requestId) {
+        var replay=repository.findByIdAndOwnerName(requestId,owner);
+        if(replay.isPresent()) {
+            if(!workoutId.equals(replay.get().sourceWorkoutId)) throw new WorkoutConflict("다른 생성 요청에 사용한 식별자입니다.");
+            return View.from(replay.get());
+        }
+        if(retired.belongsTo(requestId,owner)) throw new ResponseStatusException(HttpStatus.GONE,"삭제한 루틴입니다.");
+        if(retired.exists(requestId) || repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
+        WorkoutController.View source=workouts.get(workoutId,owner);
+        if(source.finishedAt()==null) throw new WorkoutConflict("완료한 운동만 루틴으로 저장할 수 있습니다.");
+        if(source.version()!=request.version().longValue()) throw new WorkoutConflict("원본 운동이 변경되었습니다. 다시 조회해 주세요.");
+        var entries=source.completedSetIndexes().stream().map(index -> source.sets().get(index))
+            .map(set -> new Workout.Entry(set.exerciseId(),set.exerciseName(),set.weight(),set.reps())).toList();
+        Routine routine=new Routine(requestId,owner,request.title(),entries);
+        routine.sourceWorkoutId=workoutId;
+        return View.from(repository.saveAndFlush(routine));
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public View get(UUID id, String owner) { return View.from(owned(id, owner)); }

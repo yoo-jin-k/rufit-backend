@@ -12,6 +12,7 @@ class Routine {
     @Column(nullable=false, length=80) String title;
     @Version Long version;
     UUID sourceRoutineId;
+    UUID sourceWorkoutId;
     @ElementCollection
     @CollectionTable(name="routine_entries", joinColumns=@JoinColumn(name="routine_id"))
     @OrderColumn(name="entry_order")
