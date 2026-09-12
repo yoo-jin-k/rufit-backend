@@ -44,7 +44,9 @@ public class ExerciseStatistics {
                 return new View(exerciseId,name,row.getLong("workouts"),row.getLong("sets"),row.getLong("total_reps"),row.getBigDecimal("volume"),last==null?null:last.toInstant(),best);
             });
     }
+    @Schema(requiredProperties={"workoutId", "finishedAt", "setIndex", "weight", "reps"})
     public record BestSet(UUID workoutId,Instant finishedAt,int setIndex,BigDecimal weight,int reps) {}
+    @Schema(requiredProperties={"exerciseId", "exerciseName", "workouts", "completedSets", "totalReps", "volumeKgReps", "lastPerformedAt", "heaviestSet"})
     public record View(@Schema(nullable=true) UUID exerciseId,String exerciseName,long workouts,long completedSets,long totalReps,
         BigDecimal volumeKgReps,@Schema(nullable=true) Instant lastPerformedAt,@Schema(nullable=true) BestSet heaviestSet) {}
 }

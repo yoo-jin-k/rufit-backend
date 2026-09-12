@@ -24,8 +24,9 @@ public class ProfileController {
     public record Fields(@NotBlank @Size(min=2,max=30) String nickname,@NotNull @Size(max=500) String bio,
         @Schema(nullable=true) Experience experience,@NotNull @Size(max=4) Set<@NotNull Goal> goals) {}
     public record Edit(@NotNull @PositiveOrZero Long version,@NotNull @Valid Fields profile) {}
+    @Schema(requiredProperties={"nickname", "bio", "experience", "goals", "version", "visibility"})
     public record View(String nickname,String bio,@Schema(nullable=true) Experience experience,
-        List<Goal> goals,long version,String visibility) {
+        List<Goal> goals,long version,@Schema(allowableValues={"PRIVATE"}) String visibility) {
         static View from(UserProfile p) { return new View(p.nickname,p.bio,p.experience,p.goals.stream().sorted().toList(),p.version,"PRIVATE"); }
     }
 }

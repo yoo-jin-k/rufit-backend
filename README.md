@@ -30,7 +30,9 @@ OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·
 
 `RUFIT_API_DOCS_ENABLED=true`로 명시적으로 켜면 인증 후 `/v3/api-docs`에서 OpenAPI 3.0 JSON을 조회할 수 있습니다. 기본값은 비활성입니다. 명세도 업무 API와 동일한 인증 보호를 받습니다. Swagger UI는 포함하지 않습니다.
 
-`./mvnw verify`는 응답 스키마 이름 충돌과 null 필드를 검사하고 `target/openapi.json`을 생성합니다. CI의 `backend-api-contract` 아티팩트에서 내려받을 수 있습니다. local/test로 생성한 명세는 개발용 Basic 인증을 표시하며 oidc 실행 명세는 Bearer 인증을 표시합니다.
+`./mvnw verify`는 응답 스키마 이름 충돌, 필드 존재 여부와 null 허용, 인증 방식을 검사합니다. `target/openapi.json`은 개발용 Basic 명세이고 `target/openapi-oidc.json`은 Bearer 명세입니다. 두 파일은 CI의 `backend-api-contract` 아티팩트에서 내려받을 수 있습니다. OIDC 명세에는 개발용 CSRF 경로가 없습니다.
+
+응답의 `required`는 JSON에 필드가 항상 존재한다는 뜻이며 `nullable`은 그 값이 null일 수 있다는 뜻입니다. 예를 들어 운동 종료 전에도 `finishedAt` 필드는 존재하고 값은 null입니다. 요청의 선택 항목(`SetInput.exerciseId`, `Draft.note`)은 필수로 바꾸지 않습니다. 비공개 프로필의 `visibility`는 `PRIVATE`만 반환합니다.
 
 - [운동·루틴 API와 입력 예시](docs/workout-api.md)
 - [구현 범위와 남은 작업](docs/api-plan.md)

@@ -1,5 +1,6 @@
 package com.rufit.exercise;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.springframework.web.bind.annotation.*;
@@ -32,8 +33,10 @@ public class ExerciseController {
     public record Create(@NotBlank @Size(max=80) String name,@NotNull Exercise.BodyPart bodyPart,@NotNull Exercise.Equipment equipment) {}
     public record Edit(@NotNull @PositiveOrZero Long version,@NotBlank @Size(max=80) String name,@NotNull Exercise.BodyPart bodyPart,@NotNull Exercise.Equipment equipment) {}
     public record Revision(@NotNull @PositiveOrZero Long version) {}
+    @Schema(requiredProperties={"id", "name", "bodyPart", "equipment", "custom", "archivedAt", "version"})
     public record View(UUID id,String name,Exercise.BodyPart bodyPart,Exercise.Equipment equipment,boolean custom,@io.swagger.v3.oas.annotations.media.Schema(nullable=true) Instant archivedAt,long version) {
         static View from(Exercise e) { return new View(e.id,e.name,e.bodyPart,e.equipment,e.ownerName!=null,e.archivedAt,e.version); }
     }
+    @Schema(requiredProperties={"items", "page", "size", "totalElements", "hasNext"})
     public record Results(List<View> items,int page,int size,long totalElements,boolean hasNext) {}
 }

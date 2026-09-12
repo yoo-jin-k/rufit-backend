@@ -42,6 +42,26 @@ class ApiContractTests {
         Map<String, Object> schema = (Map<String, Object>) schemas.get(ref.substring("#/components/schemas/".length()));
         return (Map<String, Object>) schema.get("properties");
     }
+    @Test void responseFieldsArePresentEvenWhenNullableWhileOptionalInputsRemainOptional() throws Exception {
+        String json=mvc.perform(get("/v3/api-docs").with(user("contract-test"))).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        Map<String,Map<String,Object>> schemas=JsonPath.read(json,"$.components.schemas");
+        for (String name:List.of("workout.WorkoutController.View","workout.WorkoutController.History","workout.WorkoutController.ExerciseRecord",
+            "workout.WorkoutController.ExerciseHistory","workout.WorkoutController.DraftSave","routine.RoutineController.View",
+            "profile.ProfileController.View","exercise.ExerciseController.View","exercise.ExerciseController.Results",
+            "workout.WorkoutSummary.View","workout.WorkoutSummary.Exercise","workout.ExerciseStatistics.View","workout.ExerciseStatistics.BestSet",
+            "workout.WorkoutCalendar.Day","workout.WorkoutCalendar.MonthView","config.CurrentAccountController.Account","config.DevelopmentCsrfController.Token")) {
+            Map<String,Object> schema=schemas.get("com.rufit."+name);
+            assertThat(schema).as(name).isNotNull();
+            Map<?,?> props=(Map<?,?>)schema.get("properties");
+            assertThat(new HashSet<>((List<?>)schema.get("required"))).as(name).isEqualTo(props.keySet());
+        }
+        Map<?,?> profileProps=(Map<?,?>)schemas.get("com.rufit.profile.ProfileController.View").get("properties");
+        assertThat(((Map<?,?>)profileProps.get("experience")).get("nullable")).isEqualTo(true);
+        assertThat(((Map<?,?>)profileProps.get("visibility")).get("enum")).isEqualTo(List.of("PRIVATE"));
+        assertThat(((List<?>)schemas.get("com.rufit.workout.WorkoutController.SetInput").get("required")).contains("exerciseId")).isFalse();
+        assertThat(((List<?>)schemas.get("com.rufit.workout.WorkoutController.Draft").get("required")).contains("note")).isFalse();
+    }
     @Test void enabledDocumentationStillRequiresAuthentication() throws Exception {
         mvc.perform(get("/v3/api-docs")).andExpect(status().isUnauthorized());
     }

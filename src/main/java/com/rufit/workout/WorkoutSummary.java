@@ -33,8 +33,10 @@ public class WorkoutSummary {
             Duration.between(workout.startedAt(),workout.finishedAt()).getSeconds(),workout.completedSetIndexes().size(),
             exercises.stream().mapToLong(Exercise::totalReps).sum(),exercises.stream().map(Exercise::volumeKgReps).reduce(BigDecimal.ZERO,BigDecimal::add),exercises);
     }
+    @Schema(requiredProperties={"exerciseId", "exerciseName", "completedSets", "totalReps", "volumeKgReps", "heaviestWeight", "repsAtHeaviestWeight"})
     public record Exercise(@Schema(nullable=true) UUID exerciseId,String exerciseName,int completedSets,long totalReps,
         BigDecimal volumeKgReps,BigDecimal heaviestWeight,int repsAtHeaviestWeight) {}
+    @Schema(requiredProperties={"workoutId", "version", "startedAt", "finishedAt", "durationSeconds", "completedSets", "totalReps", "volumeKgReps", "exercises"})
     public record View(UUID workoutId,long version,Instant startedAt,Instant finishedAt,long durationSeconds,int completedSets,
         long totalReps,BigDecimal volumeKgReps,List<Exercise> exercises) {}
 }

@@ -1,5 +1,6 @@
 package com.rufit.workout;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +58,9 @@ public class WorkoutCalendar {
             result.stream().mapToLong(Day::durationSeconds).sum());
     }
     private record Session(Instant start, Instant finish, long sets, BigDecimal volume) {}
+    @Schema(requiredProperties={"date", "workouts", "completedSets", "volumeKgReps", "durationSeconds"})
     public record Day(LocalDate date, long workouts, long completedSets, BigDecimal volumeKgReps, long durationSeconds) {}
+    @Schema(requiredProperties={"month", "zone", "days", "workoutDays", "workouts", "completedSets", "volumeKgReps", "durationSeconds"})
     public record MonthView(String month, String zone, List<Day> days, long workoutDays, long workouts,
         long completedSets, BigDecimal volumeKgReps, long durationSeconds) {}
 }

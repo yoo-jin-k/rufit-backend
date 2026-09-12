@@ -27,13 +27,16 @@ public class WorkoutController {
     }
     @GetMapping
     public History history(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size, Principal principal) { return service.history(principal.getName(), page, size); }
+    @Schema(requiredProperties={"items", "page", "size", "totalElements", "hasNext"})
     public record History(List<View> items, int page, int size, long totalElements, boolean hasNext) {}
     @GetMapping("/exercise-history")
     public ExerciseHistory exerciseHistory(@RequestParam(required=false) String exerciseName, @RequestParam(required=false) UUID exerciseId, @RequestParam(defaultValue="0") int page,
         @RequestParam(defaultValue="10") int size, Principal principal) {
         return service.exerciseHistory(principal.getName(), exerciseName, exerciseId, page, size);
     }
+    @Schema(requiredProperties={"workoutId", "finishedAt", "sets"})
     public record ExerciseRecord(UUID workoutId, Instant finishedAt, List<SetInput> sets) {}
+    @Schema(requiredProperties={"exerciseName", "items", "page", "size", "totalElements", "hasNext"})
     public record ExerciseHistory(String exerciseName, List<ExerciseRecord> items, int page, int size, long totalElements, boolean hasNext) {}
     @GetMapping("/{id}")
     public View get(@PathVariable UUID id, Principal principal) { return service.get(id, principal.getName()); }
@@ -66,6 +69,7 @@ public class WorkoutController {
         return service.updateNote(id,principal.getName(),request);
     }
     public record Note(@NotNull @PositiveOrZero Long version,@NotNull @Size(max=2000) String note) {}
+    @Schema(requiredProperties={"workout", "appliedVersion", "replayed"})
     public record DraftSave(View workout,long appliedVersion,boolean replayed) {}
     public record DraftSet(@NotNull @Valid SetInput set,@NotNull Boolean completed) {}
     public record Draft(@NotNull UUID operationId,@NotNull @PositiveOrZero Long version,

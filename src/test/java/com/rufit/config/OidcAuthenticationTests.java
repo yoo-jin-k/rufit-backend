@@ -24,7 +24,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties="springdoc.api-docs.enabled=true")
 @AutoConfigureMockMvc
 @ActiveProfiles("oidc")
 class OidcAuthenticationTests {
@@ -130,5 +130,16 @@ class OidcAuthenticationTests {
         mvc.perform(options("/api/v1/workouts").header("Origin", "https://app.rufit.test")
             .header("Access-Control-Request-Method", "DELETE"))
             .andExpect(status().isForbidden());
+    }
+    @Test void exportsBearerContractWithoutDevelopmentCsrfRoute() throws Exception {
+        String json=mvc.perform(get("/v3/api-docs").header("Authorization","Bearer "+token("contract")))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        Map<String,Object> schemes=JsonPath.read(json,"$.components.securitySchemes");
+        org.assertj.core.api.Assertions.assertThat(schemes).containsKey("bearerAuth").doesNotContainKey("developmentBasic");
+        org.assertj.core.api.Assertions.assertThat((String)JsonPath.read(json,"$.components.securitySchemes.bearerAuth.scheme")).isEqualTo("bearer");
+        Map<String,Object> paths=JsonPath.read(json,"$.paths");
+        org.assertj.core.api.Assertions.assertThat(paths).containsKeys("/api/v1/profile","/api/v1/workouts/{id}/draft").doesNotContainKey("/api/v1/csrf");
+        java.nio.file.Files.createDirectories(java.nio.file.Path.of("target"));
+        java.nio.file.Files.writeString(java.nio.file.Path.of("target/openapi-oidc.json"),json);
     }
 }
