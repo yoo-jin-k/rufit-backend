@@ -13,17 +13,18 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from test_database import test_environment
 
 root = Path(__file__).resolve().parents[1]
 jars = list((root / 'target').glob('*.jar'))
 assert len(jars) == 1, 'Build the application JAR with ./mvnw verify first'
-assert os.environ.get('DB_URL') and os.environ.get('DB_PASSWORD'), 'A dedicated test DB is required'
+test_env = test_environment(os.environ)
 with socket.socket() as sock:
     sock.bind(('127.0.0.1', 0))
     port = sock.getsockname()[1]
 base = f'http://127.0.0.1:{port}'
 username, password = f'restart-{uuid.uuid4()}', secrets.token_urlsafe(24)
-env = {**os.environ, 'SPRING_PROFILES_ACTIVE': 'local', 'SPRING_SECURITY_USER_NAME': username,
+env = {**test_env, 'SPRING_PROFILES_ACTIVE': 'local', 'SPRING_SECURITY_USER_NAME': username,
        'SPRING_SECURITY_USER_PASSWORD': password}
 auth = 'Basic ' + base64.b64encode(f'{username}:{password}'.encode()).decode()
 java = str(Path(env['JAVA_HOME']) / 'bin/java') if 'JAVA_HOME' in env else 'java'
@@ -50,7 +51,7 @@ def request(method, path, body=None, key=None):
 def start():
     global process, log, opener, csrf
     log = (logdir / f'server-{time.time_ns()}.log').open('w')
-    process = subprocess.Popen([java, '-jar', str(jars[0]), f'--server.port={port}'], cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT)
+    process = subprocess.Popen([java, '-jar', str(jars[0]), f'--server.port={port}', f'--spring.datasource.url={test_env["DB_URL"]}', '--spring.datasource.username=rufit_test'], cwd=root, env=env, stdout=log, stderr=subprocess.STDOUT)
     for _ in range(200):
         if process.poll() is not None:
             raise RuntimeError(f'Server exited; logs: {logdir}')

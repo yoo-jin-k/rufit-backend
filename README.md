@@ -15,7 +15,7 @@ DB_URL(기본 localhost:5433/rufit), DB_USERNAME(기본 rufit), DB_PASSWORD로 �
 
 ## 검증
 
-전용 PostgreSQL 테스트 DB의 DB_URL, DB_USERNAME, DB_PASSWORD를 설정하고 `./mvnw -B verify`.
+루프백 호스트의 전용 PostgreSQL DB `rufit_test`와 계정 `rufit_test`를 준비하고 DB_URL, DB_USERNAME, DB_PASSWORD를 설정한 뒤 `./mvnw -B verify`를 실행합니다. 다른 DB·계정은 테스트 시작 전에 거절합니다. [실행 보호 조건](docs/backup-restore.md)을 참고합니다.
 CI는 PostgreSQL 17에서 Flyway 마이그레이션, 애플리케이션 로딩, 보안·API 테스트를 실행합니다.
 H2로 PostgreSQL 호환성 검증을 대체하지 않습니다.
 
