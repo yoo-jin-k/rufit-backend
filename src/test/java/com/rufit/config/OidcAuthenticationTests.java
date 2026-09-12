@@ -56,6 +56,7 @@ class OidcAuthenticationTests {
         registry.add("rufit.allowed-origins", () -> "https://app.rufit.test");
         registry.add("rufit.auth.issuer", () -> ISSUER);
         registry.add("rufit.auth.audience", () -> "rufit-api");
+        registry.add("rufit.auth.allow-local-http-jwks", () -> true);
         registry.add("rufit.auth.jwk-set-uri", () -> "http://127.0.0.1:"+JWKS.getAddress().getPort()+"/jwks");
     }
     @AfterAll static void close() { JWKS.stop(0); }

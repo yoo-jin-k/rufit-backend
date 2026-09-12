@@ -35,3 +35,10 @@
 웹 화면 연결이 필요하면 `RUFIT_ALLOWED_ORIGINS=https://app.example.com,http://localhost:8081`처럼 정확한 origin을 지정합니다. 기본값은 비어 있어 교차 출처 브라우저 요청을 허용하지 않습니다. 와일드카드, 경로, 끝의 `/`, 인증 정보, 쿼리는 허용하지 않습니다. GET/POST/PUT과 사전 요청 OPTIONS를 허용하며 Authorization, Content-Type, Idempotency-Key, X-CSRF-TOKEN 헤더를 받을 수 있습니다.
 
 OIDC에서는 쿠키 자격 증명을 허용하지 않습니다. local/test에서는 CSRF 세션을 사용하는 개발 클라이언트를 위해 등록된 origin의 쿠키를 허용합니다. CORS 허용은 인증 허용이 아니며 실제 API 요청에는 여전히 인증이 필요합니다. 네이티브 앱의 HTTP 요청에는 브라우저 CORS가 적용되지 않습니다.
+# 발급자와 검증 키 주소 검사
+
+OIDC 프로필 시작 시 issuer는 호스트가 있는 HTTPS 주소이고 query/fragment/사용자정보가 없는지 검사합니다. 문자열을 자동 정규화하지 않으므로 토큰의 issuer와 설정값은 기존처럼 정확히 일치해야 합니다. JWKS는 HTTPS를 기본으로 요구하며 사용자정보·fragment·유효하지 않은 포트를 거절합니다. 잘못된 설정 오류에는 입력 주소를 그대로 출력하지 않습니다.
+
+실제 서비스 설정에는 HTTPS JWKS를 사용합니다. 테스트용 로컬 서명 키 서버는 `RUFIT_AUTH_ALLOW_LOCAL_HTTP_JWKS=true`를 명시한 경우에만 `localhost`, `127.0.0.1`, `[::1]`의 HTTP 주소를 허용합니다. 이 옵션도 원격 HTTP나 사설망 HTTP는 허용하지 않습니다. 자동 테스트는 자기 프로세스로 만든 로컬 키 서버에만 이 옵션을 사용하며 운영 Compose에는 옵션을 추가하지 않습니다.
+
+근거: [OpenID Connect Discovery의 발급자 메타데이터 규정](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata). 실제 로그인 제공자 등록·로그인 화면은 별도 작업이며, 이 검사는 주소 설정의 형식과 전송 방식만 확인합니다.

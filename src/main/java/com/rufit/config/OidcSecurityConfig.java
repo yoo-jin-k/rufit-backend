@@ -20,9 +20,11 @@ import java.util.List;
 public class OidcSecurityConfig {
     @Bean
     JwtDecoder jwtDecoder(@Value("${rufit.auth.issuer}") String issuer,
-        @Value("${rufit.auth.jwk-set-uri}") String jwkSetUri, @Value("${rufit.auth.audience}") String audience) {
+        @Value("${rufit.auth.jwk-set-uri}") String jwkSetUri, @Value("${rufit.auth.audience}") String audience,
+        @Value("${rufit.auth.allow-local-http-jwks:false}") boolean allowLocalHttpJwks) {
         if (issuer.isBlank() || jwkSetUri.isBlank() || audience.isBlank())
             throw new IllegalArgumentException("OIDC issuer, JWKS, audience 설정이 필요합니다.");
+        OidcEndpoints.validate(issuer,jwkSetUri,allowLocalHttpJwks);
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
         OAuth2TokenValidator<Jwt> claims = jwt -> {
             if (jwt.getAudience() != null && jwt.getAudience().contains(audience) && jwt.getExpiresAt() != null
