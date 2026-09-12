@@ -19,10 +19,29 @@ public class RoutineService {
     RoutineService(RoutineRepository repository, WorkoutService workouts, RetiredRoutineKeys retired, ExerciseSetResolver resolver) { this.repository=repository; this.workouts=workouts; this.retired=retired; this.resolver=resolver; }
     public View create(String owner, Create request, UUID requestId) {
         var replay = repository.findByIdAndOwnerName(requestId, owner);
-        if (replay.isPresent()) return View.from(replay.get());
+        if (replay.isPresent()) {
+            if (replay.get().sourceRoutineId != null) throw new WorkoutConflict("복사 요청에 사용한 식별자입니다.");
+            return View.from(replay.get());
+        }
         if (retired.belongsTo(requestId, owner)) throw new ResponseStatusException(HttpStatus.GONE, "삭제한 루틴입니다.");
         if (retired.exists(requestId) || repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
         return View.from(repository.saveAndFlush(new Routine(requestId, owner, request.title(), resolver.resolve(owner,request.sets(),List.of()))));
+    }
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+    public View copy(UUID sourceId, String owner, Copy request, UUID requestId) {
+        var replay = repository.findByIdAndOwnerName(requestId,owner);
+        if (replay.isPresent()) {
+            if (!sourceId.equals(replay.get().sourceRoutineId)) throw new WorkoutConflict("다른 생성 요청에 사용한 식별자입니다.");
+            return View.from(replay.get());
+        }
+        if (retired.belongsTo(requestId,owner)) throw new ResponseStatusException(HttpStatus.GONE,"삭제한 루틴입니다.");
+        if (retired.exists(requestId) || repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
+        Routine source=owned(sourceId,owner);
+        if (!Objects.equals(source.version,request.version())) throw new WorkoutConflict("원본 루틴이 변경되었습니다. 다시 조회해 주세요.");
+        var entries=source.entries.stream().map(e -> new Workout.Entry(e.exerciseId(),e.name(),e.weight(),e.reps())).toList();
+        Routine copy=new Routine(requestId,owner,request.title(),entries);
+        copy.sourceRoutineId=source.id;
+        return View.from(repository.saveAndFlush(copy));
     }
     @Transactional(readOnly=true)
     public View get(UUID id, String owner) { return View.from(owned(id, owner)); }

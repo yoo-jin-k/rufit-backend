@@ -11,6 +11,7 @@ class Routine {
     @Column(nullable=false, length=100) String ownerName;
     @Column(nullable=false, length=80) String title;
     @Version Long version;
+    UUID sourceRoutineId;
     @ElementCollection
     @CollectionTable(name="routine_entries", joinColumns=@JoinColumn(name="routine_id"))
     @OrderColumn(name="entry_order")
