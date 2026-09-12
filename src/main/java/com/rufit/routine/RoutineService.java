@@ -68,6 +68,14 @@ public class RoutineService {
         if (page < 0 || page > 10000) throw new IllegalArgumentException("페이지 범위를 확인해 주세요.");
         return repository.findByOwnerName(owner, PageRequest.of(page, 20, Sort.by("id"))).map(View::from).toList();
     }
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Results search(String owner,String query,int page,int size) {
+        if(query==null || query.length()>80 || page<0 || page>10000 || size<1 || size>50)
+            throw new IllegalArgumentException("루틴 검색어와 조회 범위를 확인해 주세요.");
+        String pattern="%"+query.trim().toLowerCase(Locale.ROOT).replace("!","!!").replace("%","!%").replace("_","!_")+"%";
+        Page<Routine> found=repository.search(owner,pattern,PageRequest.of(page,size,Sort.by("title","id")));
+        return new Results(found.map(View::from).toList(),page,size,found.getTotalElements(),found.hasNext());
+    }
     public View update(UUID id, String owner, Edit request) {
         Routine r = owned(id, owner);
         if (!Objects.equals(r.version, request.version())) throw new WorkoutConflict("루틴이 변경되었습니다. 다시 조회해 주세요.");

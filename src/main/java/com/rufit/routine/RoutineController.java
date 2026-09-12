@@ -30,6 +30,13 @@ public class RoutineController {
     public record Copy(@NotNull @PositiveOrZero Long version,@NotBlank @Size(max=80) String title) {}
     @GetMapping
     public List<View> list(@RequestParam(defaultValue="0") int page, Principal principal) { return service.list(principal.getName(), page); }
+    @GetMapping("/search")
+    public Results search(@RequestParam(defaultValue="") String query,@RequestParam(defaultValue="0") int page,
+        @RequestParam(defaultValue="20") int size,Principal principal) {
+        return service.search(principal.getName(),query,page,size);
+    }
+    @Schema(requiredProperties={"items","page","size","totalElements","hasNext"})
+    public record Results(List<View> items,int page,int size,long totalElements,boolean hasNext) {}
     @GetMapping("/{id}")
     public View get(@PathVariable UUID id, Principal principal) { return service.get(id, principal.getName()); }
     @PutMapping("/{id}")
