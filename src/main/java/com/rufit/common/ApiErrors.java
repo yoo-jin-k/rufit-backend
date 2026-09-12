@@ -19,6 +19,11 @@ public class ApiErrors extends ResponseEntityExceptionHandler {
         problem.setProperty("code", code);
         return problem;
     }
+    @ExceptionHandler({org.springframework.transaction.CannotCreateTransactionException.class,
+        org.springframework.dao.DataAccessResourceFailureException.class})
+    ProblemDetail unavailableStorage(Exception error) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE,"STORAGE_UNAVAILABLE","일시적으로 기록 저장소에 연결할 수 없습니다. 잠시 후 같은 요청으로 다시 확인해 주세요.");
+    }
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail invalid(IllegalArgumentException e) {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_INPUT", e.getMessage());

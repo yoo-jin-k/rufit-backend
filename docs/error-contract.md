@@ -28,3 +28,5 @@
 앱의 `ApiError.requestId`가 있으면 테스트 실패를 재현할 때 그 번호로 서버 로그를 찾을 수 있습니다. 이것만으로 외부 모니터링 서비스나 분산 추적이 구성된 것은 아닙니다.
 
 동작 근거: [Spring OncePerRequestFilter](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/filter/OncePerRequestFilter.html), [Spring Boot MDC 로그 설정](https://docs.spring.io/spring-boot/reference/features/logging.html).
+
+DB 연결을 열지 못하거나 저장소 연결이 끊긴 경우는 `503 STORAGE_UNAVAILABLE`의 공통 오류로 반환합니다. DB 주소·SQL·연결 설정을 응답에 넣지 않습니다. 쓰기 요청의 성공 여부는 클라이언트에서 불명확한 상태로 유지하고, 연결 복구 후 같은 작업 ID로 확인합니다. 이 오류를 저장 완료나 인증 실패로 처리하지 않습니다.

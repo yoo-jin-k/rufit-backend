@@ -19,3 +19,11 @@ GitHub 검증은 실제 HTTP 재시작 복구 다음에 이 절차를 실행하�
 JVM 재시작 검증과 프론트 실제 연결 검증도 같은 DB 규칙을 적용합니다. 테스트 자식 프로세스에는 다른 작업의 `SPRING_*` 및 JVM 옵션 환경변수를 넘기지 않고, 검증한 DB 주소·계정을 명시합니다. 이 동작은 사용자의 전역 환경변수를 수정하지 않습니다. 보호 장치는 설정 실수를 줄이기 위한 것이며, `rufit_test`에는 테스트 데이터만 넣어야 합니다.
 
 DB 연결 전에 잘못된 주소가 거절되는 Java 테스트와 `python3 scripts/test_database_guard.py`를 CI에서 실행합니다. 초기화 구조는 [Spring Boot EnvironmentPostProcessor](https://docs.spring.io/spring-boot/4.0/api/java/org/springframework/boot/EnvironmentPostProcessor.html)를 사용합니다.
+
+## 일시적인 DB 중단 후 서버 복구
+
+`python3 scripts/smoke-database-reconnect.py`는 `RUFIT_TEST_CONTAINER`(기본 `rufit-postgres-verify`)의 DB·계정이 `rufit_test`인지, 공개 포트가 DB_URL과 일치하는지 확인한 뒤에만 해당 테스트 컨테이너를 잠시 중지합니다. 같은 테스트 DB를 사용하는 다른 검사와 동시에 실행하지 않습니다. 기존 DB나 볼륨을 삭제하거나 교체하지 않습니다.
+
+검사 순서: 기록 저장 → PostgreSQL 중단 → 읽기·저장 요청 6회의 503 STORAGE_UNAVAILABLE 확인 → PostgreSQL 시작 → 같은 JVM에서 기존 버전·내용 복구 → 실패한 초안의 같은 작업 ID 재시도 → 중복 적용 없이 완료 이력 1개 확인. 실패해도 finally에서 테스트 DB를 다시 시작합니다. 확인 결과는 `target/database-reconnect-result.json`에 기록합니다.
+
+실행 스크립트의 연결 대기 시간은 검사를 위해 1초로 줄입니다. 운영의 장애 감지 시간이나 자동 복구 SLA를 측정하는 부하 검사는 아닙니다. 기존 JVM 재시작 검사와 HTTP 실행 도구를 공유하며, 성공한 실행의 임시 로그는 정리합니다. 실패 로그 경로는 진단용으로 남깁니다.
