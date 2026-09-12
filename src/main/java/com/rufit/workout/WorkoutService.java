@@ -19,10 +19,17 @@ public class WorkoutService {
     private final DraftOperations operations;
     WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired, ExerciseSetResolver resolver, DraftOperations operations) { this.repository = repository; this.retired = retired; this.resolver=resolver; this.operations=operations; }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
-    public History history(String owner, int page, int size) {
+    public History history(String owner, int page, int size) { return history(owner,page,size,null,"Asia/Seoul"); }
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public History history(String owner, int page, int size,String date,String zone) {
         if (page < 0 || page > 10000 || size < 1 || size > 100) throw new IllegalArgumentException("페이지와 조회 개수 범위를 확인해 주세요.");
-        Page<Workout> records = repository.findByOwnerNameAndFinishedAtIsNotNull(owner,
-            PageRequest.of(page, size, Sort.by(Sort.Order.desc("finishedAt"), Sort.Order.desc("id"))));
+        Pageable pagination=PageRequest.of(page, size, Sort.by(Sort.Order.desc("finishedAt"), Sort.Order.desc("id")));
+        Page<Workout> records;
+        if (date==null) records=repository.findByOwnerNameAndFinishedAtIsNotNull(owner,pagination);
+        else {
+            WorkoutDateRange range=WorkoutDateRange.day(date,zone);
+            records=repository.findDailyHistory(owner,range.from(),range.until(),pagination);
+        }
         return new History(records.map(View::from).toList(), page, size, records.getTotalElements(), records.hasNext());
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)

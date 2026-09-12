@@ -26,7 +26,10 @@ public class WorkoutController {
         return service.active(principal.getName()).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
     @GetMapping
-    public History history(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size, Principal principal) { return service.history(principal.getName(), page, size); }
+    public History history(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size,
+        @RequestParam(required=false) String date,@RequestParam(defaultValue="Asia/Seoul") String zone, Principal principal) {
+        return service.history(principal.getName(), page, size, date, zone);
+    }
     @Schema(requiredProperties={"items", "page", "size", "totalElements", "hasNext"})
     public record History(List<View> items, int page, int size, long totalElements, boolean hasNext) {}
     @GetMapping("/exercise-history")
