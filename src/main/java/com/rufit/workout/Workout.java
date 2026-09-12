@@ -18,6 +18,7 @@ public class Workout {
     private Instant finishedAt;
     private Instant cancelledAt;
     private UUID sourceRoutineId;
+    private UUID lastDraftOperationId;
     @Version private Long version;
     @ElementCollection
     @CollectionTable(name = "workout_entries", joinColumns = @JoinColumn(name = "workout_id"))
@@ -44,6 +45,21 @@ public class Workout {
         entries.clear(); entries.addAll(replacement);
         completedSetIndexes.clear(); restEndsAt = null; restSetIndex = null;
     }
+    void saveDraft(UUID operationId,List<Entry> replacement,List<Boolean> completed,Integer restIndex,Instant deadline,Instant now) {
+        requireActive();
+        if (replacement.size()>300 || replacement.size()!=completed.size() || completed.stream().anyMatch(java.util.Objects::isNull) || operationId==null)
+            throw new IllegalArgumentException("세트 구성과 완료 상태를 확인해 주세요.");
+        if ((restIndex==null)!=(deadline==null)) throw new IllegalArgumentException("휴식 대상과 종료시각을 함께 보내 주세요.");
+        if (restIndex!=null && (restIndex<0 || restIndex>=replacement.size() || !completed.get(restIndex)))
+            throw new IllegalArgumentException("휴식은 완료한 세트에만 연결할 수 있습니다.");
+        if (deadline!=null && deadline.isAfter(now.plusSeconds(3600))) throw new IllegalArgumentException("휴식은 최대 3600초까지 설정할 수 있습니다.");
+        entries.clear(); entries.addAll(replacement); completedSetIndexes.clear();
+        for (int i=0;i<completed.size();i++) if (completed.get(i)) completedSetIndexes.add(i);
+        restEndsAt=deadline!=null && deadline.isAfter(now) ? deadline : null;
+        restSetIndex=restEndsAt==null ? null : restIndex;
+        lastDraftOperationId=operationId;
+    }
+    Integer restSetIndex() { return restSetIndex; }
     void correctHistory(List<Entry> replacement) {
         if (finishedAt == null) throw new WorkoutConflict("완료한 운동 기록만 정정할 수 있습니다.");
         if (replacement.isEmpty() || replacement.size() > 300) throw new IllegalArgumentException("완료 세트는 1~300개여야 합니다.");

@@ -15,7 +15,8 @@ public class WorkoutService {
     private final WorkoutRepository repository;
     private final RetiredWorkoutKeys retired;
     private final ExerciseSetResolver resolver;
-    WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired, ExerciseSetResolver resolver) { this.repository = repository; this.retired = retired; this.resolver=resolver; }
+    private final DraftOperations operations;
+    WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired, ExerciseSetResolver resolver, DraftOperations operations) { this.repository = repository; this.retired = retired; this.resolver=resolver; this.operations=operations; }
     @Transactional(readOnly=true)
     public History history(String owner, int page, int size) {
         if (page < 0 || page > 10000 || size < 1 || size > 100) throw new IllegalArgumentException("페이지와 조회 개수 범위를 확인해 주세요.");
@@ -72,6 +73,18 @@ public class WorkoutService {
         Workout w = owned(id, owner); checkVersion(w, request.version());
         w.replaceEntries(resolver.resolve(owner,request.sets(),w.entries()));
         return View.from(repository.saveAndFlush(w));
+    }
+    public DraftSave saveDraft(UUID id,String owner,Draft request) {
+        var applied=operations.appliedVersion(id,request.operationId(),owner);
+        Workout w=owned(id,owner);
+        if (applied.isPresent()) return new DraftSave(View.from(w),applied.getAsLong(),true);
+        checkVersion(w,request.version());
+        var entries=resolver.resolve(owner,request.sets().stream().map(DraftSet::set).toList(),w.entries());
+        Instant deadline=request.restEndsAt()==null?null:request.restEndsAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        w.saveDraft(request.operationId(),entries,request.sets().stream().map(DraftSet::completed).toList(),request.restSetIndex(),deadline,
+            Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        repository.saveAndFlush(w); operations.remember(id,request.operationId(),w.version());
+        return new DraftSave(View.from(w),w.version(),false);
     }
     public View correctHistory(UUID id, String owner, Edit request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());
