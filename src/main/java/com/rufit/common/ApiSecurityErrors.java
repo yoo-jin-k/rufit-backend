@@ -20,6 +20,10 @@ public class ApiSecurityErrors implements AuthenticationEntryPoint, AccessDenied
         response.setHeader("WWW-Authenticate", "Basic realm=\"rufit\"");
         write(request, response, 401, "Unauthorized", "AUTHENTICATION_REQUIRED", "인증이 필요합니다.");
     }
+    public void bearer(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {
+        response.setHeader("WWW-Authenticate", "Bearer realm=\"rufit\"");
+        write(request, response, 401, "Unauthorized", "AUTHENTICATION_REQUIRED", "유효한 로그인 인증이 필요합니다.");
+    }
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException exception) throws IOException {
         forbidden(request, response);
