@@ -25,7 +25,16 @@ public class OidcSecurityConfig {
         if (issuer.isBlank() || jwkSetUri.isBlank() || audience.isBlank())
             throw new IllegalArgumentException("OIDC issuer, JWKS, audience 설정이 필요합니다.");
         OidcEndpoints.validate(issuer,jwkSetUri,allowLocalHttpJwks);
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        var requests=new org.springframework.http.client.SimpleClientHttpRequestFactory() {
+            @Override protected void prepareConnection(java.net.HttpURLConnection connection,String method) throws java.io.IOException {
+                super.prepareConnection(connection,method);
+                connection.setInstanceFollowRedirects(false);
+            }
+        };
+        requests.setConnectTimeout(java.time.Duration.ofSeconds(5));
+        requests.setReadTimeout(java.time.Duration.ofSeconds(5));
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
+            .restOperations(new org.springframework.web.client.RestTemplate(requests)).build();
         OAuth2TokenValidator<Jwt> claims = jwt -> {
             if (jwt.getAudience() != null && jwt.getAudience().contains(audience) && jwt.getExpiresAt() != null
                 && jwt.getSubject() != null && !jwt.getSubject().isBlank()) return OAuth2TokenValidatorResult.success();
