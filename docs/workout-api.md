@@ -125,3 +125,11 @@ View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `versio
 - `PUT /api/v1/routines/{id}`: `{ "version": 최신버전, "title": "하체", "sets": [SetInput, ...] }`, 200 Routine View.
 - Routine View: `id`, `title`, `version`, `sets`. 루틴 제목 1~80자, 세트 1~300개. 수정은 진행 중인 운동 스냅샷에 영향을 주지 않는다.
 - `GET /api/v1/workouts?page=0&size=20`: 본인 완료 이력 최신순. `items`, `page`, `size`, `totalElements`, `hasNext`. page 0~10000, size 1~100. 진행 중·취소·삭제 기록 제외.
+
+## 루틴 저장 재시도와 삭제
+
+루틴 생성도 UUID `Idempotency-Key`를 받는다. 같은 사용자·키로 다시 저장하면 기존 루틴의 현재 View를 반환하고 중복 루틴을 만들지 않는다. 다른 사용자의 키는 409다.
+
+`POST /api/v1/routines/{id}/delete`에 `{ "version": 최신버전, "confirmed": true }`를 보내면 루틴과 구성 세트를 삭제하고 204를 반환한다. 같은 삭제의 재시도도 204다. 루틴으로 이미 시작한 운동은 독립된 스냅샷이므로 삭제하거나 수정하지 않는다. 삭제된 루틴으로 새 운동을 시작하면 404다.
+
+최소 재시도 방지 메타데이터(UUID·내부 소유권 키·삭제시각)만 retired_routine_keys에 남기며 삭제한 생성 키는 다시 사용할 수 없다. 본인의 재사용은 410, 다른 사용자는 409다. 운영 보존·탈퇴 정책은 계정 삭제 정책과 함께 확정해야 한다.

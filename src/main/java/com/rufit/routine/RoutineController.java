@@ -15,13 +15,18 @@ public class RoutineController {
     private final RoutineService service;
     RoutineController(RoutineService service) { this.service = service; }
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public View create(@Valid @RequestBody Create request, Principal principal) { return service.create(principal.getName(), request); }
+    public View create(@Valid @RequestBody Create request, @RequestHeader(name="Idempotency-Key", required=false) UUID key, Principal principal) { return service.create(principal.getName(), request, key == null ? UUID.randomUUID() : key); }
     @GetMapping
     public List<View> list(@RequestParam(defaultValue="0") int page, Principal principal) { return service.list(principal.getName(), page); }
     @GetMapping("/{id}")
     public View get(@PathVariable UUID id, Principal principal) { return service.get(id, principal.getName()); }
     @PutMapping("/{id}")
     public View update(@PathVariable UUID id, @Valid @RequestBody Edit request, Principal principal) { return service.update(id, principal.getName(), request); }
+    @PostMapping("/{id}/delete") @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id, @Valid @RequestBody DeleteRequest request, Principal principal) {
+        service.delete(id, principal.getName(), request.version());
+    }
+    public record DeleteRequest(@NotNull @PositiveOrZero Long version, @NotNull @AssertTrue Boolean confirmed) {}
     @PostMapping("/{id}/start") @ResponseStatus(HttpStatus.CREATED)
     public WorkoutController.View start(@PathVariable UUID id, @RequestHeader(name="Idempotency-Key", required=false) UUID key, Principal principal) { return service.start(id, principal.getName(), key == null ? UUID.randomUUID() : key); }
     public record Create(@NotBlank @Size(max=80) String title, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
