@@ -30,3 +30,11 @@
 동작 근거: [Spring OncePerRequestFilter](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/filter/OncePerRequestFilter.html), [Spring Boot MDC 로그 설정](https://docs.spring.io/spring-boot/reference/features/logging.html).
 
 DB 연결을 열지 못하거나 저장소 연결이 끊긴 경우는 `503 STORAGE_UNAVAILABLE`의 공통 오류로 반환합니다. DB 주소·SQL·연결 설정을 응답에 넣지 않습니다. 쓰기 요청의 성공 여부는 클라이언트에서 불명확한 상태로 유지하고, 연결 복구 후 같은 작업 ID로 확인합니다. 이 오류를 저장 완료나 인증 실패로 처리하지 않습니다.
+
+## 입력 타입을 보존하는 JSON 정책
+
+반복 횟수·버전·휴식 초처럼 정수인 필드에 소수를 보내면 400 INVALID_JSON으로 거절합니다. 예를 들어 `reps: 1.9`를 1회로 잘라 저장하지 않습니다. 숫자 필드의 문자열(`"10.5"`), 불리언 필드의 문자열(`"true"`), 문자열 필드의 숫자도 자동 변환하지 않습니다. 열거 값은 정해진 이름으로 보내며 숫자 순번을 받지 않습니다. 중복 JSON 필드 이름도 거절합니다.
+
+세트 완료 요청에는 `restSeconds`를 명시해야 합니다. 휴식 없이 완료하려면 정수 0을 보내고, 생략·null은 검증 오류로 처리합니다. 잘못된 요청은 기존 버전·세트·완료 표시를 변경하지 않습니다. 정상적인 숫자·불리언·문자열 요청은 기존 계약과 같습니다.
+
+[Spring Boot JsonMapper 설정](https://docs.spring.io/spring-boot/how-to/spring-mvc.html)의 사용자 정의 설정을 사용하며 현재 Jackson 3의 타입별 기능을 적용합니다.

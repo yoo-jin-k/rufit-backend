@@ -96,7 +96,7 @@ public class WorkoutController {
     public View skipRest(@PathVariable UUID id, @Valid @RequestBody Revision request, Principal principal) {
         return service.skipRest(id, principal.getName(), request.version());
     }
-    public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @Schema(requiredMode=Schema.RequiredMode.REQUIRED) @Min(0) @Max(3600) int restSeconds) {}
+    public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @NotNull @Min(0) @Max(3600) Integer restSeconds) {}
     public record SetInput(@NotBlank @Size(max=80) String exerciseName,
         @NotNull @DecimalMin("0") @DecimalMax("1500") @Digits(integer=4, fraction=2) BigDecimal weight,
         @Schema(requiredMode=Schema.RequiredMode.REQUIRED) @Min(1) @Max(1000) int reps, @Schema(nullable=true) UUID exerciseId) {
