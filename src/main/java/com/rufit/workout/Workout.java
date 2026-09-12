@@ -17,6 +17,7 @@ public class Workout {
     @Column(nullable = false) private Instant startedAt;
     private Instant finishedAt;
     private Instant cancelledAt;
+    private UUID sourceRoutineId;
     @Version private Long version;
     @ElementCollection
     @CollectionTable(name = "workout_entries", joinColumns = @JoinColumn(name = "workout_id"))
@@ -30,6 +31,13 @@ public class Workout {
     private Integer restSetIndex;
     protected Workout() {}
     Workout(UUID id, String owner, Instant now) { this.id = id; ownerName = owner; startedAt = now; }
+    static Workout fromRoutine(UUID id, String owner, Instant now, UUID routineId, List<Entry> sets) {
+        Workout workout = new Workout(id, owner, now);
+        workout.sourceRoutineId = routineId;
+        workout.replaceEntries(sets);
+        return workout;
+    }
+    UUID sourceRoutineId() { return sourceRoutineId; }
     void replaceEntries(List<Entry> replacement) {
         requireActive();
         if (replacement.isEmpty() || replacement.size() > 300) throw new IllegalArgumentException("세트는 1~300개여야 합니다.");

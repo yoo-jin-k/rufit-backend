@@ -38,10 +38,24 @@ public class WorkoutService {
     public View start(String owner) { return start(owner, UUID.randomUUID()); }
     public View start(String owner, UUID requestId) {
         var replay = repository.findByIdAndOwnerName(requestId, owner);
-        if (replay.isPresent()) return View.from(replay.get());
+        if (replay.isPresent()) {
+            if (replay.get().sourceRoutineId() != null) throw new WorkoutConflict("다른 시작 요청에 사용한 식별자입니다.");
+            return View.from(replay.get());
+        }
         if (repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
         if (repository.findByOwnerNameAndFinishedAtIsNullAndCancelledAtIsNull(owner).isPresent()) throw new WorkoutConflict("진행 중인 운동이 있습니다.");
         return View.from(repository.saveAndFlush(new Workout(requestId, owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS))));
+    }
+    public View startFromRoutine(String owner, UUID requestId, UUID routineId, java.util.List<Workout.Entry> sets) {
+        var replay = repository.findByIdAndOwnerName(requestId, owner);
+        if (replay.isPresent()) {
+            if (!routineId.equals(replay.get().sourceRoutineId())) throw new WorkoutConflict("다른 시작 요청에 사용한 식별자입니다.");
+            return View.from(replay.get());
+        }
+        if (repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
+        if (repository.findByOwnerNameAndFinishedAtIsNullAndCancelledAtIsNull(owner).isPresent()) throw new WorkoutConflict("진행 중인 운동이 있습니다.");
+        Workout created = Workout.fromRoutine(requestId, owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS), routineId, sets);
+        return View.from(repository.saveAndFlush(created));
     }
     @Transactional(readOnly=true)
     public java.util.Optional<View> active(String owner) {

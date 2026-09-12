@@ -23,7 +23,7 @@ public class RoutineController {
     @PutMapping("/{id}")
     public View update(@PathVariable UUID id, @Valid @RequestBody Edit request, Principal principal) { return service.update(id, principal.getName(), request); }
     @PostMapping("/{id}/start") @ResponseStatus(HttpStatus.CREATED)
-    public WorkoutController.View start(@PathVariable UUID id, Principal principal) { return service.start(id, principal.getName()); }
+    public WorkoutController.View start(@PathVariable UUID id, @RequestHeader(name="Idempotency-Key", required=false) UUID key, Principal principal) { return service.start(id, principal.getName(), key == null ? UUID.randomUUID() : key); }
     public record Create(@NotBlank @Size(max=80) String title, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record Edit(@NotNull @PositiveOrZero Long version, @NotBlank @Size(max=80) String title, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record View(UUID id, String title, long version, List<WorkoutController.SetInput> sets) {

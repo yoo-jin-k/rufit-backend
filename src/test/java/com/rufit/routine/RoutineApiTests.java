@@ -44,4 +44,24 @@ class RoutineApiTests {
         mvc.perform(post("/api/v1/routines").with(user("alice")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
             .content("{\"title\":\" \",\"sets\":[]}")).andExpect(status().isBadRequest());
     }
+    @Test void retryKeepsEditedWorkoutAndDoesNotCopyChangedRoutineAgain() throws Exception {
+        String id = create();
+        String key = java.util.UUID.randomUUID().toString();
+        String started = mvc.perform(post("/api/v1/routines/"+id+"/start").header("Idempotency-Key", key).with(user("alice")).with(csrf()))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.sourceRoutineId").value(id))
+            .andReturn().getResponse().getContentAsString();
+        Number version = JsonPath.read(started, "$.version");
+        mvc.perform(put("/api/v1/workouts/"+key+"/sets/0").with(user("alice")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"version\":"+version+",\"set\":{\"exerciseName\":\"스쿼트\",\"weight\":55,\"reps\":8}}"))
+            .andExpect(status().isOk());
+        Number revision = JsonPath.read(mvc.perform(get("/api/v1/routines/"+id).with(user("alice"))).andReturn().getResponse().getContentAsString(), "$.version");
+        mvc.perform(put("/api/v1/routines/"+id).with(user("alice")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+            .content("{\"version\":"+revision+",\"title\":\"변경\",\"sets\":[{\"exerciseName\":\"스쿼트\",\"weight\":70,\"reps\":5}]}"))
+            .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/routines/"+id+"/start").header("Idempotency-Key", key).with(user("alice")).with(csrf()))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(key)).andExpect(jsonPath("$.sets[0].weight").value(55));
+        mvc.perform(post("/api/v1/workouts").header("Idempotency-Key", key).with(user("alice")).with(csrf())).andExpect(status().isConflict());
+        String other = create();
+        mvc.perform(post("/api/v1/routines/"+other+"/start").header("Idempotency-Key", key).with(user("alice")).with(csrf())).andExpect(status().isConflict());
+    }
 }

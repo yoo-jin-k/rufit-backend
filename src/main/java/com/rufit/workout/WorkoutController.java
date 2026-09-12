@@ -73,7 +73,7 @@ public class WorkoutController {
     public record Edit(@NotNull @PositiveOrZero Long version, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record FinishRequest(@NotNull @PositiveOrZero Long version, Boolean discardIncomplete) {}
     public record Revision(@NotNull @PositiveOrZero Long version) {}
-    public record View(UUID id, Instant startedAt, Instant finishedAt, Instant cancelledAt, long version, List<SetInput> sets, List<Integer> completedSetIndexes, Instant restEndsAt) {
-        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps())).toList(), w.completedSetIndexes(), w.restEndsAt()); }
+    public record View(UUID id, Instant startedAt, Instant finishedAt, Instant cancelledAt, UUID sourceRoutineId, long version, List<SetInput> sets, List<Integer> completedSetIndexes, Instant restEndsAt) {
+        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.sourceRoutineId(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps())).toList(), w.completedSetIndexes(), w.restEndsAt()); }
     }
 }

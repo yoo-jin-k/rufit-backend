@@ -97,3 +97,9 @@ View: `id`, `startedAt`, `finishedAt`(진행 중 null), `version`, `sets`.
 - days는 운동이 없는 날도 포함한 월 전체 날짜순 배열. 각 날짜는 `date`, `workouts`, `completedSets`, `volumeKgReps`(완료 세트의 kg × 횟수 합), `durationSeconds`를 가진다.
 - 최상위에는 같은 합계 필드와 `workoutDays`(운동한 날짜 수)를 반환한다. 맨몸 운동은 세트 수에는 포함하고 외부 중량이 0이면 운동량 합은 0이다.
 - 운동 시간은 시작~완료 경과시간이며 휴식을 포함한다. 진행 중·취소된 운동·다른 사용자 기록은 집계하지 않는다.
+
+## 루틴 시작 재시도
+
+`POST /api/v1/routines/{id}/start`도 UUID `Idempotency-Key` 헤더를 받는다. 같은 루틴을 시작하는 하나의 작업에는 같은 키를 유지하고 새 운동을 시작할 때는 새 키를 만든다.
+
+같은 소유자·루틴·키로 재시도하면 이미 생성된 운동의 현재 View를 반환한다. 원본 루틴이 바뀌거나 운동 중 무게를 수정했어도 다시 복사하지 않는다. View의 `sourceRoutineId`로 시작한 루틴을 확인할 수 있다. 자유 운동은 null이다. 자유 운동 또는 다른 루틴 시작에 이미 사용한 키는 409다. 기존 취소·완료 상태도 그대로 반환한다.

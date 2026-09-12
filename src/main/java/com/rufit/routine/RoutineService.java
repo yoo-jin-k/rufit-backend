@@ -31,10 +31,9 @@ public class RoutineService {
         r.replace(request.title(), entries(request.sets()));
         return View.from(repository.saveAndFlush(r));
     }
-    public WorkoutController.View start(UUID id, String owner) {
+    public WorkoutController.View start(UUID id, String owner, UUID requestId) {
         Routine r = owned(id, owner);
-        WorkoutController.View created = workouts.start(owner);
-        return workouts.update(created.id(), owner, new WorkoutController.Edit(created.version(), View.from(r).sets()));
+        return workouts.startFromRoutine(owner, requestId, r.id, entries(View.from(r).sets()));
     }
     private Routine owned(UUID id, String owner) {
         return repository.findByIdAndOwnerName(id, owner).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "루틴을 찾을 수 없습니다."));
