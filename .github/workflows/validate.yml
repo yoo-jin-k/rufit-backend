@@ -41,3 +41,13 @@ jobs:
           path: target/openapi.json
           if-no-files-found: error
       - run: python3 scripts/smoke-restart.py
+      - name: Verify database backup and isolated restore
+        run: python3 scripts/verify-backup-restore.py
+        timeout-minutes: 2
+        env:
+          RUFIT_TEST_CONTAINER: ${{ job.services.postgres.id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-data-recovery
+          path: target/backup-restore-result.json
+          if-no-files-found: error
