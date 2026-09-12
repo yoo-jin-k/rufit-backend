@@ -40,6 +40,22 @@ public class WorkoutService {
         w.replaceEntries(request.sets().stream().map(s -> new Workout.Entry(s.exerciseName(), s.weight(), s.reps())).toList());
         return View.from(repository.saveAndFlush(w));
     }
+    public View editSet(UUID id, String owner, int index, SetEdit request) {
+        Workout w = owned(id, owner); checkVersion(w, request.version());
+        SetInput set = request.set();
+        w.editSet(index, new Workout.Entry(set.exerciseName(), set.weight(), set.reps()));
+        return View.from(repository.saveAndFlush(w));
+    }
+    public View appendSet(UUID id, String owner, SetEdit request) {
+        Workout w = owned(id, owner); checkVersion(w, request.version());
+        SetInput set = request.set();
+        w.appendSet(new Workout.Entry(set.exerciseName(), set.weight(), set.reps()));
+        return View.from(repository.saveAndFlush(w));
+    }
+    public View removeSet(UUID id, String owner, int index, long version) {
+        Workout w = owned(id, owner); checkVersion(w, version); w.removeSet(index);
+        return View.from(repository.saveAndFlush(w));
+    }
     public View finish(UUID id, String owner, long version, boolean discardIncomplete) {
         Workout w = owned(id, owner); checkVersion(w, version); w.finish(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS), discardIncomplete);
         return View.from(repository.saveAndFlush(w));

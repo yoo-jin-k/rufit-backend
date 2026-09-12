@@ -160,4 +160,32 @@ class WorkoutApiTests {
             .andExpect(status().isOk()).andExpect(jsonPath("$.sets[0].exerciseName").value("스쿼트"))
             .andExpect(jsonPath("$.completedSetIndexes[0]").value(0)).andExpect(jsonPath("$.finishedAt").isNotEmpty());
     }
+    @Test void individualSetEditsPersistAndRejectStaleIndexesAndOtherOwners() throws Exception {
+        String id = start();
+        String response = edit(id, """
+            {"version":0,"sets":[{"exerciseName":"스쿼트","weight":40,"reps":10},{"exerciseName":"스쿼트","weight":40,"reps":8}]}
+            """).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        Number version = completeFirstSet(id, JsonPath.read(response, "$.version"));
+        String body = "{\"version\":"+version+",\"set\":{\"exerciseName\":\"스쿼트\",\"weight\":45,\"reps\":8}}";
+        mvc.perform(put("/api/v1/workouts/"+id+"/sets/1").with(user("bob")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNotFound());
+        String edited = mvc.perform(put("/api/v1/workouts/"+id+"/sets/1").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk())
+            .andExpect(jsonPath("$.completedSetIndexes[0]").value(0)).andReturn().getResponse().getContentAsString();
+        mvc.perform(post("/api/v1/workouts/"+id+"/sets/0/remove").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+"}"))
+            .andExpect(status().isConflict());
+        version = JsonPath.read(edited, "$.version");
+        String removed = mvc.perform(post("/api/v1/workouts/"+id+"/sets/0/remove").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.completedSetIndexes.length()").value(0))
+            .andReturn().getResponse().getContentAsString();
+        version = JsonPath.read(removed, "$.version");
+        mvc.perform(post("/api/v1/workouts/"+id+"/sets").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+",\"set\":{\"exerciseName\":\"푸시업\",\"weight\":0,\"reps\":10}}"))
+            .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/workouts/"+id).with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.sets.length()").value(2))
+            .andExpect(jsonPath("$.sets[0].weight").value(45)).andExpect(jsonPath("$.sets[1].exerciseName").value("푸시업"));
+    }
 }

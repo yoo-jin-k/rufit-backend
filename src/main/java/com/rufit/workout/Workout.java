@@ -35,6 +35,31 @@ public class Workout {
         entries.clear(); entries.addAll(replacement);
         completedSetIndexes.clear(); restEndsAt = null; restSetIndex = null;
     }
+    void editSet(int index, Entry replacement) {
+        requireActive(); requireSetIndex(index);
+        entries.set(index, replacement);
+    }
+    void appendSet(Entry entry) {
+        requireActive();
+        if (entries.size() >= 300) throw new IllegalArgumentException("세트는 최대 300개까지 추가할 수 있습니다.");
+        entries.add(entry);
+    }
+    void removeSet(int index) {
+        requireActive(); requireSetIndex(index);
+        entries.remove(index);
+        Set<Integer> shifted = new HashSet<>();
+        for (int completed : completedSetIndexes) {
+            if (completed != index) shifted.add(completed > index ? completed - 1 : completed);
+        }
+        completedSetIndexes.clear(); completedSetIndexes.addAll(shifted);
+        if (restSetIndex != null) {
+            if (restSetIndex == index) { restSetIndex = null; restEndsAt = null; }
+            else if (restSetIndex > index) restSetIndex--;
+        }
+    }
+    private void requireSetIndex(int index) {
+        if (index < 0 || index >= entries.size()) throw new IllegalArgumentException("세트 번호를 확인해 주세요.");
+    }
     void finish(Instant now) { finish(now, false); }
     void finish(Instant now, boolean discardIncomplete) {
         requireActive();
