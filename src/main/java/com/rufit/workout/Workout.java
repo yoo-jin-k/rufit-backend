@@ -46,15 +46,15 @@ public class Workout {
         @Column(nullable = false, precision = 6, scale = 2) private BigDecimal weight;
         @Column(nullable = false) private int reps;
         protected Entry() {}
-        Entry(String name, BigDecimal weight, int reps) {
+        public Entry(String name, BigDecimal weight, int reps) {
             if (name == null || name.isBlank() || name.trim().length() > 80) throw new IllegalArgumentException("운동 이름은 1~80자여야 합니다.");
             if (weight == null || weight.signum() < 0 || weight.compareTo(new BigDecimal("1500")) > 0 || weight.scale() > 2)
                 throw new IllegalArgumentException("무게는 0~1500kg, 소수점 2자리까지 입력해 주세요.");
             if (reps < 1 || reps > 1000) throw new IllegalArgumentException("횟수는 1~1000이어야 합니다.");
             this.exerciseName = name.trim(); this.weight = weight; this.reps = reps;
         }
-        String name() { return exerciseName; }
-        BigDecimal weight() { return weight; }
-        int reps() { return reps; }
+        public String name() { return exerciseName; }
+        public BigDecimal weight() { return weight; }
+        public int reps() { return reps; }
     }
 }
