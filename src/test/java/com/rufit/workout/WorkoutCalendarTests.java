@@ -46,6 +46,39 @@ class WorkoutCalendarTests {
             .andExpect(jsonPath("$.volumeKgReps").value(810)).andExpect(jsonPath("$.durationSeconds").value(1200))
             .andExpect(jsonPath("$.days[0].workouts").value(2)).andExpect(jsonPath("$.days[1].workouts").value(0));
     }
+    @Test void weekCrossesMonthBoundaryAndExcludesOutsideAndOtherOwners() throws Exception {
+        save("alice","2026-08-30T14:59:59Z","finished");
+        save("alice","2026-08-30T15:00:00Z","finished");
+        save("alice","2026-09-06T14:59:59Z","finished");
+        save("alice","2026-09-06T15:00:00Z","finished");
+        save("bob","2026-09-01T01:00:00Z","finished");
+        save("alice","2026-09-02T01:00:00Z","cancelled");
+        save("alice","2026-09-03T01:00:00Z","active");
+        mvc.perform(get("/api/v1/workouts/calendar/week").param("date","2026-09-01").with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.weekStart").value("2026-08-31"))
+            .andExpect(jsonPath("$.weekEnd").value("2026-09-06")).andExpect(jsonPath("$.days.length()").value(7))
+            .andExpect(jsonPath("$.days[0].workouts").value(1)).andExpect(jsonPath("$.days[6].workouts").value(1))
+            .andExpect(jsonPath("$.workouts").value(2)).andExpect(jsonPath("$.workoutDays").value(2))
+            .andExpect(jsonPath("$.completedSets").value(4)).andExpect(jsonPath("$.volumeKgReps").value(810))
+            .andExpect(jsonPath("$.durationSeconds").value(1200));
+    }
+    @Test void weekWithDaylightSavingUsesActualLocalDateBoundaries() throws Exception {
+        save("alice","2026-03-02T05:00:00Z","finished");
+        save("alice","2026-03-09T03:59:59Z","finished");
+        save("alice","2026-03-09T04:00:00Z","finished");
+        mvc.perform(get("/api/v1/workouts/calendar/week").param("date","2026-03-08").param("zone","America/New_York").with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.workouts").value(2))
+            .andExpect(jsonPath("$.weekStart").value("2026-03-02")).andExpect(jsonPath("$.weekEnd").value("2026-03-08"));
+    }
+    @Test void emptyWeekAcrossYearBoundaryAndInvalidSelection() throws Exception {
+        mvc.perform(get("/api/v1/workouts/calendar/week").param("date","2026-01-01").with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.weekStart").value("2025-12-29"))
+            .andExpect(jsonPath("$.weekEnd").value("2026-01-04")).andExpect(jsonPath("$.workouts").value(0))
+            .andExpect(jsonPath("$.days.length()").value(7));
+        mvc.perform(get("/api/v1/workouts/calendar/week").param("date","2026-02-29").with(user("alice"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/workouts/calendar/week").param("date","2026-09-01").param("zone","invalid").with(user("alice"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/workouts/calendar/week").param("date","2026-09-01")).andExpect(status().isUnauthorized());
+    }
     @Test void utcAndLeapMonthAndInvalidParameters() throws Exception {
         save("alice", "2024-02-29T23:30:00Z", "finished");
         mvc.perform(get("/api/v1/workouts/calendar").param("month", "2024-02").param("zone", "UTC").with(user("alice")))

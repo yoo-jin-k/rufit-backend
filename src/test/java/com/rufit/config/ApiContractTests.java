@@ -50,7 +50,7 @@ class ApiContractTests {
             "workout.WorkoutController.ExerciseHistory","workout.WorkoutController.DraftSave","routine.RoutineController.View",
             "profile.ProfileController.View","exercise.ExerciseController.View","exercise.ExerciseController.Results",
             "workout.WorkoutSummary.View","workout.WorkoutSummary.Exercise","workout.ExerciseStatistics.View","workout.ExerciseStatistics.BestSet",
-            "workout.WorkoutCalendar.Day","workout.WorkoutCalendar.MonthView","config.CurrentAccountController.Account","config.DevelopmentCsrfController.Token")) {
+            "workout.WorkoutCalendar.Day","workout.WorkoutCalendar.WeekView","workout.WorkoutCalendar.MonthView","config.CurrentAccountController.Account","config.DevelopmentCsrfController.Token")) {
             Map<String,Object> schema=schemas.get("com.rufit."+name);
             assertThat(schema).as(name).isNotNull();
             Map<?,?> props=(Map<?,?>)schema.get("properties");

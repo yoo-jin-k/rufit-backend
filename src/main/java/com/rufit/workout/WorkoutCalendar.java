@@ -25,8 +25,22 @@ public class WorkoutCalendar {
         } catch (DateTimeException | NullPointerException e) {
             throw new IllegalArgumentException("월(1900-01~2100-12)과 시간대를 확인해 주세요.");
         }
-        Instant from = month.atDay(1).atStartOfDay(zone).toInstant();
-        Instant until = month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant();
+        Totals totals=aggregate(owner,month.atDay(1),month.plusMonths(1).atDay(1),zone);
+        return new MonthView(month.toString(),zone.getId(),totals.days,totals.workoutDays,totals.workouts,
+            totals.completedSets,totals.volume,totals.duration);
+    }
+    public WeekView week(String owner,String requestedDate,String requestedZone) {
+        LocalDate date=WorkoutDateRange.parseDate(requestedDate);
+        ZoneId zone=WorkoutDateRange.parseZone(requestedZone);
+        LocalDate start=date.with(java.time.temporal.TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate until=start.plusDays(7);
+        Totals totals=aggregate(owner,start,until,zone);
+        return new WeekView(start,until.minusDays(1),zone.getId(),totals.days,totals.workoutDays,totals.workouts,
+            totals.completedSets,totals.volume,totals.duration);
+    }
+    private Totals aggregate(String owner,LocalDate startDate,LocalDate untilDate,ZoneId zone) {
+        Instant from=startDate.atStartOfDay(zone).toInstant();
+        Instant until=untilDate.atStartOfDay(zone).toInstant();
         var sessions = jdbc.query("""
             SELECT w.started_at, w.finished_at, count(e.entry_order) AS sets,
                    coalesce(sum(e.weight * e.reps), 0) AS volume
@@ -40,8 +54,7 @@ public class WorkoutCalendar {
             (row, index) -> new Session(row.getTimestamp("started_at").toInstant(), row.getTimestamp("finished_at").toInstant(),
                 row.getLong("sets"), row.getBigDecimal("volume")));
         SortedMap<LocalDate, Day> days = new TreeMap<>();
-        for (int d = 1; d <= month.lengthOfMonth(); d++) {
-            LocalDate date = month.atDay(d);
+        for (LocalDate date=startDate;date.isBefore(untilDate);date=date.plusDays(1)) {
             days.put(date, new Day(date, 0, 0, BigDecimal.ZERO, 0));
         }
         for (Session session : sessions) {
@@ -51,12 +64,16 @@ public class WorkoutCalendar {
                 previous.volumeKgReps.add(session.volume), previous.durationSeconds + Duration.between(session.start, session.finish).getSeconds()));
         }
         List<Day> result = List.copyOf(days.values());
-        return new MonthView(month.toString(), zone.getId(), result,
+        return new Totals(result,
             result.stream().filter(day -> day.workouts > 0).count(), sessions.size(),
             result.stream().mapToLong(Day::completedSets).sum(),
             result.stream().map(Day::volumeKgReps).reduce(BigDecimal.ZERO, BigDecimal::add),
             result.stream().mapToLong(Day::durationSeconds).sum());
     }
+    private record Totals(List<Day> days,long workoutDays,long workouts,long completedSets,BigDecimal volume,long duration) {}
+    @Schema(requiredProperties={"weekStart","weekEnd","zone","days","workoutDays","workouts","completedSets","volumeKgReps","durationSeconds"})
+    public record WeekView(LocalDate weekStart,LocalDate weekEnd,String zone,List<Day> days,long workoutDays,long workouts,
+        long completedSets,BigDecimal volumeKgReps,long durationSeconds) {}
     private record Session(Instant start, Instant finish, long sets, BigDecimal volume) {}
     @Schema(requiredProperties={"date", "workouts", "completedSets", "volumeKgReps", "durationSeconds"})
     public record Day(LocalDate date, long workouts, long completedSets, BigDecimal volumeKgReps, long durationSeconds) {}
