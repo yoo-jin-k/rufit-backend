@@ -5,7 +5,7 @@ import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.WebRequest;
@@ -27,7 +27,7 @@ public class ApiErrors extends ResponseEntityExceptionHandler {
     ProblemDetail conflict(WorkoutConflict e) {
         return problem(HttpStatus.CONFLICT, e.code(), e.getMessage());
     }
-    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, DataIntegrityViolationException.class})
+    @ExceptionHandler({ConcurrencyFailureException.class, DataIntegrityViolationException.class})
     ProblemDetail concurrentWrite(Exception e) {
         return problem(HttpStatus.CONFLICT, "STATE_CONFLICT", "다른 요청과 충돌했습니다. 최신 기록을 조회해 주세요.");
     }

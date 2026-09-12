@@ -4,12 +4,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 
 @Service
-@Transactional(readOnly=true)
+@Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
 public class ExerciseStatistics {
     private final NamedParameterJdbcTemplate jdbc;
     private final ExerciseSetResolver resolver;

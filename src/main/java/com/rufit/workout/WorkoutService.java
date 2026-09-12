@@ -6,25 +6,26 @@ import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.server.ResponseStatusException;
 import static com.rufit.workout.WorkoutController.*;
 
 @Service
-@Transactional
+@Transactional(isolation=Isolation.REPEATABLE_READ)
 public class WorkoutService {
     private final WorkoutRepository repository;
     private final RetiredWorkoutKeys retired;
     private final ExerciseSetResolver resolver;
     private final DraftOperations operations;
     WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired, ExerciseSetResolver resolver, DraftOperations operations) { this.repository = repository; this.retired = retired; this.resolver=resolver; this.operations=operations; }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public History history(String owner, int page, int size) {
         if (page < 0 || page > 10000 || size < 1 || size > 100) throw new IllegalArgumentException("페이지와 조회 개수 범위를 확인해 주세요.");
         Page<Workout> records = repository.findByOwnerNameAndFinishedAtIsNotNull(owner,
             PageRequest.of(page, size, Sort.by(Sort.Order.desc("finishedAt"), Sort.Order.desc("id"))));
         return new History(records.map(View::from).toList(), page, size, records.getTotalElements(), records.hasNext());
     }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public ExerciseHistory exerciseHistory(String owner, String exerciseName, UUID exerciseId, int page, int size) {
         if ((exerciseId == null && (exerciseName == null || exerciseName.isBlank() || exerciseName.trim().length() > 80)) || (exerciseId != null && exerciseName != null))
             throw new IllegalArgumentException("운동 이름은 1~80자여야 합니다.");
@@ -51,7 +52,7 @@ public class WorkoutService {
         if (repository.findByOwnerNameAndFinishedAtIsNullAndCancelledAtIsNull(owner).isPresent()) throw new WorkoutConflict("진행 중인 운동이 있습니다.");
         return View.from(repository.saveAndFlush(new Workout(requestId, owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS))));
     }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public java.util.Optional<View> replayRoutineStart(String owner, UUID requestId, UUID routineId) {
         var replay = repository.findByIdAndOwnerName(requestId, owner);
         if (replay.isPresent() && !routineId.equals(replay.get().sourceRoutineId()))
@@ -67,11 +68,11 @@ public class WorkoutService {
         Workout created = Workout.fromRoutine(requestId, owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS), routineId, sets);
         return View.from(repository.saveAndFlush(created));
     }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public java.util.Optional<View> active(String owner) {
         return repository.findByOwnerNameAndFinishedAtIsNullAndCancelledAtIsNull(owner).map(View::from);
     }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public View get(UUID id, String owner) { return View.from(owned(id, owner)); }
     public View update(UUID id, String owner, Edit request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());

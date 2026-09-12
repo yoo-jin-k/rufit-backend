@@ -6,11 +6,12 @@ import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.server.ResponseStatusException;
 import static com.rufit.routine.RoutineController.*;
 
 @Service
-@Transactional
+@Transactional(isolation=Isolation.REPEATABLE_READ)
 public class RoutineService {
     private final RoutineRepository repository;
     private final WorkoutService workouts;
@@ -27,7 +28,7 @@ public class RoutineService {
         if (retired.exists(requestId) || repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
         return View.from(repository.saveAndFlush(new Routine(requestId, owner, request.title(), resolver.resolve(owner,request.sets(),List.of()))));
     }
-    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+    @Transactional(isolation=Isolation.REPEATABLE_READ)
     public View copy(UUID sourceId, String owner, Copy request, UUID requestId) {
         var replay = repository.findByIdAndOwnerName(requestId,owner);
         if (replay.isPresent()) {
@@ -43,9 +44,9 @@ public class RoutineService {
         copy.sourceRoutineId=source.id;
         return View.from(repository.saveAndFlush(copy));
     }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public View get(UUID id, String owner) { return View.from(owned(id, owner)); }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public List<View> list(String owner, int page) {
         if (page < 0 || page > 10000) throw new IllegalArgumentException("페이지 범위를 확인해 주세요.");
         return repository.findByOwnerName(owner, PageRequest.of(page, 20, Sort.by("id"))).map(View::from).toList();

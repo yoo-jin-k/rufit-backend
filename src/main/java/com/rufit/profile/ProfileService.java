@@ -3,16 +3,17 @@ package com.rufit.profile;
 import com.rufit.workout.WorkoutConflict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 
 @Service
-@Transactional
+@Transactional(isolation=Isolation.REPEATABLE_READ)
 public class ProfileService {
     private final ProfileRepository repository;
     ProfileService(ProfileRepository repository) { this.repository=repository; }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public ProfileController.View get(String owner) { return ProfileController.View.from(owned(owner)); }
     public ProfileController.View create(String owner,UUID key,ProfileController.Fields fields) {
         var existing=repository.findById(owner);

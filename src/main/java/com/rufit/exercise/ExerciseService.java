@@ -2,6 +2,7 @@ package com.rufit.exercise;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -10,11 +11,11 @@ import java.util.*;
 import static com.rufit.exercise.ExerciseController.*;
 
 @Service
-@Transactional
+@Transactional(isolation=Isolation.REPEATABLE_READ)
 public class ExerciseService {
     private final ExerciseRepository repository;
     ExerciseService(ExerciseRepository repository) { this.repository=repository; }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Results search(String owner, String query, boolean includeArchived, Exercise.BodyPart part, Exercise.Equipment equipment, int page, int size) {
         if (query.length() > 80 || page < 0 || page > 10000 || size < 1 || size > 100)
             throw new IllegalArgumentException("검색어와 조회 범위를 확인해 주세요.");
@@ -22,7 +23,7 @@ public class ExerciseService {
         Page<Exercise> found=repository.search(owner, pattern, includeArchived, part, equipment, PageRequest.of(page,size,Sort.by("name","id")));
         return new Results(found.map(View::from).toList(), page, size, found.getTotalElements(), found.hasNext());
     }
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public View get(UUID id, String owner) {
         Exercise e=repository.findById(id).orElseThrow(this::notFound);
         if ((e.archivedAt != null && e.ownerName == null) || (e.ownerName != null && !e.ownerName.equals(owner))) throw notFound();
