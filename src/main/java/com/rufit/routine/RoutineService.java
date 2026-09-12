@@ -38,6 +38,8 @@ public class RoutineService {
         return View.from(repository.saveAndFlush(r));
     }
     public WorkoutController.View start(UUID id, String owner, UUID requestId) {
+        var replay = workouts.replayRoutineStart(owner, requestId, id);
+        if (replay.isPresent()) return replay.get();
         Routine r = owned(id, owner);
         return workouts.startFromRoutine(owner, requestId, r.id, r.entries.stream().map(e -> new Workout.Entry(e.exerciseId(),e.name(),e.weight(),e.reps())).toList());
     }

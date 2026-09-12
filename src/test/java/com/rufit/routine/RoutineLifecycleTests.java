@@ -36,13 +36,18 @@ class RoutineLifecycleTests {
         assertThat(repository.count()).isEqualTo(1);
         mvc.perform(post("/api/v1/routines").header("Idempotency-Key", key).with(user("bob")).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isConflict());
-        String workout = mvc.perform(post("/api/v1/routines/"+key+"/start").with(user("alice")).with(csrf()))
+        String startKey = UUID.randomUUID().toString();
+        String workout = mvc.perform(post("/api/v1/routines/"+key+"/start").header("Idempotency-Key",startKey).with(user("alice")).with(csrf()))
             .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         String deletion = "{\"version\":"+JsonPath.read(routine,"$.version")+",\"confirmed\":true}";
         mvc.perform(post("/api/v1/routines/"+key+"/delete").with(user("bob")).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content(deletion)).andExpect(status().isNotFound());
         for (int i=0; i<2; i++) mvc.perform(post("/api/v1/routines/"+key+"/delete").with(user("alice")).with(csrf())
             .contentType(MediaType.APPLICATION_JSON).content(deletion)).andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/routines/"+key+"/start").header("Idempotency-Key",startKey).with(user("alice")).with(csrf()))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(startKey));
+        mvc.perform(post("/api/v1/routines/"+key+"/start").header("Idempotency-Key",UUID.randomUUID()).with(user("alice")).with(csrf()))
+            .andExpect(status().isNotFound());
         assertThat(repository.count()).isZero();
         assertThat(jdbc.queryForObject("select count(*) from routine_entries", Long.class)).isZero();
         mvc.perform(get("/api/v1/workouts/"+JsonPath.read(workout,"$.id")).with(user("alice")))
