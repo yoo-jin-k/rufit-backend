@@ -13,7 +13,8 @@ import static com.rufit.workout.WorkoutController.*;
 @Transactional
 public class WorkoutService {
     private final WorkoutRepository repository;
-    WorkoutService(WorkoutRepository repository) { this.repository = repository; }
+    private final RetiredWorkoutKeys retired;
+    WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired) { this.repository = repository; this.retired = retired; }
     @Transactional(readOnly=true)
     public History history(String owner, int page, int size) {
         if (page < 0 || page > 10000 || size < 1 || size > 100) throw new IllegalArgumentException("페이지와 조회 개수 범위를 확인해 주세요.");
@@ -42,6 +43,7 @@ public class WorkoutService {
             if (replay.get().sourceRoutineId() != null) throw new WorkoutConflict("다른 시작 요청에 사용한 식별자입니다.");
             return View.from(replay.get());
         }
+        requireReusableKey(requestId, owner);
         if (repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
         if (repository.findByOwnerNameAndFinishedAtIsNullAndCancelledAtIsNull(owner).isPresent()) throw new WorkoutConflict("진행 중인 운동이 있습니다.");
         return View.from(repository.saveAndFlush(new Workout(requestId, owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS))));
@@ -52,6 +54,7 @@ public class WorkoutService {
             if (!routineId.equals(replay.get().sourceRoutineId())) throw new WorkoutConflict("다른 시작 요청에 사용한 식별자입니다.");
             return View.from(replay.get());
         }
+        requireReusableKey(requestId, owner);
         if (repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
         if (repository.findByOwnerNameAndFinishedAtIsNullAndCancelledAtIsNull(owner).isPresent()) throw new WorkoutConflict("진행 중인 운동이 있습니다.");
         Workout created = Workout.fromRoutine(requestId, owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS), routineId, sets);
@@ -101,6 +104,22 @@ public class WorkoutService {
     public View skipRest(UUID id, String owner, long version) {
         Workout w = owned(id, owner); checkVersion(w, version); w.skipRest();
         return View.from(repository.saveAndFlush(w));
+    }
+    public void deleteHistory(UUID id, String owner, long version) {
+        var found = repository.findByIdAndOwnerName(id, owner);
+        if (found.isEmpty()) {
+            if (retired.belongsTo(id, owner)) return;
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "운동을 찾을 수 없습니다.");
+        }
+        Workout workout = found.get(); checkVersion(workout, version);
+        if (workout.finishedAt() == null && workout.cancelledAt() == null)
+            throw new WorkoutConflict("진행 중인 운동은 먼저 취소해 주세요.");
+        retired.retire(id, owner);
+        repository.delete(workout); repository.flush();
+    }
+    private void requireReusableKey(UUID id, String owner) {
+        if (retired.belongsTo(id, owner)) throw new ResponseStatusException(HttpStatus.GONE, "삭제한 기록의 요청 식별자입니다.");
+        if (retired.exists(id)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
     }
     private Workout owned(UUID id, String owner) {
         return repository.findByIdAndOwnerName(id, owner).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "운동을 찾을 수 없습니다."));

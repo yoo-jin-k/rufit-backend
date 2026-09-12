@@ -53,12 +53,14 @@ public class ApiErrors extends ResponseEntityExceptionHandler {
         String code = switch (status.value()) {
             case 404 -> "NOT_FOUND";
             case 405 -> "METHOD_NOT_ALLOWED";
+            case 410 -> "RESOURCE_DELETED";
             case 415 -> "UNSUPPORTED_MEDIA_TYPE";
             default -> status.is5xxServerError() ? "INTERNAL_ERROR" : "INVALID_REQUEST";
         };
         String detail = switch (status.value()) {
             case 404 -> "요청한 항목을 찾을 수 없습니다.";
             case 405 -> "지원하지 않는 요청 방식입니다.";
+            case 410 -> "이미 삭제한 기록입니다. 새 요청 식별자를 사용해 주세요.";
             case 415 -> "지원하지 않는 데이터 형식입니다.";
             default -> "요청을 처리할 수 없습니다.";
         };

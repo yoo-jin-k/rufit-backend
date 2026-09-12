@@ -56,6 +56,11 @@ public class WorkoutController {
     public View complete(@PathVariable UUID id, @PathVariable int setIndex, @Valid @RequestBody Completion request, Principal principal) {
         return service.complete(id, principal.getName(), setIndex, request);
     }
+    @PostMapping("/{id}/delete") @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteHistory(@PathVariable UUID id, @Valid @RequestBody DeleteRequest request, Principal principal) {
+        service.deleteHistory(id, principal.getName(), request.version());
+    }
+    public record DeleteRequest(@NotNull @PositiveOrZero Long version, @NotNull @AssertTrue Boolean confirmed) {}
     @PostMapping("/{id}/cancel")
     public View cancel(@PathVariable UUID id, @Valid @RequestBody CancelRequest request, Principal principal) {
         return service.cancel(id, principal.getName(), request.version());
