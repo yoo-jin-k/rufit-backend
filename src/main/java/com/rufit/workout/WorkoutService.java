@@ -78,6 +78,11 @@ public class WorkoutService {
         w.replaceEntries(resolver.resolve(owner,request.sets(),w.entries()));
         return View.from(repository.saveAndFlush(w));
     }
+    public View updateNote(UUID id,String owner,Note request) {
+        Workout w=owned(id,owner); checkVersion(w,request.version());
+        w.updateNote(request.note());
+        return View.from(repository.saveAndFlush(w));
+    }
     public DraftSave saveDraft(UUID id,String owner,Draft request) {
         var applied=operations.appliedVersion(id,request.operationId(),owner);
         Workout w=owned(id,owner);
@@ -87,6 +92,7 @@ public class WorkoutService {
         Instant deadline=request.restEndsAt()==null?null:request.restEndsAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         w.saveDraft(request.operationId(),entries,request.sets().stream().map(DraftSet::completed).toList(),request.restSetIndex(),deadline,
             Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        if (request.note()!=null) w.updateNote(request.note());
         repository.saveAndFlush(w); operations.remember(id,request.operationId(),w.version());
         return new DraftSave(View.from(w),w.version(),false);
     }

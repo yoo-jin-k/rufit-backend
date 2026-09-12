@@ -61,11 +61,16 @@ public class WorkoutController {
     public DraftSave saveDraft(@PathVariable UUID id,@Valid @RequestBody Draft request,Principal principal) {
         return service.saveDraft(id,principal.getName(),request);
     }
+    @PutMapping("/{id}/note")
+    public View updateNote(@PathVariable UUID id,@Valid @RequestBody Note request,Principal principal) {
+        return service.updateNote(id,principal.getName(),request);
+    }
+    public record Note(@NotNull @PositiveOrZero Long version,@NotNull @Size(max=2000) String note) {}
     public record DraftSave(View workout,long appliedVersion,boolean replayed) {}
     public record DraftSet(@NotNull @Valid SetInput set,@NotNull Boolean completed) {}
     public record Draft(@NotNull UUID operationId,@NotNull @PositiveOrZero Long version,
         @NotNull @Size(max=300) List<@NotNull @Valid DraftSet> sets,
-        @Schema(nullable=true) Integer restSetIndex,@Schema(nullable=true) Instant restEndsAt) {}
+        @Schema(nullable=true) Integer restSetIndex,@Schema(nullable=true) Instant restEndsAt,@Schema(nullable=true) @Size(max=2000) String note) {}
     @PutMapping("/{id}/history")
     public View correctHistory(@PathVariable UUID id, @Valid @RequestBody Edit request, Principal principal) {
         return service.correctHistory(id, principal.getName(), request);
@@ -94,8 +99,8 @@ public class WorkoutController {
     public record Edit(@NotNull @PositiveOrZero Long version, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record FinishRequest(@NotNull @PositiveOrZero Long version, @Schema(nullable=true, defaultValue="false") Boolean discardIncomplete) {}
     public record Revision(@NotNull @PositiveOrZero Long version) {}
-    @Schema(requiredProperties={"id", "startedAt", "finishedAt", "cancelledAt", "sourceRoutineId", "version", "sets", "completedSetIndexes", "restEndsAt", "restSetIndex"})
-    public record View(UUID id, Instant startedAt, @Schema(nullable=true) Instant finishedAt, @Schema(nullable=true) Instant cancelledAt, @Schema(nullable=true) UUID sourceRoutineId, long version, List<SetInput> sets, List<Integer> completedSetIndexes, @Schema(nullable=true) Instant restEndsAt, @Schema(nullable=true) Integer restSetIndex) {
-        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.sourceRoutineId(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId())).toList(), w.completedSetIndexes(), w.restEndsAt(), w.restSetIndex()); }
+    @Schema(requiredProperties={"id", "startedAt", "finishedAt", "cancelledAt", "sourceRoutineId", "version", "sets", "completedSetIndexes", "restEndsAt", "restSetIndex", "note"})
+    public record View(UUID id, Instant startedAt, @Schema(nullable=true) Instant finishedAt, @Schema(nullable=true) Instant cancelledAt, @Schema(nullable=true) UUID sourceRoutineId, long version, List<SetInput> sets, List<Integer> completedSetIndexes, @Schema(nullable=true) Instant restEndsAt, @Schema(nullable=true) Integer restSetIndex, String note) {
+        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.sourceRoutineId(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId())).toList(), w.completedSetIndexes(), w.restEndsAt(), w.restSetIndex(), w.note()); }
     }
 }

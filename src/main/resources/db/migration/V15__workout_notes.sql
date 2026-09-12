@@ -1,0 +1,1 @@
+ALTER TABLE workouts ADD COLUMN note varchar(2000) NOT NULL DEFAULT '';

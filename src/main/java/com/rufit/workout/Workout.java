@@ -19,6 +19,7 @@ public class Workout {
     private Instant cancelledAt;
     private UUID sourceRoutineId;
     private UUID lastDraftOperationId;
+    @Column(nullable=false,length=2000) private String note = "";
     @Version private Long version;
     @ElementCollection
     @CollectionTable(name = "workout_entries", joinColumns = @JoinColumn(name = "workout_id"))
@@ -39,6 +40,12 @@ public class Workout {
         return workout;
     }
     UUID sourceRoutineId() { return sourceRoutineId; }
+    String note() { return note; }
+    void updateNote(String value) {
+        if (cancelledAt != null) throw new WorkoutConflict("취소한 운동은 수정할 수 없습니다.");
+        if (value == null || value.length() > 2000) throw new IllegalArgumentException("메모는 2000자 이내여야 합니다.");
+        note = value;
+    }
     void replaceEntries(List<Entry> replacement) {
         requireActive();
         if (replacement.isEmpty() || replacement.size() > 300) throw new IllegalArgumentException("세트는 1~300개여야 합니다.");
