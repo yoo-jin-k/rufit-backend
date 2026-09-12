@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,7 +17,13 @@ public class WorkoutController {
     private final WorkoutService service;
     WorkoutController(WorkoutService service) { this.service = service; }
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public View start(Principal principal) { return service.start(principal.getName()); }
+    public View start(@RequestHeader(name="Idempotency-Key", required=false) UUID key, Principal principal) {
+        return service.start(principal.getName(), key == null ? UUID.randomUUID() : key);
+    }
+    @GetMapping("/active")
+    public ResponseEntity<View> active(Principal principal) {
+        return service.active(principal.getName()).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
+    }
     @GetMapping
     public History history(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size, Principal principal) { return service.history(principal.getName(), page, size); }
     public record History(List<View> items, int page, int size, long totalElements, boolean hasNext) {}

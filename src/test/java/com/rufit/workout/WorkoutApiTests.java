@@ -98,6 +98,19 @@ class WorkoutApiTests {
             .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+"}"))
             .andExpect(status().isOk()).andExpect(jsonPath("$.restEndsAt").isEmpty());
     }
+    @Test void creationRetryAndActiveRecoveryAreOwnerScoped() throws Exception {
+        String key = java.util.UUID.randomUUID().toString();
+        for (int attempt=0; attempt<2; attempt++) {
+            mvc.perform(post("/api/v1/workouts").header("Idempotency-Key", key).with(user("alice")).with(csrf()))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(key));
+        }
+        org.assertj.core.api.Assertions.assertThat(repository.count()).isEqualTo(1);
+        mvc.perform(get("/api/v1/workouts/active").with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(key));
+        mvc.perform(get("/api/v1/workouts/active").with(user("bob"))).andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/workouts").header("Idempotency-Key", key).with(user("bob")).with(csrf())).andExpect(status().isConflict());
+        mvc.perform(post("/api/v1/workouts").header("Idempotency-Key", "invalid").with(user("bob")).with(csrf())).andExpect(status().isBadRequest());
+    }
     @Test void historyIncludesOnlyOwnCompletedWorkouts() throws Exception {
         String id = start();
         String updated = edit(id, "{\"version\":0,\"sets\":[{\"exerciseName\":\"스쿼트\",\"weight\":40,\"reps\":10}]}")

@@ -21,9 +21,17 @@ public class WorkoutService {
             PageRequest.of(page, size, Sort.by(Sort.Order.desc("finishedAt"), Sort.Order.desc("id"))));
         return new History(records.map(View::from).toList(), page, size, records.getTotalElements(), records.hasNext());
     }
-    public View start(String owner) {
+    public View start(String owner) { return start(owner, UUID.randomUUID()); }
+    public View start(String owner, UUID requestId) {
+        var replay = repository.findByIdAndOwnerName(requestId, owner);
+        if (replay.isPresent()) return View.from(replay.get());
+        if (repository.existsById(requestId)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
         if (repository.findByOwnerNameAndFinishedAtIsNull(owner).isPresent()) throw new WorkoutConflict("진행 중인 운동이 있습니다.");
-        return View.from(repository.saveAndFlush(new Workout(UUID.randomUUID(), owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS))));
+        return View.from(repository.saveAndFlush(new Workout(requestId, owner, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS))));
+    }
+    @Transactional(readOnly=true)
+    public java.util.Optional<View> active(String owner) {
+        return repository.findByOwnerNameAndFinishedAtIsNull(owner).map(View::from);
     }
     @Transactional(readOnly=true)
     public View get(UUID id, String owner) { return View.from(owned(id, owner)); }

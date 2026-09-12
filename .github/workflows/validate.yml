@@ -32,3 +32,4 @@ jobs:
           java-version: '21'
           cache: maven
       - run: ./mvnw -B verify
+      - run: python3 scripts/smoke-restart.py

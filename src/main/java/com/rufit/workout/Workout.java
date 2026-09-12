@@ -16,7 +16,7 @@ public class Workout {
     @Column(nullable = false, length = 100) private String ownerName;
     @Column(nullable = false) private Instant startedAt;
     private Instant finishedAt;
-    @Version private long version;
+    @Version private Long version;
     @ElementCollection
     @CollectionTable(name = "workout_entries", joinColumns = @JoinColumn(name = "workout_id"))
     @OrderColumn(name = "entry_order")
@@ -60,7 +60,7 @@ public class Workout {
     String owner() { return ownerName; }
     Instant startedAt() { return startedAt; }
     Instant finishedAt() { return finishedAt; }
-    long version() { return version; }
+    long version() { return version == null ? 0 : version; }
     List<Entry> entries() { return List.copyOf(entries); }
 
     @Embeddable
