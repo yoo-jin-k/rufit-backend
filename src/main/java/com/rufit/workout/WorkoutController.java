@@ -17,6 +17,9 @@ public class WorkoutController {
     WorkoutController(WorkoutService service) { this.service = service; }
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public View start(Principal principal) { return service.start(principal.getName()); }
+    @GetMapping
+    public History history(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size, Principal principal) { return service.history(principal.getName(), page, size); }
+    public record History(List<View> items, int page, int size, long totalElements, boolean hasNext) {}
     @GetMapping("/{id}")
     public View get(@PathVariable UUID id, Principal principal) { return service.get(id, principal.getName()); }
     @PutMapping("/{id}/exercises")

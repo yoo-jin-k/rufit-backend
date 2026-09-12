@@ -2,6 +2,7 @@ package com.rufit.workout;
 
 import java.time.Instant;
 import java.util.UUID;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,13 @@ import static com.rufit.workout.WorkoutController.*;
 public class WorkoutService {
     private final WorkoutRepository repository;
     WorkoutService(WorkoutRepository repository) { this.repository = repository; }
+    @Transactional(readOnly=true)
+    public History history(String owner, int page, int size) {
+        if (page < 0 || page > 10000 || size < 1 || size > 100) throw new IllegalArgumentException("페이지와 조회 개수 범위를 확인해 주세요.");
+        Page<Workout> records = repository.findByOwnerNameAndFinishedAtIsNotNull(owner,
+            PageRequest.of(page, size, Sort.by(Sort.Order.desc("finishedAt"), Sort.Order.desc("id"))));
+        return new History(records.map(View::from).toList(), page, size, records.getTotalElements(), records.hasNext());
+    }
     public View start(String owner) {
         if (repository.findByOwnerNameAndFinishedAtIsNull(owner).isPresent()) throw new WorkoutConflict("진행 중인 운동이 있습니다.");
         return View.from(repository.saveAndFlush(new Workout(UUID.randomUUID(), owner, Instant.now())));

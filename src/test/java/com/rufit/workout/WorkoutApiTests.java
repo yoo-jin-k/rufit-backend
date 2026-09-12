@@ -81,6 +81,22 @@ class WorkoutApiTests {
             .content("{\"version\":0,\"sets\":[{\"exerciseName\":\"스쿼트\",\"weight\":0,\"reps\":1}]}"))
             .andExpect(status().isNotFound());
     }
+    @Test void historyIncludesOnlyOwnCompletedWorkouts() throws Exception {
+        String id = start();
+        String updated = edit(id, "{\"version\":0,\"sets\":[{\"exerciseName\":\"스쿼트\",\"weight\":40,\"reps\":10}]}")
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        Number version = JsonPath.read(updated, "$.version");
+        mvc.perform(post("/api/v1/workouts/"+id+"/finish").with(user("alice")).with(csrf())
+            .contentType(MediaType.APPLICATION_JSON).content("{\"version\":"+version+"}")).andExpect(status().isOk());
+        start();
+        mvc.perform(get("/api/v1/workouts?size=1").with(user("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.items[0].id").value(id)).andExpect(jsonPath("$.hasNext").value(false));
+        mvc.perform(get("/api/v1/workouts").with(user("bob"))).andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/v1/workouts?page=1").with(user("alice"))).andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
+        mvc.perform(get("/api/v1/workouts?size=101").with(user("alice"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/workouts?page=-1").with(user("alice"))).andExpect(status().isBadRequest());
+    }
     @Test void preventsMultipleActiveWorkoutsAndEmptyFinish() throws Exception {
         String id = start();
         mvc.perform(post("/api/v1/workouts").with(user("alice")).with(csrf())).andExpect(status().isConflict());
