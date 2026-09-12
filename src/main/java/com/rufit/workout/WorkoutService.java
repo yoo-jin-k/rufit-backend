@@ -21,6 +21,20 @@ public class WorkoutService {
             PageRequest.of(page, size, Sort.by(Sort.Order.desc("finishedAt"), Sort.Order.desc("id"))));
         return new History(records.map(View::from).toList(), page, size, records.getTotalElements(), records.hasNext());
     }
+    @Transactional(readOnly=true)
+    public ExerciseHistory exerciseHistory(String owner, String exerciseName, int page, int size) {
+        if (exerciseName == null || exerciseName.isBlank() || exerciseName.trim().length() > 80)
+            throw new IllegalArgumentException("운동 이름은 1~80자여야 합니다.");
+        if (page < 0 || page > 10000 || size < 1 || size > 50)
+            throw new IllegalArgumentException("페이지와 조회 개수 범위를 확인해 주세요.");
+        String name = exerciseName.trim();
+        Page<Workout> records = repository.findExerciseHistory(owner, name,
+            PageRequest.of(page, size, Sort.by(Sort.Order.desc("finishedAt"), Sort.Order.desc("id"))));
+        var items = records.map(w -> new ExerciseRecord(w.id(), w.finishedAt(),
+            w.entries().stream().filter(e -> e.name().equals(name))
+                .map(e -> new SetInput(e.name(), e.weight(), e.reps())).toList())).toList();
+        return new ExerciseHistory(name, items, page, size, records.getTotalElements(), records.hasNext());
+    }
     public View start(String owner) { return start(owner, UUID.randomUUID()); }
     public View start(String owner, UUID requestId) {
         var replay = repository.findByIdAndOwnerName(requestId, owner);

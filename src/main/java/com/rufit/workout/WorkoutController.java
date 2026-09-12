@@ -27,6 +27,13 @@ public class WorkoutController {
     @GetMapping
     public History history(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int size, Principal principal) { return service.history(principal.getName(), page, size); }
     public record History(List<View> items, int page, int size, long totalElements, boolean hasNext) {}
+    @GetMapping("/exercise-history")
+    public ExerciseHistory exerciseHistory(@RequestParam String exerciseName, @RequestParam(defaultValue="0") int page,
+        @RequestParam(defaultValue="10") int size, Principal principal) {
+        return service.exerciseHistory(principal.getName(), exerciseName, page, size);
+    }
+    public record ExerciseRecord(UUID workoutId, Instant finishedAt, List<SetInput> sets) {}
+    public record ExerciseHistory(String exerciseName, List<ExerciseRecord> items, int page, int size, long totalElements, boolean hasNext) {}
     @GetMapping("/{id}")
     public View get(@PathVariable UUID id, Principal principal) { return service.get(id, principal.getName()); }
     @PutMapping("/{id}/exercises")

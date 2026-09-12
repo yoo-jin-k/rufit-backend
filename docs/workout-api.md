@@ -69,3 +69,12 @@ View: `id`, `startedAt`, `finishedAt`(진행 중 null), `version`, `sets`.
 - 모두 200 View 반환. 다른 사용자 404, 오래된 version 또는 종료한 운동 409, 잘못된 위치·입력·300개 초과 400.
 - 세트 위치는 응답의 sets 배열 기준이다. 목록 변경 후에는 반드시 새 View와 version을 사용한다. 오래된 위치를 가진 수정은 version 검사에서 거절된다.
 - 전체 세트를 삭제해도 진행 중인 빈 초안은 유지되며 종료는 할 수 없다. 전체 목록 교체 API는 기존대로 모든 완료 표시와 휴식 시간을 초기화하므로 일상적인 입력 변경에는 개별 편집 API를 사용한다.
+
+## 종목별 이전 기록
+
+`GET /api/v1/workouts/exercise-history?exerciseName=스쿼트&page=0&size=10`
+
+- 본인이 완료한 운동 중 이름이 정확히 일치하는 종목의 세트만 최신 완료시각순으로 반환한다. 앞뒤 공백은 제거하며 종목 ID 카탈로그 도입 전까지 이름을 기준으로 조회한다.
+- 응답: `exerciseName`, `items[{workoutId,finishedAt,sets}]`, `page`, `size`, `totalElements`, `hasNext`.
+- 같은 운동 세션에 해당 종목이 여러 세트 있어도 세션은 한 번만 반환하고 세트의 원래 순서를 보존한다.
+- 진행 중인 운동과 다른 사람의 기록은 제외한다. 기록이 없으면 200과 빈 items. page 0~10000, size 1~50.
