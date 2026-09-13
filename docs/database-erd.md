@@ -1,6 +1,6 @@
 # 루핏 데이터베이스 구조와 ERD
 
-기준: PostgreSQL용 Flyway V1~V20, 백엔드 기능 기준 커밋 `fca7dbeb7c6a83bb921ce35e8d613d6de8289aef`. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 13개다.
+기준: PostgreSQL용 Flyway V1~V21, 오프라인 운동 가져오기 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 13개다.
 
 ## 데이터 관계
 
@@ -27,6 +27,7 @@ erDiagram
         integer rest_set_index "nullable"
         uuid source_routine_id "nullable, source snapshot"
         uuid last_draft_operation_id "nullable"
+        varchar import_fingerprint "nullable, SHA-256 of import request"
         varchar note
     }
     workout_entries {
@@ -127,12 +128,13 @@ erDiagram
 - 별도 회원 원장인 `users` 테이블은 아직 없다. OIDC의 발급자와 subject로 만든 내부 소유권 키를 `owner_name`에 저장한다. 표시 이름이나 이메일이 아니다. 프로필을 만들지 않아도 운동 기록이 가능하므로 workouts/routines/rest_preferences의 owner_name은 user_profiles를 참조하는 FK가 아니다.
 - workouts.source_routine_id, routines.source_routine_id, routines.source_workout_id는 복사 출처를 기억하는 값이다. 원본을 지워도 복사본이 유지되도록 FK를 걸지 않았다. 루틴의 두 출처는 동시에 채울 수 없다.
 - completed_workout_sets.set_index와 workouts.rest_set_index는 세트 순서 번호다. workout_entries로 향하는 복합 FK는 없으며, 세트 교체·복제·삭제 시 애플리케이션 규칙과 트랜잭션에서 일관성을 관리한다.
+- workouts.import_fingerprint는 최초 오프라인 가져오기 요청을 구분하는 SHA-256 값이다. 재시도에서 같은 ID에 다른 원문을 적용하지 않도록 하며 API에는 노출하지 않는다. 별도 FK나 새 테이블은 없다.
 - workouts.last_draft_operation_id에는 FK가 없다. 초안 저장이 낙관적 잠금에 참여하도록 운동 엔티티를 변경하는 표식이고, 적용 확인은 workout_draft_operations에 저장한다.
 - 삭제 방지 키는 원본 운동/루틴이 지워진 뒤에도 남아야 하므로 원본 테이블과 FK로 연결하지 않는다.
 
 ## 저장과 변경 규칙
 
-- Flyway의 V1~V20 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
+- Flyway의 V1~V21 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
 - 운동·루틴·종목·프로필은 수정 버전으로 동시 덮어쓰기를 막는다. 서비스 트랜잭션은 복수 테이블 변경을 함께 처리한다.
 - 종료/취소 시각의 순서를 DB CHECK로 제한하고, 계정별 진행 중 운동은 부분 UNIQUE 인덱스로 최대 하나만 허용한다.
 - 운동/루틴의 하위 세트, 운동 완료 번호·저장 확인, 프로필 목표는 부모 삭제 시 함께 삭제한다. 종목 참조는 CASCADE 삭제가 아니며 종목은 보관 상태를 사용한다.

@@ -15,7 +15,7 @@ src/main/java/com/rufit/
 src/main/resources/
 ├── application.properties        DB·JPA·상태 확인 등의 기본 설정
 ├── application-oidc.properties   외부 발급자 토큰 검증 설정
-└── db/migration/                 Flyway V1~V20 SQL
+└── db/migration/                 Flyway V1~V21 SQL
 
 src/test/                        단위·HTTP·실제 PostgreSQL 검사
 scripts/                         재시작·DB 장애·백업/복원·컨테이너 검증

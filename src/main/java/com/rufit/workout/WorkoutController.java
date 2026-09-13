@@ -21,6 +21,16 @@ public class WorkoutController {
     public View start(@RequestHeader(name="Idempotency-Key", required=false) UUID key, Principal principal) {
         return service.start(principal.getName(), key == null ? UUID.randomUUID() : key);
     }
+    @PostMapping("/import")
+    public ImportResult importOffline(@RequestHeader("Idempotency-Key") UUID key,@Valid @RequestBody OfflineImport request,Principal principal) {
+        return service.importOffline(principal.getName(),key,request);
+    }
+    public record OfflineImport(@NotNull Instant startedAt,@Schema(nullable=true) Instant finishedAt,
+        @NotNull @Size(max=300) List<@NotNull @Valid DraftSet> sets,
+        @Schema(nullable=true) Integer restSetIndex,@Schema(nullable=true) Instant restEndsAt,
+        @NotNull @Size(max=2000) String note,@NotNull @AssertTrue Boolean confirmed) {}
+    @Schema(requiredProperties={"workout","importedVersion","replayed"})
+    public record ImportResult(View workout,long importedVersion,boolean replayed) {}
     @GetMapping("/active")
     public ResponseEntity<View> active(Principal principal) {
         return service.active(principal.getName()).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());

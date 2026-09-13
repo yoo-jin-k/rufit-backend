@@ -45,3 +45,5 @@ OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·
 - [비공개 프로필](docs/profile-api.md) · [서버 생존·준비 상태](docs/health-probes.md)
 - [DB 중단·백업 복원 검증](docs/backup-restore.md) · [컨테이너 실행](docs/container-runtime.md)
 - 실제 서버 재시작 검증: 테스트 DB 환경변수 설정 후 `python3 scripts/smoke-restart.py`
+
+[오프라인 운동 가져오기](docs/offline-workout-import.md): 원래 시각·세트·완료 상태·메모를 계정에 원자적으로 저장하고 같은 요청의 재시도·삭제 후 복원을 제어합니다. 실제 앱의 가져오기 선택 화면은 후속 작업입니다.

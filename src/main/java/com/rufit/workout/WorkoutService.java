@@ -51,7 +51,7 @@ public class WorkoutService {
     public View start(String owner, UUID requestId) {
         var replay = repository.findByIdAndOwnerName(requestId, owner);
         if (replay.isPresent()) {
-            if (replay.get().sourceRoutineId() != null) throw new WorkoutConflict("다른 시작 요청에 사용한 식별자입니다.");
+            if (replay.get().sourceRoutineId() != null || replay.get().importFingerprint()!=null) throw new WorkoutConflict("다른 시작 요청에 사용한 식별자입니다.");
             return View.from(replay.get());
         }
         requireReusableKey(requestId, owner);
@@ -65,6 +65,22 @@ public class WorkoutService {
         if (replay.isPresent() && !routineId.equals(replay.get().sourceRoutineId()))
             throw new WorkoutConflict("다른 시작 요청에 사용한 식별자입니다.");
         return replay.map(View::from);
+    }
+    public ImportResult importOffline(String owner,UUID key,OfflineImport request) {
+        String fingerprint=OfflineImportFingerprint.of(request);
+        var existing=repository.findByIdAndOwnerName(key,owner);
+        if (existing.isPresent()) {
+            Workout workout=existing.get();
+            if (!fingerprint.equals(workout.importFingerprint())) throw new WorkoutConflict("같은 가져오기 식별자에 다른 기록을 사용할 수 없습니다.");
+            return new ImportResult(View.from(workout),0,true);
+        }
+        requireReusableKey(key,owner);
+        if (repository.existsById(key)) throw new WorkoutConflict("요청 식별자를 다시 생성해 주세요.");
+        if (request.finishedAt()==null && repository.findByOwnerNameAndFinishedAtIsNullAndCancelledAtIsNull(owner).isPresent())
+            throw new WorkoutConflict("진행 중인 서버 운동이 있습니다. 먼저 두 기록을 확인해 주세요.");
+        var entries=resolver.resolve(owner,request.sets().stream().map(DraftSet::set).toList(),java.util.List.of());
+        Workout imported=Workout.fromOffline(key,owner,request,entries,fingerprint,Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        return new ImportResult(View.from(repository.saveAndFlush(imported)),0,false);
     }
     public View startFromRoutine(String owner, UUID requestId, UUID routineId, java.util.List<Workout.Entry> sets) {
         var replay = replayRoutineStart(owner, requestId, routineId);

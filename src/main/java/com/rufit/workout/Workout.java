@@ -19,6 +19,7 @@ public class Workout {
     private Instant cancelledAt;
     private UUID sourceRoutineId;
     private UUID lastDraftOperationId;
+    @Column(length=64) private String importFingerprint;
     @Column(nullable=false,length=2000) private String note = "";
     @Version private Long version;
     @ElementCollection
@@ -40,6 +41,22 @@ public class Workout {
         return workout;
     }
     UUID sourceRoutineId() { return sourceRoutineId; }
+    String importFingerprint() { return importFingerprint; }
+    static Workout fromOffline(UUID id,String owner,WorkoutController.OfflineImport request,List<Entry> sets,String fingerprint,Instant now) {
+        if (!Boolean.TRUE.equals(request.confirmed()) || request.startedAt()==null || request.startedAt().isBefore(Instant.EPOCH) || request.startedAt().isAfter(now))
+            throw new IllegalArgumentException("가져오기 확인과 실제 운동 시작 시각을 확인해 주세요.");
+        if (request.finishedAt()!=null && (request.finishedAt().isBefore(request.startedAt()) || request.finishedAt().isAfter(now)))
+            throw new IllegalArgumentException("종료 시각은 시작 시각부터 현재 시각 사이여야 합니다.");
+        if (request.finishedAt()!=null && (request.restSetIndex()!=null || request.restEndsAt()!=null))
+            throw new IllegalArgumentException("완료된 운동에는 진행 중인 휴식을 가져올 수 없습니다.");
+        Workout workout=new Workout(id,owner,request.startedAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        Instant deadline=request.restEndsAt()==null ? null : request.restEndsAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        workout.saveDraft(id,sets,request.sets().stream().map(WorkoutController.DraftSet::completed).toList(),request.restSetIndex(),deadline,now);
+        workout.updateNote(request.note());
+        if (request.finishedAt()!=null) workout.finish(request.finishedAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS),false);
+        workout.importFingerprint=fingerprint;
+        return workout;
+    }
     String note() { return note; }
     void updateNote(String value) {
         if (cancelledAt != null) throw new WorkoutConflict("취소한 운동은 수정할 수 없습니다.");
