@@ -30,7 +30,7 @@ public class WorkoutSummary {
         }
         List<Exercise> exercises=List.copyOf(groups.values());
         return new View(workout.id(),workout.version(),workout.startedAt(),workout.finishedAt(),
-            Duration.between(workout.startedAt(),workout.finishedAt()).getSeconds(),workout.completedSetIndexes().size(),
+            (Duration.between(workout.startedAt(),workout.finishedAt()).toMillis()-workout.pausedDurationMs())/1000,workout.completedSetIndexes().size(),
             exercises.stream().mapToLong(Exercise::totalReps).sum(),exercises.stream().map(Exercise::volumeKgReps).reduce(BigDecimal.ZERO,BigDecimal::add),exercises);
     }
     @Schema(requiredProperties={"exerciseId", "exerciseName", "completedSets", "totalReps", "volumeKgReps", "heaviestWeight", "repsAtHeaviestWeight"})

@@ -1,6 +1,6 @@
 # 루핏 데이터베이스 구조와 ERD
 
-기준: PostgreSQL용 Flyway V1~V21, 오프라인 운동 가져오기 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 13개다.
+기준: PostgreSQL용 Flyway V1~V22, 오프라인 운동 가져오기와 명시적 운동 정지 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 13개다.
 
 ## 데이터 관계
 
@@ -22,6 +22,8 @@ erDiagram
         timestamptz started_at
         timestamptz finished_at "nullable"
         timestamptz cancelled_at "nullable"
+        timestamptz paused_at "nullable, explicit pause"
+        bigint paused_duration_ms "default 0"
         bigint version
         timestamptz rest_ends_at "nullable"
         integer rest_set_index "nullable"
@@ -110,7 +112,7 @@ erDiagram
 
 | 테이블 | 보관하는 내용 |
 | --- | --- |
-| workouts | 한 번의 운동: 소유자, 시작·종료·취소, 메모, 휴식, 수정 버전 |
+| workouts | 한 번의 운동: 소유자, 시작·종료·취소·정지, 누적 정지시간, 메모, 휴식, 수정 버전 |
 | workout_entries | 운동에 입력한 순서별 세트: 종목, 무게, 횟수 |
 | completed_workout_sets | 운동에서 완료 표시한 세트 번호 |
 | workout_draft_operations | 같은 초안 요청을 재전송해도 중복 적용하지 않기 위한 저장 확인 |
@@ -134,7 +136,7 @@ erDiagram
 
 ## 저장과 변경 규칙
 
-- Flyway의 V1~V21 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
+- Flyway의 V1~V22 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
 - 운동·루틴·종목·프로필은 수정 버전으로 동시 덮어쓰기를 막는다. 서비스 트랜잭션은 복수 테이블 변경을 함께 처리한다.
 - 종료/취소 시각의 순서를 DB CHECK로 제한하고, 계정별 진행 중 운동은 부분 UNIQUE 인덱스로 최대 하나만 허용한다.
 - 운동/루틴의 하위 세트, 운동 완료 번호·저장 확인, 프로필 목표는 부모 삭제 시 함께 삭제한다. 종목 참조는 CASCADE 삭제가 아니며 종목은 보관 상태를 사용한다.

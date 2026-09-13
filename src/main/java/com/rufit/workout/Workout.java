@@ -17,6 +17,8 @@ public class Workout {
     @Column(nullable = false) private Instant startedAt;
     private Instant finishedAt;
     private Instant cancelledAt;
+    private Instant pausedAt;
+    @Column(nullable=false) private long pausedDurationMs;
     private UUID sourceRoutineId;
     private UUID lastDraftOperationId;
     @Column(length=64) private String importFingerprint;
@@ -50,6 +52,12 @@ public class Workout {
         if (request.finishedAt()!=null && (request.restSetIndex()!=null || request.restEndsAt()!=null))
             throw new IllegalArgumentException("완료된 운동에는 진행 중인 휴식을 가져올 수 없습니다.");
         Workout workout=new Workout(id,owner,request.startedAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        workout.pausedAt=request.pausedAt()==null ? null : request.pausedAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        workout.pausedDurationMs=request.pausedDurationMs()==null ? 0 : request.pausedDurationMs();
+        if (workout.pausedAt!=null && (request.finishedAt()!=null || workout.pausedAt.isBefore(workout.startedAt) || workout.pausedAt.isAfter(now)) ||
+            workout.pausedDurationMs<0 || workout.pausedDurationMs>java.time.Duration.between(workout.startedAt,
+                workout.pausedAt!=null ? workout.pausedAt : request.finishedAt()!=null ? request.finishedAt() : now).toMillis())
+            throw new IllegalArgumentException("정지 시각과 누적 정지 시간을 확인해 주세요.");
         Instant deadline=request.restEndsAt()==null ? null : request.restEndsAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         workout.saveDraft(id,sets,request.sets().stream().map(WorkoutController.DraftSet::completed).toList(),request.restSetIndex(),deadline,now);
         workout.updateNote(request.note());
@@ -121,6 +129,7 @@ public class Workout {
         requireActive();
         if (completedSetIndexes.isEmpty()) throw new IllegalArgumentException("완료한 세트가 1개 이상 있어야 종료할 수 있습니다.");
         if (now.isBefore(startedAt)) throw new IllegalArgumentException("종료 시간이 시작 시간보다 빠릅니다.");
+        if (pausedAt!=null && now.isBefore(pausedAt)) throw new IllegalArgumentException("종료 시간이 정지 시간보다 빠릅니다.");
         if (completedSetIndexes.size() != entries.size()) {
             if (!discardIncomplete) throw new WorkoutConflict("INCOMPLETE_SETS_CONFIRMATION_REQUIRED", "미완료 세트를 제외하고 종료할지 확인해 주세요.");
             List<Entry> completed = completedSetIndexes().stream().map(entries::get).toList();
@@ -128,6 +137,7 @@ public class Workout {
             completedSetIndexes.clear();
             for (int i = 0; i < entries.size(); i++) completedSetIndexes.add(i);
         }
+        resumeTimer(now);
         finishedAt = now; restEndsAt = null; restSetIndex = null;
     }
     void completeSet(int index, boolean completed, int restSeconds, Instant now) {
@@ -144,7 +154,28 @@ public class Workout {
     void cancel(Instant now) {
         requireActive();
         if (now.isBefore(startedAt)) throw new IllegalArgumentException("취소 시간이 시작 시간보다 빠릅니다.");
+        resumeTimer(now);
         cancelledAt = now; restEndsAt = null; restSetIndex = null;
+    }
+    void pauseTimer(Instant now) {
+        requireActive();
+        if (pausedAt!=null) return;
+        if (now.isBefore(startedAt) || pausedDurationMs>java.time.Duration.between(startedAt,now).toMillis())
+            throw new IllegalArgumentException("운동 시각을 확인해 주세요.");
+        pausedAt=now;
+    }
+    void resumeTimer(Instant now) {
+        requireActive();
+        if (pausedAt==null) return;
+        if (now.isBefore(pausedAt)) throw new IllegalArgumentException("진행 시각이 정지 시각보다 빠릅니다.");
+        pausedDurationMs=Math.addExact(pausedDurationMs,java.time.Duration.between(pausedAt,now).toMillis());
+        pausedAt=null;
+    }
+    Instant pausedAt() { return pausedAt; }
+    long pausedDurationMs() { return pausedDurationMs; }
+    long elapsedMillis(Instant now) {
+        Instant until=finishedAt!=null ? finishedAt : cancelledAt!=null ? cancelledAt : pausedAt!=null ? pausedAt : now;
+        return Math.max(0,java.time.Duration.between(startedAt,until).toMillis()-pausedDurationMs);
     }
     Instant cancelledAt() { return cancelledAt; }
     void skipRest() { requireActive(); restEndsAt = null; restSetIndex = null; }

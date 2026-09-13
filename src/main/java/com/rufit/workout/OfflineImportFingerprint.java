@@ -15,7 +15,8 @@ final class OfflineImportFingerprint {
         try {
             var bytes=new ByteArrayOutputStream();
             try (var out=new DataOutputStream(bytes)) {
-                out.writeInt(1);
+                boolean hasPause=request.pausedAt()!=null || request.pausedDurationMs()!=null && request.pausedDurationMs()!=0;
+                out.writeInt(hasPause ? 2 : 1);
                 out.writeUTF(request.startedAt().toString());
                 nullable(out,request.finishedAt());
                 out.writeUTF(request.note());
@@ -27,6 +28,7 @@ final class OfflineImportFingerprint {
                     out.writeInt(set.reps());out.writeBoolean(row.completed());
                 }
                 nullable(out,request.restSetIndex());nullable(out,request.restEndsAt());
+                if (hasPause) {nullable(out,request.pausedAt());out.writeLong(request.pausedDurationMs()==null?0:request.pausedDurationMs());}
             }
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray()));
         } catch (IOException | NoSuchAlgorithmException error) {

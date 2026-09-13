@@ -52,6 +52,13 @@ class OfflineWorkoutImportTests {
         assertThat(send(id,"bob",body(false)).getStatus()).isEqualTo(409);
         assertThat(send(UUID.randomUUID(),"bob",body(false)).getStatus()).isEqualTo(200);
     }
+    @Test void explicitZeroPauseFieldsPreserveOriginalImportReceiptCompatibility() throws Exception {
+        UUID id=UUID.randomUUID();String original=body(false);
+        assertThat(send(id,"alice",original).getStatus()).isEqualTo(200);
+        String extended=original.replace("\"confirmed\":true","\"confirmed\":true,\"pausedAt\":null,\"pausedDurationMs\":0");
+        var replay=send(id,"alice",extended);assertThat(replay.getStatus()).isEqualTo(200);
+        assertThat((Boolean)JsonPath.read(replay.getContentAsString(),"$.replayed")).isTrue();
+    }
     @Test void importsFinishedHistoryAlongsideActiveWorkoutWithoutDroppingAnySets() throws Exception {
         var active=repository.saveAndFlush(new Workout(UUID.randomUUID(),"alice",Instant.now()));
         UUID id=UUID.randomUUID();assertThat(send(id,"alice",body(true)).getStatus()).isEqualTo(200);

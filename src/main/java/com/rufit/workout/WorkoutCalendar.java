@@ -42,7 +42,7 @@ public class WorkoutCalendar {
         Instant from=startDate.atStartOfDay(zone).toInstant();
         Instant until=untilDate.atStartOfDay(zone).toInstant();
         var sessions = jdbc.query("""
-            SELECT w.started_at, w.finished_at, count(e.entry_order) AS sets,
+            SELECT w.started_at, w.finished_at, w.paused_duration_ms, count(e.entry_order) AS sets,
                    coalesce(sum(e.weight * e.reps), 0) AS volume
             FROM workouts w
             LEFT JOIN completed_workout_sets c ON c.workout_id = w.id
@@ -52,7 +52,7 @@ public class WorkoutCalendar {
             GROUP BY w.id, w.started_at, w.finished_at
             """, Map.of("owner", owner, "from", Timestamp.from(from), "until", Timestamp.from(until)),
             (row, index) -> new Session(row.getTimestamp("started_at").toInstant(), row.getTimestamp("finished_at").toInstant(),
-                row.getLong("sets"), row.getBigDecimal("volume")));
+                row.getLong("sets"), row.getBigDecimal("volume"),row.getLong("paused_duration_ms")));
         SortedMap<LocalDate, Day> days = new TreeMap<>();
         for (LocalDate date=startDate;date.isBefore(untilDate);date=date.plusDays(1)) {
             days.put(date, new Day(date, 0, 0, BigDecimal.ZERO, 0));
@@ -61,7 +61,7 @@ public class WorkoutCalendar {
             LocalDate date = session.start.atZone(zone).toLocalDate();
             Day previous = days.get(date);
             days.put(date, new Day(date, previous.workouts + 1, previous.completedSets + session.sets,
-                previous.volumeKgReps.add(session.volume), previous.durationSeconds + Duration.between(session.start, session.finish).getSeconds()));
+                previous.volumeKgReps.add(session.volume), previous.durationSeconds + (Duration.between(session.start, session.finish).toMillis()-session.pausedMs)/1000));
         }
         List<Day> result = List.copyOf(days.values());
         return new Totals(result,
@@ -74,7 +74,7 @@ public class WorkoutCalendar {
     @Schema(requiredProperties={"weekStart","weekEnd","zone","days","workoutDays","workouts","completedSets","volumeKgReps","durationSeconds"})
     public record WeekView(LocalDate weekStart,LocalDate weekEnd,String zone,List<Day> days,long workoutDays,long workouts,
         long completedSets,BigDecimal volumeKgReps,long durationSeconds) {}
-    private record Session(Instant start, Instant finish, long sets, BigDecimal volume) {}
+    private record Session(Instant start, Instant finish, long sets, BigDecimal volume,long pausedMs) {}
     @Schema(requiredProperties={"date", "workouts", "completedSets", "volumeKgReps", "durationSeconds"})
     public record Day(LocalDate date, long workouts, long completedSets, BigDecimal volumeKgReps, long durationSeconds) {}
     @Schema(requiredProperties={"month", "zone", "days", "workoutDays", "workouts", "completedSets", "volumeKgReps", "durationSeconds"})

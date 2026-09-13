@@ -28,7 +28,8 @@ public class WorkoutController {
     public record OfflineImport(@NotNull Instant startedAt,@Schema(nullable=true) Instant finishedAt,
         @NotNull @Size(max=300) List<@NotNull @Valid DraftSet> sets,
         @Schema(nullable=true) Integer restSetIndex,@Schema(nullable=true) Instant restEndsAt,
-        @NotNull @Size(max=2000) String note,@NotNull @AssertTrue Boolean confirmed) {}
+        @NotNull @Size(max=2000) String note,@NotNull @AssertTrue Boolean confirmed,
+        @Schema(nullable=true) Instant pausedAt,@Schema(nullable=true) @PositiveOrZero Long pausedDurationMs) {}
     @Schema(requiredProperties={"workout","importedVersion","replayed"})
     public record ImportResult(View workout,long importedVersion,boolean replayed) {}
     @GetMapping("/active")
@@ -69,6 +70,14 @@ public class WorkoutController {
     }
     @PostMapping("/{id}/finish")
     public View finish(@PathVariable UUID id, @Valid @RequestBody FinishRequest request, Principal principal) { return service.finish(id, principal.getName(), request.version(), Boolean.TRUE.equals(request.discardIncomplete())); }
+    @PostMapping("/{id}/pause")
+    public View pause(@PathVariable UUID id,@Valid @RequestBody Revision request,Principal principal) {
+        return service.pause(id,principal.getName(),request.version());
+    }
+    @PostMapping("/{id}/resume")
+    public View resume(@PathVariable UUID id,@Valid @RequestBody Revision request,Principal principal) {
+        return service.resume(id,principal.getName(),request.version());
+    }
     @PutMapping("/{id}/sets/{setIndex}/completion")
     public View complete(@PathVariable UUID id, @PathVariable int setIndex, @Valid @RequestBody Completion request, Principal principal) {
         return service.complete(id, principal.getName(), setIndex, request);
@@ -116,8 +125,8 @@ public class WorkoutController {
     public record Edit(@NotNull @PositiveOrZero Long version, @NotEmpty @Size(max=300) List<@NotNull @Valid SetInput> sets) {}
     public record FinishRequest(@NotNull @PositiveOrZero Long version, @Schema(nullable=true, defaultValue="false") Boolean discardIncomplete) {}
     public record Revision(@NotNull @PositiveOrZero Long version) {}
-    @Schema(requiredProperties={"id", "startedAt", "finishedAt", "cancelledAt", "sourceRoutineId", "version", "sets", "completedSetIndexes", "restEndsAt", "restSetIndex", "note"})
-    public record View(UUID id, Instant startedAt, @Schema(nullable=true) Instant finishedAt, @Schema(nullable=true) Instant cancelledAt, @Schema(nullable=true) UUID sourceRoutineId, long version, List<SetInput> sets, List<Integer> completedSetIndexes, @Schema(nullable=true) Instant restEndsAt, @Schema(nullable=true) Integer restSetIndex, String note) {
-        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.sourceRoutineId(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId())).toList(), w.completedSetIndexes(), w.restEndsAt(), w.restSetIndex(), w.note()); }
+    @Schema(requiredProperties={"id", "startedAt", "finishedAt", "cancelledAt", "sourceRoutineId", "version", "sets", "completedSetIndexes", "restEndsAt", "restSetIndex", "note", "pausedAt", "pausedDurationMs"})
+    public record View(UUID id, Instant startedAt, @Schema(nullable=true) Instant finishedAt, @Schema(nullable=true) Instant cancelledAt, @Schema(nullable=true) UUID sourceRoutineId, long version, List<SetInput> sets, List<Integer> completedSetIndexes, @Schema(nullable=true) Instant restEndsAt, @Schema(nullable=true) Integer restSetIndex, String note,@Schema(nullable=true) Instant pausedAt,long pausedDurationMs) {
+        static View from(Workout w) { return new View(w.id(), w.startedAt(), w.finishedAt(), w.cancelledAt(), w.sourceRoutineId(), w.version(), w.entries().stream().map(e -> new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId())).toList(), w.completedSetIndexes(), w.restEndsAt(), w.restSetIndex(), w.note(),w.pausedAt(),w.pausedDurationMs()); }
     }
 }

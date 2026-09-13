@@ -145,6 +145,16 @@ public class WorkoutService {
         Workout w = owned(id, owner); checkVersion(w, version); w.finish(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS), discardIncomplete);
         return View.from(repository.saveAndFlush(w));
     }
+    public View pause(UUID id,String owner,long version) {
+        Workout w=owned(id,owner);checkVersion(w,version);
+        w.pauseTimer(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        return View.from(repository.saveAndFlush(w));
+    }
+    public View resume(UUID id,String owner,long version) {
+        Workout w=owned(id,owner);checkVersion(w,version);
+        w.resumeTimer(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        return View.from(repository.saveAndFlush(w));
+    }
     public View complete(UUID id, String owner, int index, Completion request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());
         w.completeSet(index, request.completed(), request.restSeconds(), Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
