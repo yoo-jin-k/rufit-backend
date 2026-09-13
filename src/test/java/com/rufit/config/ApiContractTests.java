@@ -63,8 +63,24 @@ class ApiContractTests {
         assertThat(((Map<?,?>)profileProps.get("visibility")).get("enum")).isEqualTo(List.of("PRIVATE"));
         assertThat(((List<?>)schemas.get("com.rufit.workout.WorkoutController.SetInput").get("required")).contains("exerciseId")).isFalse();
         assertThat(((List<?>)schemas.get("com.rufit.workout.WorkoutController.Draft").get("required")).contains("note")).isFalse();
+        Map<String, Object> completion = schemas.get("com.rufit.workout.WorkoutController.Completion");
+        assertThat(new HashSet<>((List<?>) completion.get("required"))).isEqualTo(Set.of("version", "completed"));
+        assertThat(((Map<?, ?>) ((Map<?, ?>) completion.get("properties")).get("restSeconds")).get("nullable")).isEqualTo(true);
     }
     @Test void enabledDocumentationStillRequiresAuthentication() throws Exception {
         mvc.perform(get("/v3/api-docs")).andExpect(status().isUnauthorized());
+    }
+    @Test void duplicationUsesRequiredRevisionAndReturnsCompleteWorkoutContract() throws Exception {
+        String json = mvc.perform(get("/v3/api-docs").with(user("contract-test"))).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        Map<String, Object> request = JsonPath.read(json, "$.components.schemas['com.rufit.workout.WorkoutController.Revision']");
+        assertThat(request.get("required")).isEqualTo(List.of("version"));
+        String operation = "$.paths['/api/v1/workouts/{id}/sets/{setIndex}/duplicate'].post";
+        assertThat((String) JsonPath.read(json, operation + ".requestBody.content['application/json'].schema['$ref']"))
+            .isEqualTo("#/components/schemas/com.rufit.workout.WorkoutController.Revision");
+        List<String> responses = JsonPath.read(json, operation + ".responses['200'].content.*.schema['$ref']");
+        assertThat(responses).containsExactly("#/components/schemas/com.rufit.workout.WorkoutController.View");
+        Map<String, Object> statuses = JsonPath.read(json, operation + ".responses");
+        assertThat(statuses).containsKeys("400", "401", "403", "404", "409", "503");
     }
 }

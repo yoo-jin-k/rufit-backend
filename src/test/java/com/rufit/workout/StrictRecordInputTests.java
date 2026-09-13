@@ -32,7 +32,9 @@ class StrictRecordInputTests {
         workout=service.appendSet(workout.id(),"strict-input",new WorkoutController.SetEdit(workout.version(),new WorkoutController.SetInput("Squat",BigDecimal.TEN,5)));
         String prefix="{\"version\":"+workout.version();
         for(String suffix:new String[]{",\"restSeconds\":90}",",\"completed\":null,\"restSeconds\":90}",
-            ",\"completed\":true,\"restSeconds\":30.7}",",\"completed\":\"true\",\"restSeconds\":30}"})
+            ",\"completed\":true,\"restSeconds\":30.7}",",\"completed\":\"true\",\"restSeconds\":30}",
+            ",\"completed\":true,\"restSeconds\":-1}",",\"completed\":true,\"restSeconds\":3601}",
+            ",\"completed\":true,\"restSeconds\":\"90\"}"})
             mvc.perform(put("/api/v1/workouts/"+workout.id()+"/sets/0/completion").with(user("strict-input")).with(csrf())
                 .contentType("application/json").content(prefix+suffix)).andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/workouts/"+workout.id()).with(user("strict-input")))

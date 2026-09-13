@@ -1,6 +1,6 @@
 # 입력한 세트 복제 API 계약
 
-상태: **계약 확정, 구현 전**. feature/set-duplication에서 구현한다. 선행 PR #60이 포함된 누적 기능이며 PR 대상은 developer다.
+상태: **구현·로컬 검증 완료**. feature/set-duplication에서 계약 커밋 97ec685를 먼저 공개한 뒤 구현했다. PostgreSQL 전체 167개 테스트와 패키징 통과. 선행 PR #60이 포함된 누적 기능이며 PR 대상은 developer다. 운영 배포/실제 제공자 로그인 검증은 아니다.
 
 ## 목적과 엔드포인트
 
@@ -68,6 +68,19 @@
 | 503 | STORAGE_UNAVAILABLE / AUTHENTICATION_UNAVAILABLE | 편집 내용을 보존하고 서비스 회복 후 서버 상태 확인 |
 
 오류는 공통 application/problem+json(type/title/status/detail/instance/code, 검증 오류의 errors)을 반환한다. X-Request-Id는 문의·로그 추적용이며 중복 요청 키가 아니다.
+
+예: 이전 version으로 요청한 경우 HTTP 409 응답.
+
+```json
+{
+  "type":"about:blank",
+  "title":"Conflict",
+  "status":409,
+  "detail":"기록이 변경되었습니다. 다시 조회해 주세요.",
+  "instance":"/api/v1/workouts/11111111-1111-4111-8111-111111111111/sets/0/duplicate",
+  "code":"STATE_CONFLICT"
+}
+```
 
 응답을 잃었을 때는 GET /api/v1/workouts/{id}로 최신 상태부터 확인한다. 같은 version을 재전송하면 이미 반영된 복제를 다시 수행하지 않고 409다. 최신 version으로 자동 재전송하면 새 복제가 될 수 있으므로 금지한다. 동시에 두 번 누른 요청은 같은 version 기준 최대 한 번만 성공한다.
 

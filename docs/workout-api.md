@@ -43,7 +43,7 @@ View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `versio
 
 ## 세트 완료와 휴식
 
-- PUT /api/v1/workouts/{id}/sets/{setIndex}/completion: `version`, `completed`, `restSeconds`(0~3600).
+- PUT /api/v1/workouts/{id}/sets/{setIndex}/completion: `version`, `completed` 필수, `restSeconds`는 선택. 생략/null은 개인 지정→종목 추천→계정 기본값, 명시한 0~3600은 이번 요청에만 적용한다.
 - setIndex는 현재 sets 배열의 0부터 시작하는 위치다. 목록 전체 교체 시 완료 상태와 휴식은 초기화되며 반드시 최신 version을 사용한다.
 - POST /api/v1/workouts/{id}/rest/skip: `version`.
 - 응답에 completedSetIndexes와 restEndsAt(UTC 절대시각)을 포함한다. 앱은 max(0, restEndsAt - 현재시각)으로 남은 시간을 표시한다. 서버는 초마다 카운터를 저장하지 않는다.
@@ -57,7 +57,7 @@ View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `versio
 - POST /workouts에 UUID 형식의 Idempotency-Key 헤더를 보낼 수 있다. 같은 사용자가 같은 키로 재시도하면 기존 운동의 현재 상태를 반환하며 새 운동을 만들지 않는다. 키가 없으면 새 ID를 발급한다.
 - 같은 키의 동시 최초 요청 중 하나는 DB 충돌로 409가 될 수 있다. 동일 키 재시도로 기존 결과를 조회할 수 있다.
 - GET /workouts/active는 본인의 진행 중 운동, 세트 입력, 완료 상태, 휴식 종료시각을 반환한다. 없으면 204.
-- 수정은 최신 version을 요구하며 DB 낙관적 잠금으로 동시에 저장한 변경의 조용한 덮어쓰기를 막는다. 409 응답 시 최신 상태를 조회해 사용자가 변경을 다시 적용해야 한다.
+- 수정은 최신 version을 요구하며 DB 낙관적 잠금으로 동시에 저장한 변경의 조용한 덮어쓰기를 막는다. 409 응답 시 최신 상태를 조회해 사용자 의도와 대조한다. 휴식 조절/세트 복제는 최신 version으로 자동 재적용하지 않는다. [기능별 재시도](error-contract.md)를 따른다.
 - 서버 DB 복구와 앱 오프라인 저장은 별개다. 모바일 로컬 저장·자동 재전송은 아직 연결하지 않았다.
 
 ## 개별 세트 편집
@@ -65,6 +65,7 @@ View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `versio
 - `POST /api/v1/workouts/{id}/sets`: `{ "version": 최신버전, "set": { "exerciseName": "스쿼트", "weight": 40, "reps": 10 } }`로 마지막에 세트 추가.
 - `PUT /api/v1/workouts/{id}/sets/{setIndex}`: 같은 요청 형식으로 해당 세트만 수정. 기존 완료 여부와 휴식 종료시각을 유지한다.
 - `POST /api/v1/workouts/{id}/sets/{setIndex}/remove`: `{ "version": 최신버전 }`으로 해당 세트 삭제. 남은 완료 표시와 휴식 대상 위치를 보정하며 휴식 대상 자체를 삭제한 경우 타이머를 해제한다.
+- `POST /api/v1/workouts/{id}/sets/{setIndex}/duplicate`: `{ "version": 최신버전 }`으로 원본 바로 뒤에 같은 값의 미완료 세트 추가. 완료/휴식이 가리키는 원래 세트를 유지한다. 미저장 입력은 먼저 저장한다. [전체 요청·응답 계약](api-contracts/set-duplication.md).
 - 모두 200 View 반환. 다른 사용자 404, 오래된 version 또는 종료한 운동 409, 잘못된 위치·입력·300개 초과 400.
 - 세트 위치는 응답의 sets 배열 기준이다. 목록 변경 후에는 반드시 새 View와 version을 사용한다. 오래된 위치를 가진 수정은 version 검사에서 거절된다.
 - 전체 세트를 삭제해도 진행 중인 빈 초안은 유지되며 종료는 할 수 없다. 전체 목록 교체 API는 기존대로 모든 완료 표시와 휴식 시간을 초기화하므로 일상적인 입력 변경에는 개별 편집 API를 사용한다.
@@ -95,7 +96,7 @@ View: `id`, `startedAt`, `finishedAt`, `cancelledAt`, `sourceRoutineId`, `versio
 - 본인의 완료한 운동을 **시작 시각의 현지 날짜**로 분류한다. 월 경계는 해당 시간대의 월 시작 이상, 다음 달 시작 미만이다.
 - days는 운동이 없는 날도 포함한 월 전체 날짜순 배열. 각 날짜는 `date`, `workouts`, `completedSets`, `volumeKgReps`(완료 세트의 kg × 횟수 합), `durationSeconds`를 가진다.
 - 최상위에는 같은 합계 필드와 `workoutDays`(운동한 날짜 수)를 반환한다. 맨몸 운동은 세트 수에는 포함하고 외부 중량이 0이면 운동량 합은 0이다.
-- 운동 시간은 시작~완료 경과시간이며 휴식을 포함한다. 진행 중·취소된 운동·다른 사용자 기록은 집계하지 않는다.
+- 운동 시간은 시작~완료 경과시간에서 명시적으로 정지한 구간을 제외하며 휴식을 포함한다. 진행 중·취소된 운동·다른 사용자 기록은 집계하지 않는다.
 
 ## 루틴 시작 재시도
 

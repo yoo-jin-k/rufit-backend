@@ -25,7 +25,7 @@ H2로 PostgreSQL 호환성 검증을 대체하지 않습니다.
 
 ## 개발
 
-백엔드 전담으로 `developer` 기준의 `feature/*`에서 작업하고 `developer` 대상 PR을 만듭니다. 기존 `develop` 대상 PR은 이전 작업 이력입니다. main/developer 직접 수정·병합 금지. 기능 구현 전 [API 계약](docs/api-contracts/README.md)을 먼저 커밋하고 DB·API·검증을 함께 구현합니다. 미병합 PR 의존성과 누적 범위는 PR 본문에 명시합니다.
+백엔드 전담으로 `developer` 기준의 기능 브랜치에서 작업하고 `developer` 대상 PR을 만듭니다. PM 기준에 따라 새 작업은 `codex/<기능>-<작업>`으로 나누고 기존 진행 `feature/*`는 보존합니다. 기존 `develop` 대상 PR은 이전 작업 이력입니다. main/developer 직접 수정·병합 금지. 기능 구현 전 [API 계약](docs/api-contracts/README.md)을 먼저 커밋하고 DB·API·검증을 함께 구현합니다. 미병합 PR 의존성과 누적 범위는 PR 본문에 명시합니다.
 
 [최근 개발 현황과 다음 작업](docs/development-status.md)
 
@@ -56,3 +56,5 @@ OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·
 [운영 DB·보안 준비와 남은 일](docs/production-readiness.md)
 
 [API 계약 우선 작업](docs/api-contracts/README.md), [휴식시간 조절 요청·응답](docs/api-contracts/rest-adjustment.md)
+
+[입력한 세트의 인접 복제 요청·응답](docs/api-contracts/set-duplication.md)

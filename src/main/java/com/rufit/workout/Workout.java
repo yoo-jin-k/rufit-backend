@@ -114,6 +114,17 @@ public class Workout {
         if (entries.size() >= 300) throw new IllegalArgumentException("세트는 최대 300개까지 추가할 수 있습니다.");
         entries.add(entry);
     }
+    // 원본 바로 뒤에 미완료 복사본을 넣고 기존 완료·휴식 대상이 가리키는 세트를 유지한다.
+    void duplicateSet(int index) {
+        requireActive(); requireSetIndex(index);
+        if (entries.size() >= 300) throw new IllegalArgumentException("세트는 최대 300개까지 추가할 수 있습니다.");
+        Entry source = entries.get(index);
+        entries.add(index + 1, new Entry(source.exerciseId(), source.name(), source.weight(), source.reps()));
+        Set<Integer> shifted = new HashSet<>();
+        for (int completed : completedSetIndexes) shifted.add(completed > index ? completed + 1 : completed);
+        completedSetIndexes.clear(); completedSetIndexes.addAll(shifted);
+        if (restSetIndex != null && restSetIndex > index) restSetIndex++;
+    }
     // 세트 삭제 후 완료 번호를 당기고, 삭제 대상의 휴식만 해제한다.
     void removeSet(int index) {
         requireActive(); requireSetIndex(index);

@@ -9,7 +9,7 @@
 | AUTHENTICATION_REQUIRED | 401 | 로그인/인증 갱신 |
 | ACCESS_DENIED | 403 | 권한 또는 CSRF 상태 확인 |
 | NOT_FOUND | 404 | 없는 항목 또는 접근할 수 없는 소유자 기록으로 처리 |
-| STATE_CONFLICT | 409 | 최신 상태를 조회하고 변경 재적용 |
+| STATE_CONFLICT | 409 | 최신 상태를 조회하고 기능별 재시도 계약에 따라 처리. 최신 버전으로 자동 재적용하지 않음 |
 | METHOD_NOT_ALLOWED | 405 | API 호출 방식 수정 |
 | UNSUPPORTED_MEDIA_TYPE | 415 | Content-Type 수정 |
 
@@ -29,13 +29,26 @@
 
 동작 근거: [Spring OncePerRequestFilter](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/filter/OncePerRequestFilter.html), [Spring Boot MDC 로그 설정](https://docs.spring.io/spring-boot/reference/features/logging.html).
 
-DB 연결을 열지 못하거나 저장소 연결이 끊긴 경우는 `503 STORAGE_UNAVAILABLE`의 공통 오류로 반환합니다. DB 주소·SQL·연결 설정을 응답에 넣지 않습니다. 쓰기 요청의 성공 여부는 클라이언트에서 불명확한 상태로 유지하고, 연결 복구 후 같은 작업 ID로 확인합니다. 이 오류를 저장 완료나 인증 실패로 처리하지 않습니다.
+DB 연결을 열지 못하거나 저장소 연결이 끊긴 경우는 `503 STORAGE_UNAVAILABLE`의 공통 오류로 반환합니다. DB 주소·SQL·연결 설정을 응답에 넣지 않습니다. 쓰기 요청의 성공 여부는 클라이언트에서 불명확한 상태로 유지합니다. 연결 복구 후 생성/초안 저장처럼 재시도 키를 지원하는 API는 같은 작업 ID로 처리 결과를 확인하고, 휴식 조절/세트 복제처럼 version만 쓰는 API는 먼저 GET으로 최신 상태를 조회합니다. 이 오류를 저장 완료나 인증 실패로 처리하지 않습니다.
+
+## 409와 응답 유실의 기능별 처리
+
+| 요청 | 처리 규칙 |
+| --- | --- |
+| 휴식 ±10초 조절 | GET으로 version/restEndsAt을 다시 확인. 이전 version의 요청을 최신 version으로 자동 변경해 재적용하지 않음. 이미 적용된 +10초가 다시 더해질 수 있음 |
+| 세트 복제 | GET으로 세트 배열/version을 다시 확인. 번호가 다른 원본을 가리킬 수 있으므로 최신 version 자동 재전송 금지 |
+| 원자적 초안 저장 | 같은 operationId는 이미 처리된 결과 확인에 사용. 충돌 시 원본 입력을 보존하고 최신 상태와 대조한 뒤 명시적으로 처리 |
+| 생성 요청 | API가 지원하는 동일 Idempotency-Key와 동일 생성 조건으로 처리 결과 확인. 기존 운동 진행 내용을 초기화하지 않음 |
+
+409가 곧 같은 변경의 실패를 확정하는 것은 아닙니다. 앞선 성공 응답을 잃고 같은 version으로 재전송한 경우도 409일 수 있습니다. 휴식 조절과 세트 복제는 새 사용자의 조작으로 확정된 경우에만 최신 상태를 기준으로 별도 요청합니다. [휴식 조절 계약](api-contracts/rest-adjustment.md)과 [세트 복제 계약](api-contracts/set-duplication.md)을 참고합니다.
 
 ## 입력 타입을 보존하는 JSON 정책
 
 반복 횟수·버전·휴식 초처럼 정수인 필드에 소수를 보내면 400 INVALID_JSON으로 거절합니다. 예를 들어 `reps: 1.9`를 1회로 잘라 저장하지 않습니다. 숫자 필드의 문자열(`"10.5"`), 불리언 필드의 문자열(`"true"`), 문자열 필드의 숫자도 자동 변환하지 않습니다. 열거 값은 정해진 이름으로 보내며 숫자 순번을 받지 않습니다. 중복 JSON 필드 이름도 거절합니다.
 
-세트 완료 요청에는 `restSeconds`를 명시해야 합니다. 휴식 없이 완료하려면 정수 0을 보내고, 생략·null은 검증 오류로 처리합니다. 잘못된 요청은 기존 버전·세트·완료 표시를 변경하지 않습니다. 정상적인 숫자·불리언·문자열 요청은 기존 계약과 같습니다.
+세트 완료 요청의 `restSeconds`는 선택 항목입니다. 생략 또는 null이면 개인 지정 → 종목 추천 → 계정 기본값 순서로 자동 적용합니다. 정수 0은 이번 완료의 휴식을 끄고, 1~3600은 이번 요청에만 지정한 초를 적용합니다. 음수·3600 초과는 400, 숫자 문자열·소수는 400 INVALID_JSON입니다. version과 completed는 여전히 필수이며 null을 허용하지 않습니다. 잘못된 요청은 기존 버전·세트·완료 표시를 변경하지 않습니다.
+
+이는 종목 설정 변경 API의 mode와 구분합니다. PUT /api/v1/exercises/{id}/rest에서 PERSONAL은 restSeconds 0~3600을 필수로 받고, RECOMMENDED는 생략/null만 받아 개인 지정을 해제합니다. [종목별 휴식 계약](exercise-rest.md)과 실제 Completion DTO, ExerciseRestTests/StrictRecordInputTests가 같은 규칙을 검증합니다.
 
 [Spring Boot JsonMapper 설정](https://docs.spring.io/spring-boot/how-to/spring-mvc.html)의 사용자 정의 설정을 사용하며 현재 Jackson 3의 타입별 기능을 적용합니다.
 ## 인증 서비스의 일시 장애

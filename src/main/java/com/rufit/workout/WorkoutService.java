@@ -151,6 +151,12 @@ public class WorkoutService {
         w.appendSet(resolver.resolve(owner,java.util.List.of(set),w.entries()).getFirst());
         return View.from(repository.saveAndFlush(w));
     }
+    // 요청 번호가 최신 배열을 가리키는지 확인하고 서버에 저장된 원본 값만 복제한다.
+    public View duplicateSet(UUID id, String owner, int index, long version) {
+        Workout w = owned(id, owner); checkVersion(w, version);
+        w.duplicateSet(index);
+        return View.from(repository.saveAndFlush(w));
+    }
     // 선택한 세트를 삭제하되 다른 기기의 최신 변경은 덮어쓰지 않는다.
     public View removeSet(UUID id, String owner, int index, long version) {
         Workout w = owned(id, owner); checkVersion(w, version); w.removeSet(index);

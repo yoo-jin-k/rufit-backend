@@ -83,6 +83,17 @@ class OidcAuthenticationTests {
             .andExpect(status().isCreated()).andExpect(header().doesNotExist("Set-Cookie"))
             .andReturn().getResponse().getContentAsString();
         String id = JsonPath.read(body, "$.id");
+        // 실제 서명 토큰으로 세트 복제까지 수행하고 다른 subject의 복제를 거절한다.
+        mvc.perform(post("/api/v1/workouts/"+id+"/sets").header("Authorization", "Bearer "+alice)
+            .contentType("application/json").content("{\"version\":0,\"set\":{\"exerciseName\":\"스쿼트\",\"weight\":1,\"reps\":2}}"))
+            .andExpect(status().isOk());
+        mvc.perform(post("/api/v1/workouts/"+id+"/sets/0/duplicate").header("Authorization", "Bearer "+token("bob-subject"))
+            .contentType("application/json").content("{\"version\":1}")).andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/workouts/"+id+"/sets/0/duplicate").header("Authorization", "Bearer "+alice)
+            .contentType("application/json").content("{\"version\":1}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2)).andExpect(jsonPath("$.sets.length()").value(2))
+            .andExpect(jsonPath("$.sets[1].weight").value(1)).andExpect(jsonPath("$.sets[1].reps").value(2))
+            .andExpect(header().doesNotExist("Set-Cookie"));
         mvc.perform(get("/api/v1/workouts/"+id).header("Authorization", "Bearer "+token("alice-subject"))).andExpect(status().isOk());
         mvc.perform(get("/api/v1/workouts/"+id).header("Authorization", "Bearer "+token("bob-subject"))).andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/workouts/"+id)).andExpect(status().isUnauthorized())
@@ -147,7 +158,8 @@ class OidcAuthenticationTests {
         org.assertj.core.api.Assertions.assertThat(schemes).containsKey("bearerAuth").doesNotContainKey("developmentBasic");
         org.assertj.core.api.Assertions.assertThat((String)JsonPath.read(json,"$.components.securitySchemes.bearerAuth.scheme")).isEqualTo("bearer");
         Map<String,Object> paths=JsonPath.read(json,"$.paths");
-        org.assertj.core.api.Assertions.assertThat(paths).containsKeys("/api/v1/profile","/api/v1/workouts/{id}/draft").doesNotContainKey("/api/v1/csrf");
+        org.assertj.core.api.Assertions.assertThat(paths).containsKeys("/api/v1/profile","/api/v1/workouts/{id}/draft",
+            "/api/v1/workouts/{id}/sets/{setIndex}/duplicate").doesNotContainKey("/api/v1/csrf");
         java.nio.file.Files.createDirectories(java.nio.file.Path.of("target"));
         java.nio.file.Files.writeString(java.nio.file.Path.of("target/openapi-oidc.json"),json);
     }

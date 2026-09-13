@@ -87,11 +87,17 @@ class ExerciseRestTests {
         w=workouts.complete(w.id(),owner,0,new WorkoutController.Completion(w.version(),true,0));
         assertThat(w.restEndsAt()).isNull();assertThat(rest.get(SQUAT,owner).effectiveRestSeconds()).isEqualTo(45);
     }
-    @Test void completionAcceptsOmittedRestButMalformedPreferencesCannotWrite() throws Exception {
+    @Test void completionAcceptsOmittedOrNullRestButMalformedPreferencesCannotWrite() throws Exception {
         String owner="rest-validation-"+UUID.randomUUID();var w=workouts.start(owner);
         w=workouts.appendSet(w.id(),owner,new WorkoutController.SetEdit(w.version(),new WorkoutController.SetInput("Squat",BigDecimal.ONE,2,SQUAT)));
-        mvc.perform(put("/api/v1/workouts/"+w.id()+"/sets/0/completion").with(user(owner)).with(csrf()).contentType("application/json")
-            .content("{\"version\":"+w.version()+",\"completed\":true}" )).andExpect(status().isOk()).andExpect(jsonPath("$.restEndsAt").isNotEmpty());
+        for (String optionalRest : new String[]{"", ",\"restSeconds\":null"}) {
+            w=workouts.complete(w.id(),owner,0,new WorkoutController.Completion(w.version(),false,null));
+            mvc.perform(put("/api/v1/workouts/"+w.id()+"/sets/0/completion").with(user(owner)).with(csrf()).contentType("application/json")
+                .content("{\"version\":"+w.version()+",\"completed\":true"+optionalRest+"}" ))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.restEndsAt").isNotEmpty());
+            w=workouts.get(w.id(),owner);
+            assertThat(Duration.between(Instant.now(),w.restEndsAt()).toSeconds()).isBetween(178L,180L);
+        }
         for(String body:new String[]{"{}","{\"version\":0,\"mode\":\"PERSONAL\"}",
             "{\"version\":0,\"mode\":\"RECOMMENDED\",\"restSeconds\":90}",
             "{\"version\":0,\"mode\":\"PERSONAL\",\"restSeconds\":-1}",

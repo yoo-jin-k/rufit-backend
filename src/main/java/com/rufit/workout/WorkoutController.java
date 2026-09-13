@@ -64,6 +64,11 @@ public class WorkoutController {
     public View appendSet(@PathVariable UUID id, @Valid @RequestBody SetEdit request, Principal principal) {
         return service.appendSet(id, principal.getName(), request);
     }
+    // + 버튼은 저장된 원본을 복제한다. 미저장 입력은 먼저 세트 수정 API로 저장한다.
+    @PostMapping("/{id}/sets/{setIndex}/duplicate")
+    public View duplicateSet(@PathVariable UUID id, @PathVariable int setIndex, @Valid @RequestBody Revision request, Principal principal) {
+        return service.duplicateSet(id, principal.getName(), setIndex, request.version());
+    }
     @PostMapping("/{id}/sets/{setIndex}/remove")
     public View removeSet(@PathVariable UUID id, @PathVariable int setIndex, @Valid @RequestBody Revision request, Principal principal) {
         return service.removeSet(id, principal.getName(), setIndex, request.version());
@@ -120,7 +125,7 @@ public class WorkoutController {
         return service.adjustRest(id,principal.getName(),request.version(),request.seconds());
     }
     public record RestAdjustment(@NotNull @PositiveOrZero Long version,@NotNull @Schema(allowableValues={"-10","10"}) Integer seconds) {}
-    public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @Min(0) @Max(3600) Integer restSeconds) {}
+    public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @Schema(nullable=true) @Min(0) @Max(3600) Integer restSeconds) {}
     public record SetInput(@NotBlank @Size(max=80) String exerciseName,
         @NotNull @DecimalMin("0") @DecimalMax("1500") @Digits(integer=4, fraction=2) BigDecimal weight,
         @Schema(requiredMode=Schema.RequiredMode.REQUIRED) @Min(1) @Max(1000) int reps, @Schema(nullable=true) UUID exerciseId) {
