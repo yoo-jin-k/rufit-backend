@@ -76,3 +76,12 @@ jobs:
           name: backend-container-runtime
           path: target/container-runtime-result.json
           if-no-files-found: error
+      - name: Verify isolated runtime longevity harness
+        run: python3 scripts/soak-backend.py --duration-seconds 40 --interval-seconds 5 --result target/runtime-soak-smoke.json
+        timeout-minutes: 4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-runtime-longevity
+          path: target/runtime-soak-smoke.json
+          if-no-files-found: warn

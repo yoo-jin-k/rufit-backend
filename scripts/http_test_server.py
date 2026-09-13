@@ -17,12 +17,11 @@ import uuid
 from test_database import test_environment
 
 class HttpTestServer:
-    def __init__(self, extra_arguments=()):
+    def __init__(self, extra_arguments=(), environment=None):
         self.root=Path(__file__).resolve().parents[1]
         jars=list((self.root/'target').glob('*.jar'))
         if len(jars)!=1: raise ValueError('Build exactly one verified application JAR first')
-        self.jar=jars[0]
-        self.env=test_environment(os.environ)
+        self.env=test_environment(os.environ if environment is None else environment)
         username,password='runtime-'+str(uuid.uuid4()),secrets.token_urlsafe(24)
         self.env.update(SPRING_PROFILES_ACTIVE='local',SPRING_SECURITY_USER_NAME=username,SPRING_SECURITY_USER_PASSWORD=password)
         self.auth='Basic '+base64.b64encode(f'{username}:{password}'.encode()).decode()
@@ -32,6 +31,9 @@ class HttpTestServer:
         self.base=f'http://127.0.0.1:{self.port}'
         self.extra_arguments=list(extra_arguments)
         self.logdir=Path(tempfile.mkdtemp(prefix='rufit-runtime-'))
+        self.jar=self.logdir/'application.jar'
+        try: shutil.copy2(jars[0],self.jar)
+        except BaseException: shutil.rmtree(self.logdir);raise
         self.process=None;self.log=None;self.opener=None;self.csrf=None
     def request(self,method,path,body=None,key=None):
         headers={'Authorization':self.auth}
@@ -48,7 +50,7 @@ class HttpTestServer:
         self.log=(self.logdir/f'server-{time.time_ns()}.log').open('w')
         self.process=subprocess.Popen([self.java,'-jar',str(self.jar),f'--server.port={self.port}',
             f'--spring.datasource.url={self.env["DB_URL"]}','--spring.datasource.username=rufit_test',*self.extra_arguments],
-            cwd=self.root,env=self.env,stdout=self.log,stderr=subprocess.STDOUT)
+            cwd=self.root,env=self.env,stdout=self.log,stderr=subprocess.STDOUT,start_new_session=True)
         deadline=time.monotonic()+60
         while time.monotonic()<deadline:
             if self.process.poll() is not None: raise RuntimeError(f'Server exited; logs: {self.logdir}')
