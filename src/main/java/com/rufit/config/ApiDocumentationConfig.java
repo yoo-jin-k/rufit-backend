@@ -25,7 +25,7 @@ public class ApiDocumentationConfig {
             api.getPaths().values().forEach(path -> path.readOperations().forEach(operation -> {
                 Map.of("400", "입력 또는 요청 형식 오류", "401", "인증 필요", "403", "권한 또는 CSRF 오류",
                     "404", "리소스 없음", "409", "버전·상태 충돌 또는 확인 필요", "410", "삭제한 기록의 재시도",
-                    "503", "기록 저장소 연결 실패")
+                    "503", "인증 또는 기록 저장소의 일시적 장애")
                     .forEach((status, description) -> operation.getResponses().putIfAbsent(status,
                         new ApiResponse().description(description).content(new Content().addMediaType("application/problem+json",
                             new MediaType().schema(new Schema<>().$ref("#/components/schemas/ApiProblem"))))));

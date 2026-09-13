@@ -14,6 +14,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import org.springframework.security.config.ObjectPostProcessor;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 
 @Configuration
 @Profile("oidc")
@@ -52,7 +54,13 @@ public class OidcSecurityConfig {
             .authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health","/actuator/health/liveness","/actuator/health/readiness").permitAll().anyRequest().authenticated())
             .exceptionHandling(handler -> handler.authenticationEntryPoint(errors::bearer).accessDeniedHandler(errors))
             .oauth2ResourceServer(resource -> resource.authenticationEntryPoint(errors::bearer).accessDeniedHandler(errors)
-                .jwt(jwt -> jwt.jwtAuthenticationConverter(token -> new JwtAuthenticationToken(token, List.of(), ownerKey(token)))))
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(token -> new JwtAuthenticationToken(token, List.of(), ownerKey(token))))
+                .withObjectPostProcessor(new ObjectPostProcessor<BearerTokenAuthenticationFilter>() {
+                    @Override public <O extends BearerTokenAuthenticationFilter> O postProcess(O filter) {
+                        filter.setAuthenticationFailureHandler(errors::bearerFailure);
+                        return filter;
+                    }
+                }))
             .build();
     }
     static String ownerKey(Jwt jwt) {

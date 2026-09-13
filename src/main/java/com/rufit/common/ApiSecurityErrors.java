@@ -24,6 +24,11 @@ public class ApiSecurityErrors implements AuthenticationEntryPoint, AccessDenied
         response.setHeader("WWW-Authenticate", "Bearer realm=\"rufit\"");
         write(request, response, 401, "Unauthorized", "AUTHENTICATION_REQUIRED", "유효한 로그인 인증이 필요합니다.");
     }
+    public void bearerFailure(HttpServletRequest request,HttpServletResponse response,AuthenticationException exception) throws IOException {
+        if(exception instanceof org.springframework.security.authentication.AuthenticationServiceException)
+            write(request,response,503,"Service Unavailable","AUTHENTICATION_UNAVAILABLE","로그인 검증 서비스에 일시적으로 연결할 수 없습니다. 잠시 후 다시 확인해 주세요.");
+        else bearer(request,response,exception);
+    }
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException exception) throws IOException {
         forbidden(request, response);
