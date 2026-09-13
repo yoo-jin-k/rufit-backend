@@ -1,8 +1,10 @@
-# BE-02 소셜 로그인 API 초안 v0.2
+# BE-02 소셜 로그인 API 초안 v0.3
 
 상태: **PM 검토용 미확정 초안, 구현 전**. KAKAO·GOOGLE 제공자 요구는 확정됐지만 세션 발급 주체·로그인 진입 방식·계정 연결/이전 정책은 미확정이다. 이 문서는 [공백 점검](../authentication-gap-analysis.md)의 **RuFit 자체 세션 + 서버 authorization-code 중계 후보안**을 구체화한다. PM 채택 전 실제 FE 서버 호출·런타임 컨트롤러·DB 테이블·생성 OpenAPI에 반영하지 않는다. FE는 아래 상태/예시로 목업만 준비할 수 있다.
 
 v0.2(2026-09-14): [적대적 시나리오 검토](../authentication-adversarial-review.md)로 앱 시작 PKCE/handoff 불변 결합·동시 소비·유출, WEB 별도 계약, refresh 재사용 철회, logout 잔존 보장을 보완했다. v0.1의 JSON 모양은 유지하며, WEB은 활성화 가능한 확정 플랫폼이 아닌 예약값임을 명확히 했다. 실제 API 버전 변경은 아니다.
+
+v0.3(2026-09-14): FE 검토 A01~A07에 맞춰 계정 ID 상한·별도 인증 transport·토큰 교체/보안 저장 순서를 보완했다. [FE 대응표·PM 수치 결정표](social-login-fe-alignment.md)가 추가 계약 근거다. JSON 모양은 유지하고 수치/실패 정책은 추천안으로 분리한다. 런타임 적용은 아직 없다.
 
 ## 현재 사용할 수 있는 계약
 
@@ -25,6 +27,8 @@ v0.2(2026-09-14): [적대적 시나리오 검토](../authentication-adversarial-
 각 단계의 nonce/state/PKCE는 동일 시도에 묶고 다른 시도/제공자/클라이언트의 값과 바꿔 쓸 수 없다. 공식 제공자 흐름과 선택한 앱 복귀 방식의 실제 호환성 검증은 구현의 선행 조건이다. 발급자·키·audience 검증 기반은 기존 구현을 재사용하되, nonce/시도 바인딩과 서비스 발급은 추가 작업이다.
 
 attempt에 시작 challenge/provider/client/returnRoute를 변경 불가로 저장하고, handoffCode는 그 attempt에만 연결한다. 교환에서는 최초 verifier를 검사하며 복귀 URL에서 새로운 verifier를 받아 대체하지 않는다. 잘못된 verifier는 코드를 소비하지 않는다. PKCE는 verifier 보유 앱 인스턴스의 결합이며 기기/정품 앱의 신원을 증명하는 기능과 다르다. 앱 링크 소유권·등록은 별도 외부 검증 대상이다.
+
+FE는 login-attempts/session-exchanges/refresh/logout용 별도 인증 transport를 둔다. 이 네 JSON 경로에는 기존 Bearer를 붙이지 않고 credentials=omit/redirect=error를 유지한다. 업무 API의 Bearer 요구를 전역 해제하지 않는다. authorizationUrl은 시스템 인증 브라우저에서 열고, 앱의 attemptId/handoffCode는 별도 파서로 처리한다. 표준 제공자 code/state 파서를 그대로 연결하지 않는다.
 
 ## 제안 엔드포인트·요청·응답
 
@@ -82,7 +86,7 @@ POST /api/v1/auth/session-exchanges, handoffCode와 verifier가 자격 증명이
 
 attemptId UUID, handoffCode 비어 있지 않은 단기 비밀, verifier는43~128자의 PKCE 허용 문자. challenge 일치·시도/코드 만료·단일 사용을 검증한다. 잘못된 비밀은401, 인증된 동일 handoff의 재사용은409을 제안한다. 세션 생성과 코드 소비는 원자적으로 처리해야 한다.
 
-account.id는 /me.id와 일치하는 불투명 문자열이며 UUID·길이·issuer 접두어를 FE에서 가정하지 않는다. isNewAccount는 회원 원장의 첫 생성 여부로 판정해야 하며 현재 코드에는 이 원장이 없다. profileStatus=MISSING/PRESENT는 프로필 존재만 나타낸다. 이메일·제공자 ID로 FE가 합치거나 프로필404를 신규 계정으로 해석하지 않는다. 세션 필드와 토큰은 모두 필수·non-null인 제안이다.
+account.id는 /me.id와 일치하는 불투명 문자열이며 **1~100 UTF-16 code unit, 공백만 있는 값 불가**를 제안한다. FE는 원문 그대로 비교·저장하며 자르거나 trim하지 않는다. UUID·고정 길이·issuer 접두어는 가정하지 않는다. 현재 OIDC 생성 키는69 ASCII 문자지만 /me 컨트롤러 자체의 길이 검증은 없다는 [코드/기존 자료 근거](social-login-fe-alignment.md)를 함께 본다. isNewAccount는 회원 원장의 첫 생성 여부로 판정해야 하며 현재 코드에는 이 원장이 없다. profileStatus=MISSING/PRESENT는 프로필 존재만 나타낸다. 이메일·제공자 ID로 FE가 합치거나 프로필404를 신규 계정으로 해석하지 않는다. 세션 필드와 토큰은 모두 필수·non-null인 제안이다.
 
 ### 갱신·현재 세션 로그아웃
 
@@ -95,13 +99,15 @@ account.id는 /me.id와 일치하는 불투명 문자열이며 UUID·길이·iss
 
 refresh 성공의 isNewAccount는 false이며 기존 /me.id를 유지한다. 프로필 존재 상태는 갱신될 수 있다. 오래된 refresh 응답이 새 로그인 결과를 덮어쓰지 않도록 FE의 세션 세대도 확인한다.
 
-refresh는 한 계정에서 동시에 하나만 요청하고 이전 토큰을 새 토큰으로 원자적으로 교체하는 회전안을 제안한다. 한 번 사용된 토큰의 재사용은401 SESSION_EXPIRED로 재로그인을 요구하는 안이며, 탈취 탐지 시 세션 폐기 범위는 PM 검토 항목이다. 서비스 토큰 수명/보관·서명 키 운영도 미확정이다.
+교환/refresh 뒤 새 access를 캡처한 후보 session facade로 /me를 재검증한다. 응답 account.id와 정확히 같고 refresh라면 이전 서버·계정·sessionId도 같아야 한다. 보안 저장 성공과 authEpoch 재확인 후 새 facade를 공개한다. getter 교체만으로 기존 facade가 새 토큰을 사용한다고 가정하지 않는다.
+
+refresh는 같은 서버·계정·sessionId·authEpoch에서 동시에 하나만 요청하고 이전 토큰을 새 토큰으로 교체하는 회전안을 제안한다. 한 번 사용된 토큰의 재사용은401 SESSION_EXPIRED로 재로그인을 요구하는 안이며, 탈취 탐지 시 세션 폐기 범위는 PM 검토 항목이다. 서비스 토큰 수명/보관·서명 키 운영도 미확정이다. 구체적인 수치와 체인 범위는 [D01~D07 추천안](social-login-fe-alignment.md)을 검토한다.
 
 회전으로 재생을 방지하려면 유효했던 과거 토큰의 재사용을 찾았을 때 같은 grant의 활성 refresh도 폐기하는 기준을 검토해야 한다. 단순히 과거 토큰만401로 거절하면 먼저 탈취해 회전한 공격자가 계속 갱신할 수 있다. 따라서 토큰의 회전 관계와 grant/현재 세션 범위를 먼저 명세한다. 임의의 알 수 없는 토큰을 보냈다고 타인의 세션을 폐기해서는 안 된다. [RFC 9700 refresh 보호](https://www.rfc-editor.org/rfc/rfc9700.html#section-4.14.2).
 
 | refresh 상황 | 이 초안의 단순 회전 후보안 | 복구 보관 대안에서 먼저 정할 것 |
 | --- | --- | --- |
-| 응답을 정상 수신 | 새 토큰 쌍을 보안 저장소에 원자적으로 교체 | 동일 |
+| 응답을 정상 수신 | /me 재검증 후 새 refresh/메타데이터를 직렬 보안 저장하고 access는 메모리에서 교체 | 동일 |
 | 서버 처리 전에 명확히 전송 실패 | 자동 무한 반복 없이 동일 요청을 다시 시작할 수 있으나, 단순 timeout을 이 상황으로 단정하지 않음 | 같은 요청 식별자 유지 |
 | 처리/회전 후 응답 유실 여부 불명확 | FE는 재로그인. 쓰던 토큰을 새 요청처럼 재전송해 성공으로 간주하지 않음 | 같은 요청 키+같은 입력만 원래 결과 복구, 보호된 결과 보관 기간/조회 자격 필요 |
 | 이전 refresh가 다시 들어옴 | 재사용으로 거절. 정상 유실인지 탈취인지 요청만으로 단정 불가 | 허용된 동일 요청 복구와 다른 요청 키의 재사용을 구분 |
@@ -139,6 +145,7 @@ refresh는 한 계정에서 동시에 하나만 요청하고 이전 토큰을 �
 - 401을 받은 업무 요청의 인증 갱신과 업무 변경 재시도를 분리한다. 휴식 조절/세트 복제의 이전 변경을 최신 version으로 자동 재적용하지 않는다.
 - 로그인 전 기기 기록을 새 계정으로 자동 업로드하지 않는다. /me 확인 후 사용자가 고른 원래 계정 공간을 열고, 가져오기는 기존 명시적 확인 계약을 사용한다.
 - logout/계정 전환 즉시 이전 요청의 세대를 무효화한다. 늦게 돌아온 로그인·refresh·운동 응답이 새 계정 저장 공간을 덮어쓰면 안 된다.
+- SecureStore 쓰기·삭제·복구 읽기도 authEpoch 검증과 직렬화 대상이다. 이미 시작한 저장/전송은 취소됐다고 가정하지 않는다. 늦은 성공뿐 아니라 오래된 실패/삭제가 새 세션을 지우는 것도 막는다. [후보 facade·저장 순서와 logout 실패 정책](social-login-fe-alignment.md)을 따른다.
 - 세션 토큰은 플랫폼 보안 저장소에서 관리하는 FE 구현이 필요하다. 운동 초안 저장소를 토큰 저장소로 사용하지 않는다. 오프라인 로그아웃은 로컬 세션 폐기와 서버 폐기 완료를 구분해 표시한다.
 
 ## 구현 전 시험 계획과 검토 완료 조건

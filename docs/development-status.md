@@ -1,6 +1,6 @@
 # 백엔드 개발 현황
 
-2026-09-13 기준. 이 문서는 실제 구현·검증과 남은 작업을 구분한다.
+2026-09-14 기준. 이 문서는 실제 구현·검증과 남은 작업을 구분한다.
 
 ## 담당 범위와 브랜치
 
@@ -32,7 +32,7 @@ Java 21 / Spring Boot 4.1.1 / PostgreSQL 17, Flyway V23까지, 앱 테이블 14�
 ## 다음 작업과 남은 외부 연결
 
 1. 휴식 조절 PR #60 커밋 4a5220f의 CI 34762648796은 success다. 세트 복제 PR #61/4a119c49도 CI 34763531710 success이며 서버 재시작·DB 중단/복원·컨테이너·실행 유지 검증과 PM 인계까지 완료했다.
-2. PM 배정 BE-02는 codex/social-login-contract의 문서 단위다. [실제 로그인 공백·추천안](authentication-gap-analysis.md)과 [미확정 계약 v0.2](api-contracts/social-login-draft.md)을 작성했다. 기존 토큰 검증을 재개발하지 않았고 실제 등록·새 비밀·운영 설정·계정 연결·DB 시험을 수행하지 않았다. 발급 주체·로그인 진입·계정 유지/이전·refresh 유실·logout 철회 범위는 추천안/대안과 결정 주체를 PM에게 인계한다.
+2. PM 배정 BE-02는 codex/social-login-contract의 문서 단위다. [실제 로그인 공백·추천안](authentication-gap-analysis.md), [미확정 계약 v0.3](api-contracts/social-login-draft.md), [FE 대응·PM 수치 결정표](api-contracts/social-login-fe-alignment.md)를 작성했다. 기존 토큰 검증을 재개발하지 않았고 실제 등록·새 비밀·운영 설정·계정 연결·DB 시험을 수행하지 않았다. 발급 주체·로그인 진입·계정 유지/이전·refresh 유실·logout 철회 범위는 추천안/대안과 결정 주체를 PM에게 인계한다.
 3. 카카오·구글 로그인은 제공자 등록과 실제 로그인·갱신·로그아웃·계정 연결이 남았다. 현재 JWT 검증 기반을 실제 로그인 완료로 표현하지 않는다.
 4. 운영 PostgreSQL은 아직 생성·연결·배포하지 않았다. 현재는 개발 구성과 전용 테스트 DB로 개발 가능하며 사용자 수동 테이블 생성은 필요 없다. [운영 준비](production-readiness.md)를 참고한다.
 5. 운동 미디어의 유료 구매·전체 교체는 사용자 최종 확인 이후다. 프론트 화면이나 자산 교체는 이 작업 범위에 포함하지 않는다.
@@ -42,3 +42,5 @@ PM 공통 coordination/README.md 및 backend-history-handoff.md v1을 읽었다.
 BE-02의 검증은 문서의 JSON 예제·내부 링크·기존 코드/공식 문서 대조다. 이 문서의 신규 auth 경로는 아직 생성 OpenAPI나 런타임에 존재하지 않으며, 167개 통과는 선행 구현의 결과다. 다음 구현은 PM 검토 후 확정된 계약을 먼저 커밋하고 시작한다. 테스트 DB는 FE에 인계했으므로 추가 로컬 실DB시험 전 PM과 사용 일정을 조율한다.
 
 2026-09-14 PM 후속 요청으로 [적대적 시나리오 검토 v0.2](authentication-adversarial-review.md)를 추가했다. 앱 시작 PKCE와 handoff 불변 결합, 동시 callback/교환, URL/로그 유출, WEB의 별도 쿠키·CSRF·저장 계약, 기존 owner key 전환, refresh 재사용 시 활성 grant 폐기, logout access 잔존/오프라인 문구를 보완했다. 이는 문서 검토이며 실제 공격 재현이나 신규 인증 구현을 완료한 것이 아니다. v0.1→v0.2에서 JSON 예제는 유지하고 WEB 예약값과 보안 경계를 명확히 했다.
+
+같은 날 FE PR #41/e89d7b6의 A01~A07을 지정 코드 c7503cf과 대조해 초안 v0.3에 반영했다. OIDC 키69자와 기존 FE100자 조건을 확인하고 ID 원문 보존·별도 인증 transport·/me 재검증·facade 재생성·epoch 직렬 보안 저장을 명시했다. D01~D07은 수치가 있는 PM 추천안이며 구현 확정이 아니다. 첫 연결 구현 순서와 등록값 없이 할 모의 시험/실제 등록 의존 시험을 분리했다. 이번에도 런타임·마이그레이션·DB 행·FE 코드는 변경하지 않았다.
