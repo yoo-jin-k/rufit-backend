@@ -1,0 +1,110 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "name": "스쿼트",
+    "bodyPart": "LEGS",
+    "equipment": "BARBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "name": "벤치프레스",
+    "bodyPart": "CHEST",
+    "equipment": "BARBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "name": "데드리프트",
+    "bodyPart": "FULL_BODY",
+    "equipment": "BARBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "name": "오버헤드프레스",
+    "bodyPart": "SHOULDERS",
+    "equipment": "BARBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000005",
+    "name": "랫풀다운",
+    "bodyPart": "BACK",
+    "equipment": "MACHINE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000006",
+    "name": "레그프레스",
+    "bodyPart": "LEGS",
+    "equipment": "MACHINE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000007",
+    "name": "푸시업",
+    "bodyPart": "CHEST",
+    "equipment": "BODYWEIGHT"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000008",
+    "name": "풀업",
+    "bodyPart": "BACK",
+    "equipment": "BODYWEIGHT"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000009",
+    "name": "덤벨컬",
+    "bodyPart": "ARMS",
+    "equipment": "DUMBBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000010",
+    "name": "트라이셉스푸시다운",
+    "bodyPart": "ARMS",
+    "equipment": "CABLE"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000011",
+    "name": "맨몸 스쿼트",
+    "bodyPart": "LEGS",
+    "equipment": "BODYWEIGHT"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000012",
+    "name": "덤벨 스쿼트",
+    "bodyPart": "LEGS",
+    "equipment": "DUMBBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000013",
+    "name": "프론트 스쿼트",
+    "bodyPart": "LEGS",
+    "equipment": "BARBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000014",
+    "name": "덤벨 사이드 레터럴 레이즈",
+    "bodyPart": "SHOULDERS",
+    "equipment": "DUMBBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000015",
+    "name": "덤벨 숄더 프레스",
+    "bodyPart": "SHOULDERS",
+    "equipment": "DUMBBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000016",
+    "name": "덤벨 업라이트 로우",
+    "bodyPart": "SHOULDERS",
+    "equipment": "DUMBBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000017",
+    "name": "덤벨 벤치 프레스",
+    "bodyPart": "CHEST",
+    "equipment": "DUMBBELL"
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000018",
+    "name": "크런치",
+    "bodyPart": "CORE",
+    "equipment": "BODYWEIGHT"
+  }
+]

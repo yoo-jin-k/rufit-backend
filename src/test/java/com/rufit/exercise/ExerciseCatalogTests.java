@@ -31,9 +31,9 @@ class ExerciseCatalogTests {
         String key=UUID.randomUUID().toString();
         create("alice",key,"나만의 스쿼트");
         mvc.perform(get("/api/v1/exercises").param("query","스쿼트").with(user("alice")))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(2));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(5));
         mvc.perform(get("/api/v1/exercises").param("query","스쿼트").with(user("bob")))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(4));
         mvc.perform(get("/api/v1/exercises").param("bodyPart","CHEST").param("equipment","BODYWEIGHT").with(user("alice")))
             .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].name").value("푸시업"));
         mvc.perform(get("/api/v1/exercises/"+key).with(user("bob"))).andExpect(status().isNotFound());
