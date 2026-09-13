@@ -15,7 +15,7 @@ src/main/java/com/rufit/
 src/main/resources/
 ├── application.properties        DB·JPA·상태 확인 등의 기본 설정
 ├── application-oidc.properties   외부 발급자 토큰 검증 설정
-└── db/migration/                 Flyway V1~V22 SQL
+└── db/migration/                 Flyway V1~V23 SQL
 
 src/test/                        단위·HTTP·실제 PostgreSQL 검사
 scripts/                         재시작·DB 장애·백업/복원·컨테이너 검증
@@ -30,7 +30,7 @@ scripts/                         재시작·DB 장애·백업/복원·컨테이�
 
 운동 추가 요청은 Controller → Service → Entity/Repository → PostgreSQL 순서로 처리한다. 기본 저장은 JPA이고 달력·통계 등 일부 조회와 저장 확인 메타데이터는 직접 SQL/JDBC를 사용한다. 모든 기능이 같은 파일 수를 가지는 것은 아니며 필요한 책임에 맞춰 나눈다.
 
-작업은 운동 기록 → 루틴 → 이전 기록 → 세트/휴식 → 저장·복구 순서로 API, 규칙, DB 변경, 검증을 함께 추가했다. 인증된 사용자 소유권, 동시 수정 충돌, 같은 요청의 재시도, 실패 시 원문 보존을 각 기능에서 확인했다. 현재 기능 기준 135개 백엔드 테스트를 실제 PostgreSQL로 검증했다. 문서만 바꾸는 작업에서는 전체 검사를 불필요하게 다시 실행하지 않는다.
+작업은 운동 기록 → 루틴 → 이전 기록 → 세트/휴식 → 저장·복구 순서로 API, 규칙, DB 변경, 검증을 함께 추가했다. 인증된 사용자 소유권, 동시 수정 충돌, 같은 요청의 재시도, 실패 시 원문 보존을 각 기능에서 확인했다. 자동 테스트는 실제 PostgreSQL로 검증하며 최근 결과는 각 기능 PR에 기록한다. 문서만 바꾸는 작업에서는 전체 검사를 불필요하게 다시 실행하지 않는다.
 
 기능 코드는 feature/* 브랜치에서 작업하고 develop을 대상으로 검토용 PR을 만든다. main/develop 직접 수정·병합은 하지 않았다. 실제 로그인 제공자 등록과 운영 배포는 아직 완료되지 않았다.
 

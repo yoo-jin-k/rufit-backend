@@ -5,7 +5,7 @@ Java 21 · Spring Boot 4.1.1 · PostgreSQL · Maven Wrapper.
 
 운동 시작부터 루틴·이력·세트/휴식·저장 복구까지의 API와 PostgreSQL 검증 기반을 구현했습니다. 현재 코드는 기능 브랜치의 검토 대상이며 운영 배포 상태가 아닙니다. [구현 현황과 남은 연결](docs/api-plan.md), [프론트 연결·검증 순서](docs/integration-guide.md)를 먼저 참고합니다.
 
-[백엔드 폴더와 처리 흐름](docs/backend-structure.md), [현재 DB 구조와 ERD](docs/database-erd.md)에서 실제 13개 테이블, 외래 키와 복사 출처의 차이, 개발·시험·운영 DB 상태를 확인할 수 있습니다.
+[백엔드 폴더와 처리 흐름](docs/backend-structure.md), [현재 DB 구조와 ERD](docs/database-erd.md)에서 실제 14개 테이블, 외래 키와 복사 출처의 차이, 개발·시험·운영 DB 상태를 확인할 수 있습니다.
 
 ## 실행
 
@@ -49,3 +49,5 @@ OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·
 [오프라인 운동 가져오기](docs/offline-workout-import.md): 원래 시각·세트·완료 상태·메모를 계정에 원자적으로 저장하고 같은 요청의 재시도·삭제 후 복원을 제어합니다. 실제 앱의 가져오기 선택 화면은 후속 작업입니다.
 
 [운동시간 정지·진행 규칙](docs/workout-pause.md)
+
+[종목별 권장·개인 휴식시간](docs/exercise-rest.md)

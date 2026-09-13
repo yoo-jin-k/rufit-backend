@@ -14,6 +14,7 @@ public class Exercise {
     @Enumerated(EnumType.STRING) @Column(nullable=false, length=24) BodyPart bodyPart;
     @Enumerated(EnumType.STRING) @Column(nullable=false, length=24) Equipment equipment;
     Instant archivedAt;
+    Integer recommendedRestSeconds;
     @Version Long version;
     protected Exercise() {}
     Exercise(UUID id, String owner, String name, BodyPart part, Equipment equipment) {

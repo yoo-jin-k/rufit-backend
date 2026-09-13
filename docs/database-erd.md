@@ -1,6 +1,6 @@
 # 루핏 데이터베이스 구조와 ERD
 
-기준: PostgreSQL용 Flyway V1~V22, 오프라인 운동 가져오기와 명시적 운동 정지 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 13개다.
+기준: PostgreSQL용 Flyway V1~V23, 오프라인 운동 가져오기와 명시적 운동 정지, 종목별 휴식 설정 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 14개다.
 
 ## 데이터 관계
 
@@ -14,6 +14,7 @@ erDiagram
     routines ||--o{ routine_entries : "루틴별 세트"
     exercises |o--o{ workout_entries : "선택한 종목"
     exercises |o--o{ routine_entries : "선택한 종목"
+    exercises ||--o{ exercise_rest_preferences : "종목별 개인 휴식"
     user_profiles ||--o{ profile_goals : "프로필 목표"
 
     workouts {
@@ -72,6 +73,7 @@ erDiagram
         varchar name
         varchar body_part
         varchar equipment
+        integer recommended_rest_seconds "nullable"
         timestamptz archived_at "nullable"
         bigint version
     }
@@ -90,6 +92,12 @@ erDiagram
     rest_preferences {
         varchar owner_name PK
         integer default_rest_seconds
+        bigint version
+    }
+    exercise_rest_preferences {
+        varchar owner_name PK
+        uuid exercise_id PK,FK
+        integer rest_seconds "nullable means recommendation"
         bigint version
     }
     retired_workout_keys {
@@ -120,6 +128,7 @@ erDiagram
 | exercises | 공용·개인 운동 종목, 부위, 도구, 보관 상태 |
 | user_profiles / profile_goals | 비공개 프로필과 운동 목표 |
 | rest_preferences | 계정별 기본 휴식 시간 |
+| exercise_rest_preferences | 종목별 개인 지정 휴식시간, 추천 사용 복귀 후에도 수정 버전 유지 |
 | retired_workout_keys / retired_routine_keys | 삭제된 기록의 UUID 재사용 방지. 운동 내용은 보관하지 않음 |
 | application_metadata | 애플리케이션 식별 정보 |
 
@@ -136,7 +145,7 @@ erDiagram
 
 ## 저장과 변경 규칙
 
-- Flyway의 V1~V22 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
+- Flyway의 V1~V23 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
 - 운동·루틴·종목·프로필은 수정 버전으로 동시 덮어쓰기를 막는다. 서비스 트랜잭션은 복수 테이블 변경을 함께 처리한다.
 - 종료/취소 시각의 순서를 DB CHECK로 제한하고, 계정별 진행 중 운동은 부분 UNIQUE 인덱스로 최대 하나만 허용한다.
 - 운동/루틴의 하위 세트, 운동 완료 번호·저장 확인, 프로필 목표는 부모 삭제 시 함께 삭제한다. 종목 참조는 CASCADE 삭제가 아니며 종목은 보관 상태를 사용한다.

@@ -17,7 +17,8 @@ public class WorkoutService {
     private final RetiredWorkoutKeys retired;
     private final ExerciseSetResolver resolver;
     private final DraftOperations operations;
-    WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired, ExerciseSetResolver resolver, DraftOperations operations) { this.repository = repository; this.retired = retired; this.resolver=resolver; this.operations=operations; }
+    private final com.rufit.exercise.ExerciseRestService restPreferences;
+    WorkoutService(WorkoutRepository repository, RetiredWorkoutKeys retired, ExerciseSetResolver resolver, DraftOperations operations,com.rufit.exercise.ExerciseRestService restPreferences) { this.repository = repository; this.retired = retired; this.resolver=resolver; this.operations=operations; this.restPreferences=restPreferences; }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public History history(String owner, int page, int size) { return history(owner,page,size,null,"Asia/Seoul"); }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -157,7 +158,9 @@ public class WorkoutService {
     }
     public View complete(UUID id, String owner, int index, Completion request) {
         Workout w = owned(id, owner); checkVersion(w, request.version());
-        w.completeSet(index, request.completed(), request.restSeconds(), Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        if (index<0 || index>=w.entries().size()) throw new IllegalArgumentException("세트 번호를 확인해 주세요.");
+        int seconds=request.restSeconds()!=null?request.restSeconds():request.completed()?restPreferences.effectiveSeconds(w.entries().get(index).exerciseId(),owner):0;
+        w.completeSet(index, request.completed(), seconds, Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
         return View.from(repository.saveAndFlush(w));
     }
     public View cancel(UUID id, String owner, long version) {
