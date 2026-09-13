@@ -28,7 +28,7 @@
 
 테스트마다 임시 RSA 키와 로컬 JWKS 서버를 생성하여 실제 서명 토큰의 DB 쓰기와 사용자 격리를 검증한다. 위조 서명, 잘못된 issuer/audience, 만료·미래 토큰, 누락된 필수 claim을 거절하는 테스트를 포함한다. 실제 로그인 제공자 계정이나 비밀키는 테스트에 사용하지 않는다.
 
-**아직 로그인 제공자 선정·실서비스 클라이언트 등록·모바일 로그인 화면·PKCE 흐름·토큰 갱신·회원 탈퇴/계정 연결은 구현하지 않았다.** 이 브랜치는 백엔드 토큰 검증 기반이며 자체 토큰 발급 서버가 아니다. 운영 공개 전 실제 제공자와 HTTPS 환경에서 통합 검증해야 한다.
+**로그인 제공자는 카카오·구글로 확정했다. 실서비스 클라이언트 등록·모바일 로그인 화면·PKCE 흐름·토큰 갱신·회원 탈퇴/계정 연결은 아직 구현하지 않았다.** 이 브랜치는 백엔드 토큰 검증 기반이며 자체 토큰 발급 서버가 아니다. 운영 공개 전 실제 제공자와 HTTPS 환경에서 통합 검증해야 한다.
 
 근거: [Spring Security JWT Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html), [Spring Boot OAuth2](https://docs.spring.io/spring-boot/reference/security/oauth2.html), 루핏 기획의 로그인 필수·동일 이메일 자동 병합 금지 정책.
 

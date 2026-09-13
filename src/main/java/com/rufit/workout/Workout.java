@@ -44,6 +44,7 @@ public class Workout {
     }
     UUID sourceRoutineId() { return sourceRoutineId; }
     String importFingerprint() { return importFingerprint; }
+    // 오프라인 기록의 원래 시각·정지 상태·세트를 검증한 뒤 한 운동으로 구성한다.
     static Workout fromOffline(UUID id,String owner,WorkoutController.OfflineImport request,List<Entry> sets,String fingerprint,Instant now) {
         if (!Boolean.TRUE.equals(request.confirmed()) || request.startedAt()==null || request.startedAt().isBefore(Instant.EPOCH) || request.startedAt().isAfter(now))
             throw new IllegalArgumentException("가져오기 확인과 실제 운동 시작 시각을 확인해 주세요.");
@@ -71,12 +72,14 @@ public class Workout {
         if (value == null || value.length() > 2000) throw new IllegalArgumentException("메모는 2000자 이내여야 합니다.");
         note = value;
     }
+    // 세트 전체 교체는 완료 표시와 기존 휴식을 초기화한다.
     void replaceEntries(List<Entry> replacement) {
         requireActive();
         if (replacement.isEmpty() || replacement.size() > 300) throw new IllegalArgumentException("세트는 1~300개여야 합니다.");
         entries.clear(); entries.addAll(replacement);
         completedSetIndexes.clear(); restEndsAt = null; restSetIndex = null;
     }
+    // 세트·완료 표시·휴식 대상을 함께 바꿔 중간 상태가 저장되지 않게 한다.
     void saveDraft(UUID operationId,List<Entry> replacement,List<Boolean> completed,Integer restIndex,Instant deadline,Instant now) {
         requireActive();
         if (replacement.size()>300 || replacement.size()!=completed.size() || completed.stream().anyMatch(java.util.Objects::isNull) || operationId==null)
@@ -92,6 +95,7 @@ public class Workout {
         lastDraftOperationId=operationId;
     }
     Integer restSetIndex() { return restSetIndex; }
+    // 완료 기록 정정은 입력한 세트를 모두 완료한 기록으로 다시 구성한다.
     void correctHistory(List<Entry> replacement) {
         if (finishedAt == null) throw new WorkoutConflict("완료한 운동 기록만 정정할 수 있습니다.");
         if (replacement.isEmpty() || replacement.size() > 300) throw new IllegalArgumentException("완료 세트는 1~300개여야 합니다.");
@@ -99,15 +103,18 @@ public class Workout {
         completedSetIndexes.clear();
         for (int i = 0; i < entries.size(); i++) completedSetIndexes.add(i);
     }
+    // 선택한 세트의 값만 수정하며 완료/휴식 상태는 유지한다.
     void editSet(int index, Entry replacement) {
         requireActive(); requireSetIndex(index);
         entries.set(index, replacement);
     }
+    // 운동당 300세트 한도 안에서 마지막에 세트를 추가한다.
     void appendSet(Entry entry) {
         requireActive();
         if (entries.size() >= 300) throw new IllegalArgumentException("세트는 최대 300개까지 추가할 수 있습니다.");
         entries.add(entry);
     }
+    // 세트 삭제 후 완료 번호를 당기고, 삭제 대상의 휴식만 해제한다.
     void removeSet(int index) {
         requireActive(); requireSetIndex(index);
         entries.remove(index);
@@ -124,6 +131,7 @@ public class Workout {
     private void requireSetIndex(int index) {
         if (index < 0 || index >= entries.size()) throw new IllegalArgumentException("세트 번호를 확인해 주세요.");
     }
+    // 완료 세트만 기록으로 확정하며 정지했던 시간은 총 운동시간에서 제외한다.
     void finish(Instant now) { finish(now, false); }
     void finish(Instant now, boolean discardIncomplete) {
         requireActive();
@@ -140,6 +148,7 @@ public class Workout {
         resumeTimer(now);
         finishedAt = now; restEndsAt = null; restSetIndex = null;
     }
+    // 새로 완료한 세트에서만 휴식을 시작해 중복 요청으로 다시 시작하지 않는다.
     void completeSet(int index, boolean completed, int restSeconds, Instant now) {
         requireActive();
         if (index < 0 || index >= entries.size() || restSeconds < 0 || restSeconds > 3600)
@@ -151,12 +160,14 @@ public class Workout {
             restEndsAt = null; restSetIndex = null;
         }
     }
+    // 운동을 취소 상태로 닫고 정지 구간과 휴식 상태를 마무리한다.
     void cancel(Instant now) {
         requireActive();
         if (now.isBefore(startedAt)) throw new IllegalArgumentException("취소 시간이 시작 시간보다 빠릅니다.");
         resumeTimer(now);
         cancelledAt = now; restEndsAt = null; restSetIndex = null;
     }
+    // 사용자가 정지를 요청한 시각만 저장한다. 앱 종료/잠금으로 호출하면 안 된다.
     void pauseTimer(Instant now) {
         requireActive();
         if (pausedAt!=null) return;
@@ -164,6 +175,7 @@ public class Workout {
             throw new IllegalArgumentException("운동 시각을 확인해 주세요.");
         pausedAt=now;
     }
+    // 이번 정지 구간을 누적한 뒤 다시 진행한다. 중복 진행은 시간을 더하지 않는다.
     void resumeTimer(Instant now) {
         requireActive();
         if (pausedAt==null) return;
@@ -173,12 +185,22 @@ public class Workout {
     }
     Instant pausedAt() { return pausedAt; }
     long pausedDurationMs() { return pausedDurationMs; }
+    // 화면 갱신 횟수 대신 실제 시각 차이에서 누적 정지를 빼 운동시간을 계산한다.
     long elapsedMillis(Instant now) {
         Instant until=finishedAt!=null ? finishedAt : cancelledAt!=null ? cancelledAt : pausedAt!=null ? pausedAt : now;
         return Math.max(0,java.time.Duration.between(startedAt,until).toMillis()-pausedDurationMs);
     }
     Instant cancelledAt() { return cancelledAt; }
     void skipRest() { requireActive(); restEndsAt = null; restSetIndex = null; }
+    // 남은 휴식을 10초 조절한다. 만료 후 +10초는 현재부터 시작하며 최대1시간이다.
+    void adjustRest(int seconds,Instant now) {
+        requireActive();
+        if (seconds!=10 && seconds!=-10) throw new IllegalArgumentException("휴식은 10초씩 조절해 주세요.");
+        if (restEndsAt==null || restSetIndex==null) throw new WorkoutConflict("조절할 휴식 타이머가 없습니다.");
+        long remaining=Math.max(0,java.time.Duration.between(now,restEndsAt).toMillis());
+        long adjusted=Math.max(0,Math.min(3600000,remaining+seconds*1000L));
+        restEndsAt=now.plusMillis(adjusted);
+    }
     List<Integer> completedSetIndexes() { return completedSetIndexes.stream().sorted().toList(); }
     Instant restEndsAt() { return restEndsAt; }
     private void requireActive() { if (finishedAt != null || cancelledAt != null) throw new WorkoutConflict("이미 종료한 운동입니다."); }

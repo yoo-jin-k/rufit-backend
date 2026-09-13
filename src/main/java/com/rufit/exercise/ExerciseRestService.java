@@ -18,6 +18,7 @@ public class ExerciseRestService {
         this.jdbc=jdbc;this.exercises=exercises;this.defaults=defaults;
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    // 읽기만으로 설정을 생성하지 않고, 추천/개인/기본 중 적용값을 알려준다.
     public View get(UUID id,String owner) {
         var exercise=exercises.get(id,owner);
         var preference=jdbc.query("select version,rest_seconds from exercise_rest_preferences where owner_name=? and exercise_id=?",
@@ -28,9 +29,11 @@ public class ExerciseRestService {
         return new View(id,preference.version(),recommended,personal,effective,source);
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    // 종목 ID가 없는 직접 입력 세트는 계정 공통 휴식시간을 사용한다.
     public int effectiveSeconds(UUID id,String owner) {
         return id==null?defaults.get(owner).defaultRestSeconds():get(id,owner).effectiveRestSeconds();
     }
+    // 개인 초 또는 추천 사용을 저장한다. 추천 복귀에도 버전을 남겨 과거 요청을 막는다.
     public View save(UUID id,String owner,Edit edit) {
         exercises.get(id,owner);
         if(edit.version()==null || edit.version()<0 || edit.mode()==null ||

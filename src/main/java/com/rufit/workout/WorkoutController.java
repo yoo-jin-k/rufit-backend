@@ -115,6 +115,11 @@ public class WorkoutController {
     public View skipRest(@PathVariable UUID id, @Valid @RequestBody Revision request, Principal principal) {
         return service.skipRest(id, principal.getName(), request.version());
     }
+    @PostMapping("/{id}/rest/adjust")
+    public View adjustRest(@PathVariable UUID id,@Valid @RequestBody RestAdjustment request,Principal principal) {
+        return service.adjustRest(id,principal.getName(),request.version(),request.seconds());
+    }
+    public record RestAdjustment(@NotNull @PositiveOrZero Long version,@NotNull @Schema(allowableValues={"-10","10"}) Integer seconds) {}
     public record Completion(@NotNull @PositiveOrZero Long version, @NotNull Boolean completed, @Min(0) @Max(3600) Integer restSeconds) {}
     public record SetInput(@NotBlank @Size(max=80) String exerciseName,
         @NotNull @DecimalMin("0") @DecimalMax("1500") @Digits(integer=4, fraction=2) BigDecimal weight,
