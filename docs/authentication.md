@@ -30,6 +30,8 @@
 
 **로그인 제공자는 카카오·구글로 확정했다. 실서비스 클라이언트 등록·모바일 로그인 화면·PKCE 흐름·토큰 갱신·회원 탈퇴/계정 연결은 아직 구현하지 않았다.** 이 브랜치는 백엔드 토큰 검증 기반이며 자체 토큰 발급 서버가 아니다. 운영 공개 전 실제 제공자와 HTTPS 환경에서 통합 검증해야 한다.
 
+현재는 설정한 단일 issuer와 audience의 API용 토큰을 검증한다. 카카오·구글 ID 토큰이나 제공자 API용 액세스 토큰을 기존 업무 API Bearer에 그대로 대입하는 통합 계약은 없다. 세션 발급 주체를 바꾸면 issuer+sub 기반 owner key도 바뀔 수 있으므로 기존 자료 보존 매핑을 먼저 설계한다. [BE-02 구현 공백·결정안](authentication-gap-analysis.md)과 [로그인 계약 초안 v0.1](api-contracts/social-login-draft.md)은 PM 검토용이며 구현된 endpoint 목록이 아니다.
+
 근거: [Spring Security JWT Resource Server](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html), [Spring Boot OAuth2](https://docs.spring.io/spring-boot/reference/security/oauth2.html), 루핏 기획의 로그인 필수·동일 이메일 자동 병합 금지 정책.
 
 ## 클라이언트 계정 확인과 웹 연결

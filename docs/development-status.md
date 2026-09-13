@@ -16,7 +16,7 @@
 | 운동시간 정지/진행 | POST /api/v1/workouts/{id}/pause, /resume | 명시적 정지만 시간을 멈춤, 종료 시 정지 시간 제외. PR #58 |
 | 종목별 휴식 | GET/PUT /api/v1/exercises/{id}/rest | 개인값(0초 포함) → 종목 추천 → 공통 기본값, 소유권·버전 검사. PR #59 |
 | 현재 휴식 조절 | POST /api/v1/workouts/{id}/rest/adjust | ±10초, 만료 후 재시작, 0~3600초 제한, 중복 적용 방지. developer 대상 PR #60 |
-| 입력한 세트 복제 | POST /api/v1/workouts/{id}/sets/{setIndex}/duplicate | 계약 97ec685 먼저 공개 후 구현·로컬 검증 완료. [요청·응답](api-contracts/set-duplication.md) |
+| 입력한 세트 복제 | POST /api/v1/workouts/{id}/sets/{setIndex}/duplicate | 계약 97ec685 먼저 공개, 구현 4a119c49 / developer 대상 PR #61. 로컬167개 및 CI 통과. [요청·응답](api-contracts/set-duplication.md) |
 | 기존 주요 API | 운동·루틴·이력·통계·기록 정정/삭제·오프라인 가져오기 | 사용자 격리, 동시 수정, 응답 유실·재시작·DB 장애/복구 시험 |
 
 휴식 조절 구현까지 전용 PostgreSQL에서 Maven verify 160개 테스트가 통과했다. 이후 DTO 명세와 주석 보완 후 API 계약·휴식 조절 관련 6개 테스트도 통과했다. 서명 JWT로 실행한 실제 HTTP 연결 시험에서 +10초, 이전 버전 재전송 409, -10초를 확인했다. 운영 계정과 운영 DB로 시험한 결과는 아니다.
@@ -31,10 +31,12 @@ Java 21 / Spring Boot 4.1.1 / PostgreSQL 17, Flyway V23까지, 앱 테이블 14�
 
 ## 다음 작업과 남은 외부 연결
 
-1. 휴식 조절 PR #60 커밋 4a5220f의 CI 34762648796은 success다. 세트 복제 구현을 developer 대상 PR로 올리고 CI와 PM 인계를 마무리한다.
-2. 다음 신규 범위는 PM 기능 카드와 계약에 따라 진행한다. 완료된 정지/재개·종목별 휴식을 중복 구현하지 않는다. 현재 작업의 차단 및 추가 사용자 결정은 없다.
+1. 휴식 조절 PR #60 커밋 4a5220f의 CI 34762648796은 success다. 세트 복제 PR #61/4a119c49도 CI 34763531710 success이며 서버 재시작·DB 중단/복원·컨테이너·실행 유지 검증과 PM 인계까지 완료했다.
+2. PM 배정 BE-02는 codex/social-login-contract의 문서 단위다. [실제 로그인 공백·추천안](authentication-gap-analysis.md)과 [미확정 계약 v0.1](api-contracts/social-login-draft.md)을 작성했다. 기존 토큰 검증을 재개발하지 않았고 실제 등록·새 비밀·운영 설정·계정 연결·DB 시험을 수행하지 않았다. 발급 주체·로그인 진입·계정 유지/이전·refresh 유실·logout 철회 범위는 추천안/대안과 결정 주체를 PM에게 인계한다.
 3. 카카오·구글 로그인은 제공자 등록과 실제 로그인·갱신·로그아웃·계정 연결이 남았다. 현재 JWT 검증 기반을 실제 로그인 완료로 표현하지 않는다.
 4. 운영 PostgreSQL은 아직 생성·연결·배포하지 않았다. 현재는 개발 구성과 전용 테스트 DB로 개발 가능하며 사용자 수동 테이블 생성은 필요 없다. [운영 준비](production-readiness.md)를 참고한다.
 5. 운동 미디어의 유료 구매·전체 교체는 사용자 최종 확인 이후다. 프론트 화면이나 자산 교체는 이 작업 범위에 포함하지 않는다.
 
 PM 공통 coordination/README.md 및 backend-history-handoff.md v1을 읽었다. 공통 status.md는 PM만 수정한다. FE의 기존 미커밋 변경 의도·검증 이력·임시 미리보기 정보를 PM에 전달했으며 이후 FE 파일/브랜치/테스트 서버는 변경하지 않았다.
+
+BE-02의 검증은 문서의 JSON 예제·내부 링크·기존 코드/공식 문서 대조다. 이 문서의 신규 auth 경로는 아직 생성 OpenAPI나 런타임에 존재하지 않으며, 167개 통과는 선행 구현의 결과다. 다음 구현은 PM 검토 후 확정된 계약을 먼저 커밋하고 시작한다. 테스트 DB는 FE에 인계했으므로 추가 로컬 실DB시험 전 PM과 사용 일정을 조율한다.

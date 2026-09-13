@@ -58,3 +58,5 @@ OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·
 [API 계약 우선 작업](docs/api-contracts/README.md), [휴식시간 조절 요청·응답](docs/api-contracts/rest-adjustment.md)
 
 [입력한 세트의 인접 복제 요청·응답](docs/api-contracts/set-duplication.md)
+
+[BE-02 카카오·구글 연결 공백과 추천안](docs/authentication-gap-analysis.md), [로그인 API 초안 v0.1 — PM 검토용·미구현](docs/api-contracts/social-login-draft.md)
