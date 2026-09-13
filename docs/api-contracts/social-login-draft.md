@@ -1,6 +1,8 @@
-# BE-02 소셜 로그인 API 초안 v0.1
+# BE-02 소셜 로그인 API 초안 v0.2
 
 상태: **PM 검토용 미확정 초안, 구현 전**. KAKAO·GOOGLE 제공자 요구는 확정됐지만 세션 발급 주체·로그인 진입 방식·계정 연결/이전 정책은 미확정이다. 이 문서는 [공백 점검](../authentication-gap-analysis.md)의 **RuFit 자체 세션 + 서버 authorization-code 중계 후보안**을 구체화한다. PM 채택 전 실제 FE 서버 호출·런타임 컨트롤러·DB 테이블·생성 OpenAPI에 반영하지 않는다. FE는 아래 상태/예시로 목업만 준비할 수 있다.
+
+v0.2(2026-09-14): [적대적 시나리오 검토](../authentication-adversarial-review.md)로 앱 시작 PKCE/handoff 불변 결합·동시 소비·유출, WEB 별도 계약, refresh 재사용 철회, logout 잔존 보장을 보완했다. v0.1의 JSON 모양은 유지하며, WEB은 활성화 가능한 확정 플랫폼이 아닌 예약값임을 명확히 했다. 실제 API 버전 변경은 아니다.
 
 ## 현재 사용할 수 있는 계약
 
@@ -22,6 +24,8 @@
 
 각 단계의 nonce/state/PKCE는 동일 시도에 묶고 다른 시도/제공자/클라이언트의 값과 바꿔 쓸 수 없다. 공식 제공자 흐름과 선택한 앱 복귀 방식의 실제 호환성 검증은 구현의 선행 조건이다. 발급자·키·audience 검증 기반은 기존 구현을 재사용하되, nonce/시도 바인딩과 서비스 발급은 추가 작업이다.
 
+attempt에 시작 challenge/provider/client/returnRoute를 변경 불가로 저장하고, handoffCode는 그 attempt에만 연결한다. 교환에서는 최초 verifier를 검사하며 복귀 URL에서 새로운 verifier를 받아 대체하지 않는다. 잘못된 verifier는 코드를 소비하지 않는다. PKCE는 verifier 보유 앱 인스턴스의 결합이며 기기/정품 앱의 신원을 증명하는 기능과 다르다. 앱 링크 소유권·등록은 별도 외부 검증 대상이다.
+
 ## 제안 엔드포인트·요청·응답
 
 아래 토큰·코드·URL·시간은 설명용이며 실제 접속값/발급값이 아니다. 모든 API 본문은 application/json, 인증/교환 응답은 Cache-Control: no-store를 제안한다. 시간은 ISO8601 UTC이며 예시 간격이 운영 토큰 수명 결정을 뜻하지 않는다.
@@ -42,6 +46,8 @@ POST /api/v1/auth/login-attempts, 로그인 전 호출. 요청량 제한·시도
 
 필수값: provider=KAKAO/GOOGLE, client=IOS/ANDROID/WEB, returnRoute는 서버에 등록한 키. 미설정 플랫폼·제공자는 활성화하지 않는다. codeChallenge는 S256의 43자 base64url 결과, method는 S256만 허용한다. URL 대신 경로 키를 받아 임의 redirect를 막는다. 시도 수명과 동시 시도 제한 숫자는 PM/보안 검토에서 확정한다.
 
+WEB은 미래 계약의 예약값이다. Web BFF/쿠키·CSRF 또는 별도 SPA의 토큰 보관 경계가 확정되기 전에는 활성화하지 않는 제안이다. 모바일의 토큰 응답을 브라우저 localStorage에 저장하거나 현재 OIDC의 CSRF 해제 설정에 쿠키 인증을 덧붙이지 않는다. [Web 분리 검토](../authentication-adversarial-review.md)를 먼저 확정한다.
+
 ### 제공자 callback
 
 GET /api/v1/auth/callback/{provider}, 제공자가 보내는 query code/state 또는 error/state. FE가 직접 업무 API처럼 호출하는 경로가 아니다.
@@ -50,6 +56,7 @@ GET /api/v1/auth/callback/{provider}, 제공자가 보내는 query code/state �
 - 정상일 때 302로 등록된 앱 복귀 경로에 attemptId/handoffCode를 전달한다. 알려지지 않은 state는 redirect하지 않고400 고정 오류다.
 - 사용자 취소는 검증된 시도의 등록된 복귀 경로로 LOGIN_CANCELLED와 attemptId만 전달한다. 취소 때문에 기존 로컬 운동을 삭제하지 않는다.
 - 동일 callback이 중복돼도 계정/세션을 다시 만들지 않는다. code 교환 도중 응답을 잃으면 제공자 code를 무조건 재사용하지 않는다. 상태 불명확 시 그 시도를 종료하고 새 로그인으로 복구하는 후보안이다.
+- 시도의 원자적 상태 전이로 외부 code 교환을 한 번만 시작한다. callback/복귀 응답은 no-store/no-referrer 및 제3자 리소스 배제를 제안하며 프록시·앱·분석 로그에 code/state/handoff/토큰·전체 Location을 남기지 않는다. 실제 로그 설정 검증은 별도다.
 
 ### 앱 handoff 교환
 
@@ -90,6 +97,8 @@ refresh 성공의 isNewAccount는 false이며 기존 /me.id를 유지한다. 프
 
 refresh는 한 계정에서 동시에 하나만 요청하고 이전 토큰을 새 토큰으로 원자적으로 교체하는 회전안을 제안한다. 한 번 사용된 토큰의 재사용은401 SESSION_EXPIRED로 재로그인을 요구하는 안이며, 탈취 탐지 시 세션 폐기 범위는 PM 검토 항목이다. 서비스 토큰 수명/보관·서명 키 운영도 미확정이다.
 
+회전으로 재생을 방지하려면 유효했던 과거 토큰의 재사용을 찾았을 때 같은 grant의 활성 refresh도 폐기하는 기준을 검토해야 한다. 단순히 과거 토큰만401로 거절하면 먼저 탈취해 회전한 공격자가 계속 갱신할 수 있다. 따라서 토큰의 회전 관계와 grant/현재 세션 범위를 먼저 명세한다. 임의의 알 수 없는 토큰을 보냈다고 타인의 세션을 폐기해서는 안 된다. [RFC 9700 refresh 보호](https://www.rfc-editor.org/rfc/rfc9700.html#section-4.14.2).
+
 | refresh 상황 | 이 초안의 단순 회전 후보안 | 복구 보관 대안에서 먼저 정할 것 |
 | --- | --- | --- |
 | 응답을 정상 수신 | 새 토큰 쌍을 보안 저장소에 원자적으로 교체 | 동일 |
@@ -101,6 +110,8 @@ refresh는 한 계정에서 동시에 하나만 요청하고 이전 토큰을 �
 단순 회전안의 재로그인 비용을 숨기지 않는다. 복구 보관안을 채택한다면 새로운 계약 버전에서 응답 유실과 재사용을 구분한 뒤 구현하며, 일반 API의 Idempotency-Key 동작을 인증 endpoint에 자동으로 적용하지 않는다.
 
 204 logout은 refresh 세션 폐기 결과다. 현재 Resource Server처럼 서명/만료만 검사하면 이미 발급된 액세스 토큰은 만료 전까지 유효할 수 있다. 즉시 철회가 필요하면 세션 확인 등 추가 설계를 먼저 확정한다. 제공자 동의 철회·전체 계정 로그아웃·RuFit 데이터 삭제를 이 경로에 묶지 않는다.
+
+실제 잔존 범위는 access 만료와 허용 시계 오차 정책까지 포함한다. FE 문구는 ‘이 기기에서 로그아웃했어요’를 현재 세션에 한정하고, 오프라인/응답 유실 때 서버 폐기 완료로 표시하지 않는다. 안전한 폐기 재시도 증명이 아직 정해지지 않았으므로 서버가 자동 정리됐다고 약속하지 않는다. [문구와 정책 후보](../authentication-adversarial-review.md).
 
 ## 실패·응답 유실·FE 저장 연계
 
