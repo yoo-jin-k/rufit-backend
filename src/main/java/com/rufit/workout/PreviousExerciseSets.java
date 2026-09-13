@@ -20,7 +20,7 @@ public class PreviousExerciseSets {
         Map<UUID,String> names=new HashMap<>();
         jdbc.query("""
             select id,name from exercises where id in (:ids)
-            and (owner_name=:owner or (owner_name is null and archived_at is null))
+            and (owner_name=:owner or owner_name is null)
             """,parameters,rs -> { names.put(rs.getObject("id",UUID.class),rs.getString("name")); });
         if(names.size()!=ids.size()) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"종목을 찾을 수 없습니다.");
         Map<UUID,PreviousExerciseSetsController.Record> records=new HashMap<>();

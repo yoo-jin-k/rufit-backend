@@ -26,7 +26,7 @@ public class ExerciseService {
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public View get(UUID id, String owner) {
         Exercise e=repository.findById(id).orElseThrow(this::notFound);
-        if ((e.archivedAt != null && e.ownerName == null) || (e.ownerName != null && !e.ownerName.equals(owner))) throw notFound();
+        if (e.ownerName != null && !e.ownerName.equals(owner)) throw notFound();
         return View.from(e);
     }
     public View create(String owner, UUID key, Create request) {
