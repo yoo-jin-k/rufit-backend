@@ -5,6 +5,8 @@ Java 21 · Spring Boot 4.1.1 · PostgreSQL · Maven Wrapper.
 
 운동 시작부터 루틴·이력·세트/휴식·저장 복구까지의 API와 PostgreSQL 검증 기반을 구현했습니다. 현재 코드는 기능 브랜치의 검토 대상이며 운영 배포 상태가 아닙니다. [구현 현황과 남은 연결](docs/api-plan.md), [프론트 연결·검증 순서](docs/integration-guide.md)를 먼저 참고합니다.
 
+[백엔드 폴더와 처리 흐름](docs/backend-structure.md), [현재 DB 구조와 ERD](docs/database-erd.md)에서 실제 13개 테이블, 외래 키와 복사 출처의 차이, 개발·시험·운영 DB 상태를 확인할 수 있습니다.
+
 ## 실행
 
 1. Java 21을 선택합니다.
