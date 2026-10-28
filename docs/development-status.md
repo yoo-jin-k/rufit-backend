@@ -74,3 +74,14 @@ BE-02의 검증은 문서의 JSON 예제·내부 링크·기존 코드/공식 �
 2026-10-29 FE 인계: 실제 FE createAuthApi/AuthCoordinator가8096에서 Google alice/bob·Kakao alice, PKCE교환/me/refresh/logout·기존access401을 검증했다는 PM 보고를 받았다(PR47). Node browser/PKCE/memorySecureStore 어댑터이며 실기기 보안저장 시험은 아니다. 첫 assertion 중단 실행의 fake grant1개가 남았을 수 있으나 안전한 식별 근거가 없어 추정 삭제하지 않았으며 전용fixture의 만료 대상으로 둔다. preview 유지/업데이트는 PM과 조율한다.
 
 PR67 preview8096 교체 후 V26/110종 및 기존15개 테이블 범위의 행 수·내용 해시 보존 확인, 새 로그인/갱신/폐기와 실제110종2페이지·별칭 검색 통과. 별도 자동시험DB 백업·일회용 복원22테이블431행 일치도 통과했다. 현재preview는 rufit-backend-catalog를 마운트하며 PM 인계 없이 재기동하지 않는다.
+
+## FE 통합 완료 인계 — 2026-10-29
+
+PM을 통해 [FE PR48](https://github.com/yoo-jin-k/rufit-frontend/pull/48), 커밋 `f28b094`의 통합 통과 보고를 받았다. 대상 BE 실행 코드는 `9964ac0`이다. 아래는 FE 담당의 결과이며 BE의 로컬202개 시험과 구분한다.
+
+- 새 fake 로그인 후 실제 AuthCoordinator/createRufitApi로100+10개 페이지를 조회하여110종 원본의 전체 필드 일치를 확인했다.
+- 별칭·전각 검색·복합 필터, 종목 권장휴식null일 때 계정 기본90초/DEFAULT 적용을 확인했다. 신규 종목에90초를 권장값으로 저장했다는 뜻은 아니다.
+- 신규 운동 생성→세트 완료→운동 종료→ID로 재조회→자기 시험 기록 삭제→logout을 검증했다. FE 전체151개 시험과3플랫폼 export도 통과했다는 보고다.
+- preview/DB 변경과 추가 BE 결함 보고는 없었다. 시험 중 변경 금지는 해제됐으나 사용자 실행 검토를 위해8096을 유지하고, 중단/재기동이 필요하면 먼저 PM에 인계한다.
+
+이번 반영은 인계 문서만 갱신한다. 실행 코드·DB·키·서버 상태를 바꾸거나 이미 통과한 시험을 반복하지 않는다. 실제 Kakao/Google 등록·실기기 인증·운영 배포와 GitHub CI 결제/한도 차단은 별도 미완료 항목이다.

@@ -53,3 +53,5 @@ PM 후보 검토와 함께 [ACE 짐볼 레그 컬](https://www.acefitness.org/re
 - GitHub CI는 선행 로그인 PR에서 확인한 계정 결제/지출 한도 문제로 실행 차단 상태다. 로컬 성공과 구분한다. PM 조율 후 preview8096을 실행 코드9964ac0으로 갱신했다. DB/볼륨을 유지하며 V26만 추가했고, 기존18/업무/회원/세션15개 테이블 범위의 행 수·내용 해시가 동일했다. 새 로그인/갱신/폐기 및 실제 HTTP110종2페이지·별칭3개도 통과했다.
 
 추가 복구 검증: 자동시험DB를 일회용 DB로 백업·복원하여 Flyway 이력을 포함한22개 테이블/431행의 내용 해시가 일치했다. 임시 복원 DB는 제거했고 preview에는 접근하지 않았다. `scripts/smoke-exercise-catalog.py`는 인증16KiB와 분리된 업무 응답256KiB 한도로 실제110종을 검사한다. 결과는 `target/catalog-http-result.json`, `target/catalog-preview-upgrade-result.json`, `target/backup-restore-result.json`이며 비밀 원문은 포함하지 않는다.
+
+2026-10-29 PM 인계에 따르면 FE PR48/f28b094도 BE9964ac0과 실제 클라이언트로110종100+10페이지/전필드·검색·필터·null휴식fallback·신규 운동 저장/완료/재조회/시험기록삭제/logout을 통과했다. 상세와 시험 경계는 [개발 현황](../development-status.md)에 기록했다.8096은 사용자 검토를 위해 유지한다.
