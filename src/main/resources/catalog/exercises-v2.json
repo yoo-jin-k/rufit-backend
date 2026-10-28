@@ -1,0 +1,1131 @@
+{
+  "catalogVersion": "2026-10-29.v2",
+  "exerciseCount": 110,
+  "exercises": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "바벨 스쿼트",
+        "squat"
+      ],
+      "recommendedRestSeconds": 180
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "벤치프레스",
+      "bodyPart": "CHEST",
+      "equipment": "BARBELL",
+      "aliases": [
+        "벤치 프레스",
+        "bench press"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "name": "데드리프트",
+      "bodyPart": "FULL_BODY",
+      "equipment": "BARBELL",
+      "aliases": [
+        "deadlift"
+      ],
+      "recommendedRestSeconds": 180
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "name": "오버헤드프레스",
+      "bodyPart": "SHOULDERS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "밀리터리 프레스",
+        "숄더 프레스",
+        "overhead press"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000005",
+      "name": "랫풀다운",
+      "bodyPart": "BACK",
+      "equipment": "MACHINE",
+      "aliases": [
+        "랫 풀 다운",
+        "lat pulldown"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000006",
+      "name": "레그프레스",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "레그 프레스",
+        "leg press"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000007",
+      "name": "푸시업",
+      "bodyPart": "CHEST",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "푸쉬업",
+        "팔굽혀펴기",
+        "push up"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000008",
+      "name": "풀업",
+      "bodyPart": "BACK",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "턱걸이",
+        "pull up"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000009",
+      "name": "덤벨컬",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "덤벨 컬",
+        "이두",
+        "dumbbell curl"
+      ],
+      "recommendedRestSeconds": 90
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000010",
+      "name": "트라이셉스푸시다운",
+      "bodyPart": "ARMS",
+      "equipment": "CABLE",
+      "aliases": [
+        "트라이셉스 푸시다운",
+        "삼두",
+        "triceps pushdown"
+      ],
+      "recommendedRestSeconds": 90
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000011",
+      "name": "맨몸 스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "에어 스쿼트",
+        "bodyweight squat"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000012",
+      "name": "덤벨 스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell squat"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000013",
+      "name": "프론트 스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "front squat"
+      ],
+      "recommendedRestSeconds": 180
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000014",
+      "name": "덤벨 사이드 레터럴 레이즈",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "사레레",
+        "사이드 레터럴 레이즈",
+        "lateral raise"
+      ],
+      "recommendedRestSeconds": 90
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000015",
+      "name": "덤벨 숄더 프레스",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "어깨 프레스",
+        "dumbbell shoulder press"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000016",
+      "name": "덤벨 업라이트 로우",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "upright row"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000017",
+      "name": "덤벨 벤치 프레스",
+      "bodyPart": "CHEST",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell bench press"
+      ],
+      "recommendedRestSeconds": 120
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000018",
+      "name": "크런치",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "복근",
+        "crunch"
+      ],
+      "recommendedRestSeconds": 90
+    },
+    {
+      "id": "4e043528-5b74-5bd1-bb8f-e6dcceb15fbb",
+      "name": "바벨 인클라인 벤치 프레스",
+      "bodyPart": "CHEST",
+      "equipment": "BARBELL",
+      "aliases": [
+        "incline barbell bench press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "c10c6f98-739e-5a69-a35a-2d9f3161916e",
+      "name": "바벨 디클라인 벤치 프레스",
+      "bodyPart": "CHEST",
+      "equipment": "BARBELL",
+      "aliases": [
+        "decline barbell bench press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "acf2fb76-aa3a-5e44-bac8-68f564410570",
+      "name": "덤벨 인클라인 벤치 프레스",
+      "bodyPart": "CHEST",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "incline dumbbell press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "adda9c6d-34d1-510e-b1b7-eeceb8cac56d",
+      "name": "덤벨 플라이",
+      "bodyPart": "CHEST",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell fly"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "21f0724b-5230-5d86-b931-48cf4e2b58d7",
+      "name": "덤벨 플로어 프레스",
+      "bodyPart": "CHEST",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell floor press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "e547c640-2ae3-5615-be90-539c80cbf851",
+      "name": "머신 체스트 프레스",
+      "bodyPart": "CHEST",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine chest press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "36887727-110e-5480-a3db-57fed43675dd",
+      "name": "펙 덱 플라이",
+      "bodyPart": "CHEST",
+      "equipment": "MACHINE",
+      "aliases": [
+        "펙덱",
+        "pec deck fly"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "2e586c08-3134-5d8b-b930-ff6bff62c191",
+      "name": "케이블 체스트 플라이",
+      "bodyPart": "CHEST",
+      "equipment": "CABLE",
+      "aliases": [
+        "케이블 크로스오버",
+        "cable chest fly"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "f258954a-1bd2-5862-adf8-70e134c72f38",
+      "name": "평행봉 딥스",
+      "bodyPart": "CHEST",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "parallel bar dip"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "cb823199-51dc-5e9d-aead-35e6d735b940",
+      "name": "인클라인 푸시업",
+      "bodyPart": "CHEST",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "incline push up"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "c2ade00b-cb15-56d7-b78c-e9d8a1ec22b7",
+      "name": "디클라인 푸시업",
+      "bodyPart": "CHEST",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "decline push up"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "cc003b43-0996-5850-96ab-11a06903d131",
+      "name": "밴드 체스트 프레스",
+      "bodyPart": "CHEST",
+      "equipment": "OTHER",
+      "aliases": [
+        "resistance band chest press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "6c05ce72-98c3-5dea-90e8-865deb9dd5e6",
+      "name": "바벨 벤트오버 로우",
+      "bodyPart": "BACK",
+      "equipment": "BARBELL",
+      "aliases": [
+        "바벨 로우",
+        "bent over barbell row"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "464d7097-ddb4-5ff5-a1f1-a375fe315194",
+      "name": "원암 덤벨 로우",
+      "bodyPart": "BACK",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "one arm dumbbell row"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "b0caf1b4-afd4-57b2-ac07-f29851a07170",
+      "name": "체스트 서포티드 덤벨 로우",
+      "bodyPart": "BACK",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "chest supported dumbbell row"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "b3a87812-78ed-5937-8346-079908954abc",
+      "name": "머신 시티드 로우",
+      "bodyPart": "BACK",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine seated row"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "a3b05832-6ea5-543c-8db0-fbb1776e9129",
+      "name": "시티드 케이블 로우",
+      "bodyPart": "BACK",
+      "equipment": "CABLE",
+      "aliases": [
+        "seated cable row"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "cb926dc9-30af-5d0c-a991-104fe2f85ce5",
+      "name": "케이블 스트레이트 암 풀다운",
+      "bodyPart": "BACK",
+      "equipment": "CABLE",
+      "aliases": [
+        "straight arm cable pulldown"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "d1a76fb0-44bd-5a74-a143-9cb9d65ea4a3",
+      "name": "친업",
+      "bodyPart": "BACK",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "chin up"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "e6a8c25a-912d-5889-9b67-6044c08c3c2a",
+      "name": "인버티드 로우",
+      "bodyPart": "BACK",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "inverted row"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "21d17ec2-3298-5684-b025-46d7e40fcca6",
+      "name": "어시스트 풀업",
+      "bodyPart": "BACK",
+      "equipment": "MACHINE",
+      "aliases": [
+        "assisted pull up"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "62c30f9f-5185-5b48-9705-7f5a25732aa7",
+      "name": "백 익스텐션",
+      "bodyPart": "BACK",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "back extension"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "d06674c5-709b-5b6c-9b6e-41fba8866638",
+      "name": "덤벨 슈러그",
+      "bodyPart": "BACK",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell shrug"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "a7032b67-1075-5aea-a7e9-a348ef019737",
+      "name": "바벨 슈러그",
+      "bodyPart": "BACK",
+      "equipment": "BARBELL",
+      "aliases": [
+        "barbell shrug"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "3a9af5b8-cb01-50b0-832b-31227dd2d78a",
+      "name": "밴드 로우",
+      "bodyPart": "BACK",
+      "equipment": "OTHER",
+      "aliases": [
+        "resistance band row"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "501a557a-ce5a-5f68-844b-98ed523ff58d",
+      "name": "덤벨 풀오버",
+      "bodyPart": "BACK",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell pullover"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "5bcee184-9ce9-5904-b4fa-7c28f9f71ebd",
+      "name": "바벨 루마니안 데드리프트",
+      "bodyPart": "LEGS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "barbell romanian deadlift"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "1e5e9548-6da4-5251-84cd-24c3dcc2a3bc",
+      "name": "덤벨 루마니안 데드리프트",
+      "bodyPart": "LEGS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell romanian deadlift"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "b75b2fa8-5317-5e78-8269-5cda164227e3",
+      "name": "바벨 힙 쓰러스트",
+      "bodyPart": "LEGS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "barbell hip thrust"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "d630984c-f5a0-54f0-a05a-7cfe8297028d",
+      "name": "글루트 브리지",
+      "bodyPart": "LEGS",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "힙 브릿지",
+        "glute bridge"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "95fa131c-2bb7-58ce-bdb8-24042fb47b10",
+      "name": "싱글 레그 글루트 브리지",
+      "bodyPart": "LEGS",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "single leg glute bridge"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "cbe2cc91-110a-54a5-8e40-1f3d827b9c4f",
+      "name": "덤벨 포워드 런지",
+      "bodyPart": "LEGS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell forward lunge"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "71d61f1a-f28c-5212-9fb8-0aaf5974e4ee",
+      "name": "덤벨 리버스 런지",
+      "bodyPart": "LEGS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell reverse lunge"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "eeff2317-ac44-5a23-9099-fcc7a75072a9",
+      "name": "맨몸 포워드 런지",
+      "bodyPart": "LEGS",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "bodyweight forward lunge"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "84e71175-0791-5979-8383-36788b2dea47",
+      "name": "맨몸 사이드 런지",
+      "bodyPart": "LEGS",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "bodyweight lateral lunge"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "f20dd2ee-903b-53ca-8fbc-ab22ca22bee4",
+      "name": "덤벨 불가리안 스플릿 스쿼트",
+      "bodyPart": "LEGS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell bulgarian split squat"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "447467cd-b2e4-5856-9bf3-36a5a5fa972b",
+      "name": "덤벨 스텝업",
+      "bodyPart": "LEGS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell step up"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "bab64f45-d785-528e-9c19-9caf8a1d9326",
+      "name": "핵 스쿼트 머신",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine hack squat"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "ca5ae03e-c93c-58d6-9c64-7b368a1e1b24",
+      "name": "레그 익스텐션",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "leg extension"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "c49b261c-fe5e-5645-b56b-c0c24bffabed",
+      "name": "시티드 레그 컬",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "seated leg curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "08554897-a9a7-52c6-af6f-e562a9164f3b",
+      "name": "라잉 레그 컬",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "lying leg curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "b442f81e-295f-5393-9e06-e43a7db07260",
+      "name": "힙 어브덕션 머신",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine hip abduction"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "078ffe42-deb6-55a5-a3b7-42f1f67c10af",
+      "name": "힙 어덕션 머신",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine hip adduction"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "50d5f9ff-3696-560e-9011-2fb91ab32795",
+      "name": "스탠딩 카프 레이즈 머신",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine standing calf raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "18c3d358-4e05-508f-8637-b7a93c417423",
+      "name": "시티드 카프 레이즈 머신",
+      "bodyPart": "LEGS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine seated calf raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "4165403d-7c85-5391-8777-1f7c19134aaf",
+      "name": "맨몸 카프 레이즈",
+      "bodyPart": "LEGS",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "bodyweight calf raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "e5fc4b90-4d05-5b58-9aae-ae234fa0ef93",
+      "name": "케이블 글루트 킥백",
+      "bodyPart": "LEGS",
+      "equipment": "CABLE",
+      "aliases": [
+        "cable glute kickback"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "2d003fae-aa32-5e1d-9d23-b1cac04cbcbf",
+      "name": "밴드 레그 컬",
+      "bodyPart": "LEGS",
+      "equipment": "OTHER",
+      "aliases": [
+        "resistance band leg curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "7903c4c6-38c1-5027-b57e-ba8b0995b882",
+      "name": "짐볼 레그 컬",
+      "bodyPart": "LEGS",
+      "equipment": "OTHER",
+      "aliases": [
+        "stability ball leg curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "df8fda84-a469-56d6-97e4-25bcaa6efb3d",
+      "name": "바벨 굿모닝",
+      "bodyPart": "LEGS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "barbell good morning"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "a691a697-1bd8-5751-9f3d-1f942b7e889d",
+      "name": "아놀드 프레스",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "arnold press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "e5855400-64d2-5420-8142-63c95be2b2d7",
+      "name": "덤벨 프론트 레이즈",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell front raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "bb55bc26-bf13-58e2-9cbf-78e24a36708e",
+      "name": "덤벨 리버스 플라이",
+      "bodyPart": "SHOULDERS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "덤벨 벤트오버 레터럴 레이즈",
+        "dumbbell reverse fly"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "16b8134b-f8a0-524f-b93a-50d4d2409809",
+      "name": "머신 숄더 프레스",
+      "bodyPart": "SHOULDERS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine shoulder press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "94f8ec97-3990-54d1-96ef-85e54aa10c2d",
+      "name": "머신 레터럴 레이즈",
+      "bodyPart": "SHOULDERS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine lateral raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "6da1bda8-f950-56bd-bd79-8682153e8515",
+      "name": "리버스 펙 덱 플라이",
+      "bodyPart": "SHOULDERS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "reverse pec deck fly"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "dd87a5d8-eb0b-53fd-8ab8-5bb43e2cf41b",
+      "name": "케이블 레터럴 레이즈",
+      "bodyPart": "SHOULDERS",
+      "equipment": "CABLE",
+      "aliases": [
+        "cable lateral raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "e76ac716-c82c-5153-ab55-10f523a469b4",
+      "name": "케이블 페이스 풀",
+      "bodyPart": "SHOULDERS",
+      "equipment": "CABLE",
+      "aliases": [
+        "cable face pull"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "80f4d8ed-ab6a-5a26-acd0-b274702a5837",
+      "name": "파이크 푸시업",
+      "bodyPart": "SHOULDERS",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "pike push up"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "2cd4fa77-cb87-52f7-9c15-68f3271fa2bd",
+      "name": "밴드 풀어파트",
+      "bodyPart": "SHOULDERS",
+      "equipment": "OTHER",
+      "aliases": [
+        "band pull apart"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "fc53a1ec-af25-5df3-8a40-a9f44794774d",
+      "name": "바벨 컬",
+      "bodyPart": "ARMS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "barbell curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "4ccb43e1-0240-54aa-b40b-2af419ed4dd7",
+      "name": "이지바 프리처 컬",
+      "bodyPart": "ARMS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "ez bar preacher curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "ab1e1b18-1f66-540f-9f2e-03fee47925f3",
+      "name": "덤벨 해머 컬",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell hammer curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "d610bdc0-5d67-56d4-b207-c94e32a6c524",
+      "name": "인클라인 덤벨 컬",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "incline dumbbell curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "db9ffda6-87aa-5a2b-9bbe-e275b2dc70a6",
+      "name": "덤벨 컨센트레이션 컬",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell concentration curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "a5801804-f0bb-5d63-954d-0766fe8d7c9e",
+      "name": "케이블 컬",
+      "bodyPart": "ARMS",
+      "equipment": "CABLE",
+      "aliases": [
+        "cable curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "88a55044-623d-5ac6-8fdd-a4b0c9588175",
+      "name": "머신 바이셉스 컬",
+      "bodyPart": "ARMS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine biceps curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "0acb714f-f97b-5d31-8559-4dc84d552e61",
+      "name": "바벨 리버스 컬",
+      "bodyPart": "ARMS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "barbell reverse curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "e458b224-3247-5ffa-9f82-50f465a81d28",
+      "name": "클로즈 그립 벤치 프레스",
+      "bodyPart": "ARMS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "close grip barbell bench press"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "8dc0c499-fa97-5442-8512-2fc9b666339d",
+      "name": "이지바 라잉 트라이셉스 익스텐션",
+      "bodyPart": "ARMS",
+      "equipment": "BARBELL",
+      "aliases": [
+        "이지바 스컬 크러셔",
+        "ez bar skull crusher"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "40636f03-bd82-57db-9a6d-3b320970cb58",
+      "name": "덤벨 오버헤드 트라이셉스 익스텐션",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell overhead triceps extension"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "daf3340d-47b5-50ae-8f2a-23a13c28c305",
+      "name": "덤벨 트라이셉스 킥백",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell triceps kickback"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "765b935a-2945-5e1c-9e59-6631b1d56adf",
+      "name": "케이블 오버헤드 트라이셉스 익스텐션",
+      "bodyPart": "ARMS",
+      "equipment": "CABLE",
+      "aliases": [
+        "cable overhead triceps extension"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "70a37e43-3ecb-50a3-8cf3-e863b26a2088",
+      "name": "머신 트라이셉스 익스텐션",
+      "bodyPart": "ARMS",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine triceps extension"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "87a9e7de-a7c6-5ba8-973e-df62e1bc3b99",
+      "name": "덤벨 리스트 컬",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell wrist curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "33d8dad2-b9a9-53bc-af80-70d6ea730daf",
+      "name": "덤벨 리버스 리스트 컬",
+      "bodyPart": "ARMS",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell reverse wrist curl"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "61ae50e7-d553-502d-8d10-ac14300264d3",
+      "name": "리버스 크런치",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "reverse crunch"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "e4c73b38-6088-5fdf-9a5b-bdb6c28fc187",
+      "name": "바이시클 크런치",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "bicycle crunch"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "f17b42fa-af4e-5681-9ddd-2d40570dd60a",
+      "name": "싯업",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "윗몸일으키기",
+        "sit up"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "262271d4-12da-5612-a72d-008527f8dbc9",
+      "name": "라잉 레그 레이즈",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "lying leg raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "959d6a0b-4df8-5dc8-9c86-f8fbc8578c04",
+      "name": "행잉 니 레이즈",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "hanging knee raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "359dfdfe-190c-537e-b6bf-013493f400c1",
+      "name": "행잉 레그 레이즈",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "hanging leg raise"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "fa9c3ba1-dc2f-56a8-bd33-aa5d26402203",
+      "name": "닐링 케이블 크런치",
+      "bodyPart": "CORE",
+      "equipment": "CABLE",
+      "aliases": [
+        "kneeling cable crunch"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "7774108e-19da-53f6-8b95-5e5a214f9f92",
+      "name": "머신 앱 크런치",
+      "bodyPart": "CORE",
+      "equipment": "MACHINE",
+      "aliases": [
+        "machine abdominal crunch"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "8240173f-a989-50ae-be00-7f459d50b434",
+      "name": "케이블 우드촙",
+      "bodyPart": "CORE",
+      "equipment": "CABLE",
+      "aliases": [
+        "cable wood chop"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "b86a6c4e-2cf4-59cc-884c-0b9d9393fadb",
+      "name": "덤벨 사이드 벤드",
+      "bodyPart": "CORE",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell side bend"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "fbade768-6a23-53a0-9fcf-a2490f779525",
+      "name": "앱 휠 롤아웃",
+      "bodyPart": "CORE",
+      "equipment": "OTHER",
+      "aliases": [
+        "ab wheel rollout"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "3a8e53a9-b616-5778-9df7-6341d3c8c972",
+      "name": "힐 터치",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "aliases": [
+        "heel touch"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "7411c3c8-f9e5-5777-ae96-ef40b277b97b",
+      "name": "케틀벨 스윙",
+      "bodyPart": "FULL_BODY",
+      "equipment": "OTHER",
+      "aliases": [
+        "kettlebell swing"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "e7d78940-dd1d-5ae3-af96-9ac900f66071",
+      "name": "덤벨 쓰러스터",
+      "bodyPart": "FULL_BODY",
+      "equipment": "DUMBBELL",
+      "aliases": [
+        "dumbbell thruster"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "7050fcc4-7d38-537f-9561-79a44717219d",
+      "name": "케틀벨 터키시 겟업",
+      "bodyPart": "FULL_BODY",
+      "equipment": "OTHER",
+      "aliases": [
+        "kettlebell turkish get up"
+      ],
+      "recommendedRestSeconds": null
+    },
+    {
+      "id": "02db474d-5d1b-5ca6-9155-ddcf1101203e",
+      "name": "바벨 클린 앤 프레스",
+      "bodyPart": "FULL_BODY",
+      "equipment": "BARBELL",
+      "aliases": [
+        "barbell clean and press"
+      ],
+      "recommendedRestSeconds": null
+    }
+  ]
+}
