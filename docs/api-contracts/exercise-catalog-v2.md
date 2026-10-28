@@ -50,4 +50,6 @@ PM 후보 검토와 함께 [ACE 짐볼 레그 컬](https://www.acefitness.org/re
 - 새6개 시험은110원본/DB/상세API 일치, 전체 별칭, 7×6 복합필터, 페이지 중복 없음, 신규 휴식fallback/소유권, 새 종목1kg2회 저장·정식이름 재조회, V25→V26 보존을 포함한다.
 - 전용 PostgreSQL17/Java21 Maven verify202개(실패0/오류0/건너뜀0), 패키징 통과. 자동시험5437만 사용했다.
 - 마이그레이션 시험은 별도 임시 스키마에 V25를 먼저 적용하고 과거 운동명·루틴명 스냅샷·개인0초휴식·수정버전을 넣은 뒤 V26으로 올렸다. 이전18행과 업무행의 JSON 전체가 같음을 확인하고 해당 임시 스키마만 제거했다.
-- GitHub CI는 선행 로그인 PR에서 확인한 계정 결제/지출 한도 문제로 실행 차단 상태다. 로컬 성공과 구분한다. preview8096 최신110 반영 여부는 PM 조율 후 별도 인계한다.
+- GitHub CI는 선행 로그인 PR에서 확인한 계정 결제/지출 한도 문제로 실행 차단 상태다. 로컬 성공과 구분한다. PM 조율 후 preview8096을 실행 코드9964ac0으로 갱신했다. DB/볼륨을 유지하며 V26만 추가했고, 기존18/업무/회원/세션15개 테이블 범위의 행 수·내용 해시가 동일했다. 새 로그인/갱신/폐기 및 실제 HTTP110종2페이지·별칭3개도 통과했다.
+
+추가 복구 검증: 자동시험DB를 일회용 DB로 백업·복원하여 Flyway 이력을 포함한22개 테이블/431행의 내용 해시가 일치했다. 임시 복원 DB는 제거했고 preview에는 접근하지 않았다. `scripts/smoke-exercise-catalog.py`는 인증16KiB와 분리된 업무 응답256KiB 한도로 실제110종을 검사한다. 결과는 `target/catalog-http-result.json`, `target/catalog-preview-upgrade-result.json`, `target/backup-restore-result.json`이며 비밀 원문은 포함하지 않는다.

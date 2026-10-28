@@ -18,12 +18,13 @@
 | DB/role | `rufit_test`; DB 포트는 호스트에 공개하지 않음 |
 | 자동 회귀 DB | 별도 `rufit-auth-test-db`/host5437. preview를 테스트 초기화 대상으로 사용하지 않음 |
 
-사용 중인 BE 작업 공간에서 실행한다. 현재 절대 경로는 `/Users/yoo-jinkim/.codex/.chatgpt-projects/g-p-6a70b6f73c488191a9444a0c848d5cea/rufit-backend-auth`다.
+사용 중인 BE 작업 공간에서 실행한다. 110종 갱신 후 현재 실행 작업공간은 `/Users/yoo-jinkim/.codex/.chatgpt-projects/g-p-6a70b6f73c488191a9444a0c848d5cea/rufit-backend-catalog`다. 로그인 이전 작업공간은 rufit-backend-auth이며 preview를 그 이전 코드로 다시 시작하지 않는다.
 
 ```sh
 python3 scripts/fake-login-preview.py start
 python3 scripts/fake-login-preview.py status
 python3 scripts/smoke-social-login.py
+python3 scripts/smoke-exercise-catalog.py
 python3 scripts/fake-login-preview.py stop
 ```
 
@@ -48,3 +49,5 @@ python3 scripts/fake-login-preview.py stop
 Web client 로그인 계약은 예약 상태다. 브라우저 preview에서 custom scheme 복귀가 자동 동작한다고 간주하지 않는다. Node/Python의 수동 redirect HTTP 시험 또는 시스템 브라우저/딥링크 어댑터에 handoff를 전달하는 통합 fixture로 먼저 검증하고, 실제 앱 등록·복귀는 별도 실기기 시험한다. `smoke-social-login.py`는 redirect를 수동 처리하여 전체 HTTP 흐름, 계정 구분, 갱신/재사용 폐기/로그아웃/동시 갱신을 확인한다. 이 스크립트가 만든 세션만 로그아웃하며 FE 데이터/다른 세션을 초기화하지 않는다.
 
 결과 파일 `target/fake-login-http-result.json`에는 상태/검사항목만 저장한다. 토큰/비밀/개인정보는 저장하지 않는다. OpenAPI는 활성 access로 `/v3/api-docs`에서 확인하거나 CI `backend-api-contract`의 `auth-openapi.json`을 사용한다.
+
+2026-10-29 PM/FE 조율 후 PR67 구현9964ac0으로 갱신했고 V26/110종/검색키240개 및 데이터 보존·새 로그인 smoke를 확인했다. FE 최초 로그인 시험의 중단 실행에서 fake grant1개가 남았을 수 있으나 안전한 식별 근거가 없어 추정 삭제하지 않았고, 전용fixture 만료/정리 대상으로 둔다. 재기동은 키가 바뀌므로 기존 token 재사용은 불가다.

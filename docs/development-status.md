@@ -8,10 +8,10 @@
 | 로그인 계약 | PR63/f95ff9ce, 모바일 브라우저+서버 중계+자체 세션 | [v1 계약](api-contracts/social-login-v1.md)이 최신 기준 |
 | 계정·세션 기반 | PR64/b21615c7, sid DB 활성 검증/DB오류503, 기존 owner·oidc 유지 | 실제 제공자 등록 미완료 |
 | 코드 교환/handoff | PR65/eee22d5, 시작201·callback302·교환200, PKCE/state/nonce·원자 저장 | provider/JWKS는 fake HTTP로 검증 |
-| refresh/logout | codex/auth-session-lifecycle, 회전·재사용 grant 폐기·즉시 access 거부·정리 | [구현·검증](auth-session-lifecycle.md), developer 대상 draft PR 제출 단위 |
+| refresh/logout | codex/auth-session-lifecycle, 회전·재사용 grant 폐기·즉시 access 거부·정리 | [구현·검증](auth-session-lifecycle.md), PR66/dc75d4f |
 | 전체 회귀 | Java21/PostgreSQL17 Maven verify196개, 실패0/오류0/건너뜀0, 패키징 성공 | 전체 시험 DB는 독립5437 |
 | FE 통합 fixture | 실제 API8096 + 별도 preview DB, Google/Kakao fake 흐름·갱신/폐기·동시 요청 smoke 통과 | [실행 안내](fake-login-integration.md), FE 검증 결과는 별도 |
-| 운동 목록 확장 | 계약afa42b3→V26, 공용110종/검색키240개, 기존18/기록/루틴/개인휴식 보존 | 전체202시험/패키징 통과. [v2 계약](api-contracts/exercise-catalog-v2.md) |
+| 운동 목록 확장 | 계약afa42b3→V26, 공용110종/검색키240개, 기존18/기록/루틴/개인휴식 보존 | PR67/9964ac0, 전체202시험/패키징 통과. [v2 계약](api-contracts/exercise-catalog-v2.md) |
 
 main/developer는 변경·병합하지 않는다. developer에서 만든 작은 codex 브랜치의 누적 의존성을 PR에 명시한다. FE 저장소/파일/서버8099와 인계DB5435는 변경하지 않는다. PM 전달은 사용자가 직접 승인했다. sources와 공통 coordination/status.md는 수정하지 않는다.
 
@@ -72,3 +72,5 @@ BE-02의 검증은 문서의 JSON 예제·내부 링크·기존 코드/공식 �
 같은 날 FE PR #41/e89d7b6의 A01~A07을 지정 코드 c7503cf과 대조해 초안 v0.3에 반영했다. OIDC 키69자와 기존 FE100자 조건을 확인하고 ID 원문 보존·별도 인증 transport·/me 재검증·facade 재생성·epoch 직렬 보안 저장을 명시했다. D01~D07은 수치가 있는 PM 추천안이며 구현 확정이 아니다. 첫 연결 구현 순서와 등록값 없이 할 모의 시험/실제 등록 의존 시험을 분리했다. 이번에도 런타임·마이그레이션·DB 행·FE 코드는 변경하지 않았다.
 
 2026-10-29 FE 인계: 실제 FE createAuthApi/AuthCoordinator가8096에서 Google alice/bob·Kakao alice, PKCE교환/me/refresh/logout·기존access401을 검증했다는 PM 보고를 받았다(PR47). Node browser/PKCE/memorySecureStore 어댑터이며 실기기 보안저장 시험은 아니다. 첫 assertion 중단 실행의 fake grant1개가 남았을 수 있으나 안전한 식별 근거가 없어 추정 삭제하지 않았으며 전용fixture의 만료 대상으로 둔다. preview 유지/업데이트는 PM과 조율한다.
+
+PR67 preview8096 교체 후 V26/110종 및 기존15개 테이블 범위의 행 수·내용 해시 보존 확인, 새 로그인/갱신/폐기와 실제110종2페이지·별칭 검색 통과. 별도 자동시험DB 백업·일회용 복원22테이블431행 일치도 통과했다. 현재preview는 rufit-backend-catalog를 마운트하며 PM 인계 없이 재기동하지 않는다.
