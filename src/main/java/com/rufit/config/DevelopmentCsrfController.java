@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Profile("!oidc & (local | test)")
+@Profile("!oidc & !social & (local | test)")
 public class DevelopmentCsrfController {
     @GetMapping("/api/v1/csrf")
     public Token token(CsrfToken token) { return new Token(token.getHeaderName(), token.getToken()); }

@@ -37,12 +37,12 @@ public class ApiDocumentationConfig {
     }
     @Bean
     OpenAPI rufitApi(Environment environment) {
-        boolean oidc = environment.acceptsProfiles(Profiles.of("oidc"));
+        boolean oidc = environment.acceptsProfiles(Profiles.of("oidc", "social"));
         String scheme = oidc ? "bearerAuth" : "developmentBasic";
         SecurityScheme security = new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme(oidc ? "bearer" : "basic");
         if (oidc) security.bearerFormat("JWT");
         return new OpenAPI().info(new Info().title("루핏 API").version("0.1.0")
-            .description(oidc ? "OIDC 액세스 토큰이 필요합니다. 소유권은 인증 정보에서 결정합니다."
+            .description(oidc ? "API용 액세스 토큰이 필요합니다. 소유권은 인증 정보에서 결정합니다."
                 : "개발용 Basic 인증입니다. 쓰기 요청 전 GET /api/v1/csrf에서 토큰을 받고 동일 세션의 응답 headerName/token을 요청 헤더로 보냅니다."))
             .components(new Components().addSecuritySchemes(scheme, security))
             .addSecurityItem(new SecurityRequirement().addList(scheme));

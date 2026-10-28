@@ -10,7 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
     @Bean
-    @Profile("!local & !test & !oidc")
+    @Profile("!local & !test & !oidc & !social")
     SecurityFilterChain lockedByDefault(HttpSecurity http, ApiSecurityErrors errors) throws Exception {
         return http.cors(org.springframework.security.config.Customizer.withDefaults()).authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health","/actuator/health/liveness","/actuator/health/readiness").permitAll()
@@ -21,7 +21,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Profile("!oidc & (local | test)")
+    @Profile("!oidc & !social & (local | test)")
     SecurityFilterChain development(HttpSecurity http, ApiSecurityErrors errors) throws Exception {
         // CSRF stays enabled: cookie/browser clients must not issue unprotected writes.
         return http.cors(org.springframework.security.config.Customizer.withDefaults()).authorizeHttpRequests(auth -> auth
