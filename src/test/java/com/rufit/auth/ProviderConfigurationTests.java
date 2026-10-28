@@ -29,11 +29,11 @@ class ProviderConfigurationTests {
     }
     @Test void appRouteIsServerConfiguredAndNeverTakenFromCaller() {
         var env=new MockEnvironment();var providers=new SocialProviders(env);
-        for(String url:List.of("http://evil.test","javascript:alert(1)","rufit://login/callback?x=1","rufit://login/callback#x","rufit://user@login/callback")) {
+        for(String url:List.of("http://evil.test","javascript:alert(1)","rufit://auth/callback?x=1","rufit://auth/callback#x","rufit://user@login/callback")) {
             env.setProperty("rufit.social.ios-return-uri",url);assertThatThrownBy(()->providers.returnUri("IOS","APP_LOGIN")).isInstanceOf(AuthFailure.class);
         }
-        env.setProperty("rufit.social.ios-return-uri","rufit://login/callback");
-        assertThat(providers.returnUri("IOS","APP_LOGIN")).isEqualTo("rufit://login/callback");
+        env.setProperty("rufit.social.ios-return-uri","rufit://auth/callback");
+        assertThat(providers.returnUri("IOS","APP_LOGIN")).isEqualTo("rufit://auth/callback");
         assertThatThrownBy(()->providers.returnUri("WEB","APP_LOGIN")).isInstanceOf(AuthFailure.class);
         assertThatThrownBy(()->providers.returnUri("IOS","https://evil.test")).isInstanceOf(AuthFailure.class);
     }

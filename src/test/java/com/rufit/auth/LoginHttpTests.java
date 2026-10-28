@@ -17,7 +17,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.*;
 
-@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties="springdoc.api-docs.enabled=true")
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={"springdoc.api-docs.enabled=true","rufit.auth.cleanup-delay-ms=3600000"})
 @ActiveProfiles({"social","test"})
 class LoginHttpTests {
     static final MutableClock CLOCK=new MutableClock();
@@ -28,6 +28,7 @@ class LoginHttpTests {
     @LocalServerPort int port;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper mapper;
+    @Autowired AuthMaintenance maintenance;
     @TestConfiguration static class Config {@Bean @Primary Clock testClock(){return CLOCK;}}
     @DynamicPropertySource static void config(DynamicPropertyRegistry r) {
         r.add("rufit.session.issuer",()->"https://session.rufit.test");r.add("rufit.session.audience",()->"rufit-api");
@@ -38,7 +39,7 @@ class LoginHttpTests {
             r.add("rufit.social."+p+".client-id",()->"fixture-client");r.add("rufit.social."+p+".client-secret",()->"fixture-secret");
             r.add("rufit.social."+p+".callback-uri",()->"http://127.0.0.1:"+API_PORT.get()+"/api/v1/auth/callback/"+p);
         }
-        r.add("rufit.social.ios-return-uri",()->"rufit://login/callback");r.add("rufit.social.android-return-uri",()->"rufit://login/callback");
+        r.add("rufit.social.ios-return-uri",()->"rufit://auth/callback");r.add("rufit.social.android-return-uri",()->"rufit://auth/callback");
     }
     @BeforeEach void reset(){API_PORT.set(port);CLOCK.now=SessionFoundationTests.NOW;PROVIDER.reset();jdbc.update("truncate auth_login_attempts,auth_rate_events,auth_refresh_tokens,auth_sessions,auth_identities,auth_accounts");}
     @AfterAll static void close() throws Exception {PROVIDER.close();HTTP.close();Files.deleteIfExists(KEY);}
@@ -61,7 +62,7 @@ class LoginHttpTests {
     }
     Flow callback(Flow flow) throws Exception {
         var response=get(flow.callback());assertThat(response.statusCode()).isEqualTo(302);
-        String location=response.headers().firstValue("Location").orElseThrow();assertThat(location).startsWith("rufit://login/callback?");
+        String location=response.headers().firstValue("Location").orElseThrow();assertThat(location).startsWith("rufit://auth/callback?");
         var query=FakeOAuthServer.parameters(URI.create(location).getRawQuery());assertThat(query).containsOnlyKeys("attemptId","handoffCode");
         return new Flow(flow.attemptId(),flow.verifier(),flow.authorization(),flow.callback(),query.get("handoffCode"));
     }
@@ -153,6 +154,87 @@ class LoginHttpTests {
         assertThat(body.at("/paths/~1api~1v1~1auth~1login-attempts/post/responses/201").isMissingNode()).isFalse();
         assertThat(body.at("/paths/~1api~1v1~1auth~1session-exchanges/post/responses/429/headers/Retry-After").isMissingNode()).isFalse();
         assertThat(body.at("/components/schemas/com.rufit.auth.SessionView/properties/refreshToken").isMissingNode()).isFalse();
+        assertThat(body.at("/paths/~1api~1v1~1auth~1logout/post/responses/204").isMissingNode()).isFalse();
+    }
+    JsonNode login() throws Exception {var r=exchange(callback(authorize(start("GOOGLE"))));assertThat(r.statusCode()).isEqualTo(200);return json(r);}
+    HttpResponse<String> refresh(JsonNode session) throws Exception {return post("/api/v1/auth/refresh",Map.of("refreshToken",session.get("refreshToken").asString()));}
+    HttpResponse<String> logout(JsonNode session) throws Exception {return post("/api/v1/auth/logout",Map.of("refreshToken",session.get("refreshToken").asString()));}
+    HttpResponse<String> me(JsonNode session) throws Exception {return HTTP.send(HttpRequest.newBuilder(URI.create(base()+"/api/v1/me")).header("Authorization","Bearer "+session.get("accessToken").asString()).GET().build(),HttpResponse.BodyHandlers.ofString());}
+    @Test void refreshRotatesAndOldTokenReuseImmediatelyRevokesOnlyItsGrant() throws Exception {
+        var first=login();var other=login();var response=refresh(first);assertThat(response.statusCode()).isEqualTo(200);var rotated=json(response);
+        assertThat(rotated.get("sessionId")).isEqualTo(first.get("sessionId"));assertThat(rotated.at("/account/id")).isEqualTo(first.at("/account/id"));
+        assertThat(rotated.at("/account/isNewAccount").asBoolean()).isFalse();assertThat(rotated.get("refreshToken")).isNotEqualTo(first.get("refreshToken"));
+        assertThat(me(rotated).statusCode()).isEqualTo(200);assertThat(refresh(first).statusCode()).isEqualTo(401);
+        assertThat(me(first).statusCode()).isEqualTo(401);assertThat(me(rotated).statusCode()).isEqualTo(401);assertThat(refresh(rotated).statusCode()).isEqualTo(401);
+        assertThat(me(other).statusCode()).isEqualTo(200);
+    }
+    @Test void concurrentRefreshHasOneRotationAndReuseRevokesItsWinningTokens() throws Exception {
+        var session=login();var responses=race(()->refresh(session));
+        assertThat(responses).extracting(HttpResponse::statusCode).containsExactlyInAnyOrder(200,401);
+        var winner=json(responses.stream().filter(r->r.statusCode()==200).findFirst().orElseThrow());
+        assertThat(me(winner).statusCode()).isEqualTo(401);assertThat(refresh(winner).statusCode()).isEqualTo(401);
+        assertThat(jdbc.queryForObject("select count(*) from auth_refresh_tokens",Integer.class)).isEqualTo(2);
+    }
+    @Test void logoutAcceptsKnownOldRefreshAndIsIdempotentWithoutAffectingOtherSessions() throws Exception {
+        var first=login();var other=login();var rotated=json(refresh(first));
+        assertThat(logout(first).statusCode()).isEqualTo(204);assertThat(logout(first).body()).isEmpty();
+        assertThat(me(first).statusCode()).isEqualTo(401);assertThat(me(rotated).statusCode()).isEqualTo(401);assertThat(me(other).statusCode()).isEqualTo(200);
+        assertThat(logout(rotated).statusCode()).isEqualTo(204);
+    }
+    @Test void randomRefreshCannotRevokeRealGrantAndInvalidFormatsAre400() throws Exception {
+        var session=login();var unknown=Map.of("refreshToken",AuthCrypto.secret());
+        assertThat(post("/api/v1/auth/refresh",unknown).statusCode()).isEqualTo(401);assertThat(post("/api/v1/auth/logout",unknown).statusCode()).isEqualTo(204);
+        for(String token:List.of("bad","A".repeat(42)+"B")) {
+            assertThat(post("/api/v1/auth/refresh",Map.of("refreshToken",token)).statusCode()).isEqualTo(400);
+            assertThat(post("/api/v1/auth/logout",Map.of("refreshToken",token)).statusCode()).isEqualTo(400);
+        }
+        assertThat(me(session).statusCode()).isEqualTo(200);
+    }
+    @Test void concurrentLogoutAndRefreshNeverLeaveAnActiveSession() throws Exception {
+        var session=login();var counter=new AtomicInteger();
+        var responses=race(()->counter.getAndIncrement()==0?refresh(session):logout(session));
+        assertThat(responses).extracting(HttpResponse::statusCode).contains(204).allMatch(s->Set.of(200,204,401).contains(s));
+        for(var response:responses) if(response.statusCode()==200) assertThat(me(json(response)).statusCode()).isEqualTo(401);
+        assertThat(me(session).statusCode()).isEqualTo(401);
+    }
+    @Test void idleAndAbsoluteExpiryAreStrictAndAccessCannotOutliveGrant() throws Exception {
+        var idle=login();CLOCK.now=CLOCK.now.plus(Duration.ofDays(14));assertThat(refresh(idle).statusCode()).isEqualTo(401);
+        var absolute=login();Instant created=CLOCK.now;
+        CLOCK.now=created.plus(Duration.ofDays(13));absolute=json(refresh(absolute));
+        CLOCK.now=created.plus(Duration.ofDays(26));absolute=json(refresh(absolute));
+        CLOCK.now=created.plus(Duration.ofDays(30)).minusSeconds(60);absolute=json(refresh(absolute));
+        assertThat(absolute.get("refreshTokenExpiresAt").asString()).isEqualTo(created.plus(Duration.ofDays(30)).toString());
+        assertThat(absolute.get("accessTokenExpiresAt")).isEqualTo(absolute.get("refreshTokenExpiresAt"));
+        CLOCK.now=created.plus(Duration.ofDays(30));assertThat(me(absolute).statusCode()).isEqualTo(401);assertThat(refresh(absolute).statusCode()).isEqualTo(401);
+    }
+    @Test void refreshRateLimitDoesNotPreventLogout() throws Exception {
+        var current=login();
+        for(int i=0;i<12;i++) {var r=refresh(current);assertThat(r.statusCode()).isEqualTo(200);current=json(r);}
+        var limited=refresh(current);assertThat(limited.statusCode()).isEqualTo(429);assertThat(limited.headers().firstValue("Retry-After")).hasValue("60");
+        assertThat(logout(current).statusCode()).isEqualTo(204);assertThat(me(current).statusCode()).isEqualTo(401);
+    }
+    @Test void failedRefreshInsertRollsBackUsedFlagAndDoesNotLoseCurrentToken() throws Exception {
+        var session=login();
+        jdbc.execute("create function auth_test_reject_refresh() returns trigger language plpgsql as $$ begin raise exception 'test refresh failure'; end $$");
+        jdbc.execute("create trigger auth_test_refresh_failure before insert on auth_refresh_tokens for each row execute function auth_test_reject_refresh()");
+        try {
+            var failure=refresh(session);assertThat(failure.statusCode()).isEqualTo(503);assertThat(json(failure).get("code").asString()).isEqualTo("STORAGE_UNAVAILABLE");
+            assertThat(jdbc.queryForObject("select used_at from auth_refresh_tokens",java.sql.Timestamp.class)).isNull();
+            assertThat(me(session).statusCode()).isEqualTo(200);
+        } finally {jdbc.execute("drop trigger auth_test_refresh_failure on auth_refresh_tokens");jdbc.execute("drop function auth_test_reject_refresh()");}
+        assertThat(refresh(session).statusCode()).isEqualTo(200);
+    }
+    @Test void maintenanceRemovesExpiredCipherAndRetainsRefreshRelationsUntilAbsolutePlusSkew() throws Exception {
+        var session=login();refresh(session);start("GOOGLE");Instant created=CLOCK.now;
+        CLOCK.now=created.plusSeconds(300);maintenance.purge();
+        assertThat(jdbc.queryForObject("select count(*) from auth_login_attempts where verifier_cipher is not null",Integer.class)).isZero();
+        CLOCK.now=created.plus(Duration.ofDays(30)).plusSeconds(29);maintenance.purge();
+        assertThat(jdbc.queryForObject("select count(*) from auth_refresh_tokens",Integer.class)).isEqualTo(2);
+        CLOCK.now=CLOCK.now.plusSeconds(1);maintenance.purge();
+        assertThat(jdbc.queryForObject("select count(*) from auth_refresh_tokens",Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from auth_sessions",Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from auth_accounts",Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from auth_rate_events",Integer.class)).isZero();
     }
     static <T> List<T> race(Callable<T> task) throws Exception {
         try(var executor=Executors.newFixedThreadPool(2)) {var barrier=new CyclicBarrier(2);Callable<T> action=()->{barrier.await();return task.call();};var a=executor.submit(action);var b=executor.submit(action);return List.of(a.get(15,TimeUnit.SECONDS),b.get(15,TimeUnit.SECONDS));}

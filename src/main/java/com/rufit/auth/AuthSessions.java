@@ -14,7 +14,12 @@ public class AuthSessions {
     final JdbcTemplate jdbc;
     final SessionTokens tokens;
     final Clock clock;
-    public AuthSessions(JdbcTemplate jdbc,SessionTokens tokens,Clock clock) { this.jdbc=jdbc; this.tokens=tokens; this.clock=clock; }
+    private final org.springframework.transaction.support.TransactionTemplate tx;
+    private final AuthLimits limits;
+    public AuthSessions(JdbcTemplate jdbc,SessionTokens tokens,Clock clock,org.springframework.transaction.PlatformTransactionManager manager,AuthLimits limits) {
+        this.jdbc=jdbc;this.tokens=tokens;this.clock=clock;this.limits=limits;
+        tx=new org.springframework.transaction.support.TransactionTemplate(manager);
+    }
     /** 호출한 쪽의 트랜잭션에 참여해 handoff 소비만 남는 부분 성공을 막는다. */
     @Transactional
     public SessionView open(String provider,String issuer,String subject) {
@@ -59,4 +64,47 @@ public class AuthSessions {
         if(rows.size()!=1) throw AuthFailure.expired();
         return rows.getFirst();
     }
+    /** 회전은 세션 행 잠금 하나로 직렬화한다. 과거 토큰 재사용 폐기는 401 전에 커밋한다. */
+    public SessionView refresh(String refresh) {
+        requireRefresh(refresh);
+        String hash=AuthCrypto.hash(refresh);UUID session=knownSession(hash);
+        if(session==null) throw AuthFailure.expired();
+        // 별도 트랜잭션 카운터는 세션 행을 잠그기 전에 확인한다.
+        limits.take("refresh:"+session,12,60);
+        SessionView result=tx.execute(status->{
+            Grant grant=lock(session);Instant now=clock.instant();
+            if(grant==null || grant.revoked() || !now.isBefore(grant.idle()) || !now.isBefore(grant.absolute())) return null;
+            var used=jdbc.query("select used_at is not null from auth_refresh_tokens where token_hash=? and session_id=?",(rs,n)->rs.getBoolean(1),hash,session);
+            if(used.isEmpty()) return null;
+            if(used.getFirst()) {
+                jdbc.update("update auth_sessions set revoked_at=? where id=?",Timestamp.from(now),session);
+                return null;
+            }
+            Instant expires=now.plus(Duration.ofDays(14)).isBefore(grant.absolute())?now.plus(Duration.ofDays(14)):grant.absolute();
+            jdbc.update("update auth_refresh_tokens set used_at=? where token_hash=?",Timestamp.from(now),hash);
+            jdbc.update("update auth_sessions set idle_expires_at=? where id=?",Timestamp.from(expires),session);
+            return issue(grant.account(),grant.owner(),session,false,now,expires);
+        });
+        // 트랜잭션 안에서 예외를 던지면 폐기가 롤백되어 재사용 토큰이 계속 살아남는다.
+        if(result==null) throw AuthFailure.expired();
+        return result;
+    }
+    /** 이미 쓴 refresh도 같은 grant를 찾는다. 다른 기기의 세션과 운동 기록은 건드리지 않는다. */
+    public void logout(String refresh) {
+        requireRefresh(refresh);UUID session=knownSession(AuthCrypto.hash(refresh));if(session==null) return;
+        tx.executeWithoutResult(status->{
+            if(lock(session)!=null) jdbc.update("update auth_sessions set revoked_at=coalesce(revoked_at,?) where id=?",Timestamp.from(clock.instant()),session);
+        });
+    }
+    private void requireRefresh(String refresh) {if(!AuthCrypto.secretFormat(refresh)) throw new AuthFailure(400,"INVALID_INPUT");}
+    private UUID knownSession(String hash) {
+        var rows=jdbc.query("select session_id from auth_refresh_tokens where token_hash=?",(rs,n)->rs.getObject(1,UUID.class),hash);
+        return rows.isEmpty()?null:rows.getFirst();
+    }
+    private Grant lock(UUID session) {
+        var rows=jdbc.query("select s.account_id,a.owner_key,s.idle_expires_at,s.absolute_expires_at,s.revoked_at from auth_sessions s join auth_accounts a on a.id=s.account_id where s.id=? for update of s",
+            (rs,n)->new Grant(rs.getObject(1,UUID.class),rs.getString(2),rs.getTimestamp(3).toInstant(),rs.getTimestamp(4).toInstant(),rs.getTimestamp(5)!=null),session);
+        return rows.isEmpty()?null:rows.getFirst();
+    }
+    private record Grant(UUID account,String owner,Instant idle,Instant absolute,boolean revoked) {}
 }

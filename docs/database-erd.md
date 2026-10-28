@@ -1,10 +1,10 @@
 # 루핏 데이터베이스 구조와 ERD
 
-기준: PostgreSQL용 Flyway V1~V23, 오프라인 운동 가져오기와 명시적 운동 정지, 종목별 휴식 설정 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 14개다.
+기준: PostgreSQL용 Flyway V1~V25, 오프라인 운동 가져오기와 명시적 운동 정지, 종목별 휴식 설정 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 20개다.
 
-## 데이터 관계
+## 운동·루틴 업무 데이터 관계
 
-아래 선은 실제 SQL 외래 키만 표시한다. PK는 기본 키, FK는 외래 키이며 여러 PK 열을 가진 테이블은 해당 열을 묶어 기본 키로 사용한다. 숫자 크기·NULL 허용·CHECK 조건의 원본은 `src/main/resources/db/migration`이다.
+아래 업무 도표는 기존14개 테이블의 실제 SQL 외래 키를 표시한다. V24/V25 인증6개 테이블의 관계는 하단 표에 정리한다. PK는 기본 키, FK는 외래 키이며 여러 PK 열을 가진 테이블은 해당 열을 묶어 기본 키로 사용한다. 숫자 크기·NULL 허용·CHECK 조건의 원본은 `src/main/resources/db/migration`이다.
 
 ```mermaid
 erDiagram
@@ -145,7 +145,7 @@ erDiagram
 
 ## 저장과 변경 규칙
 
-- Flyway의 V1~V23 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
+- Flyway의 V1~V25 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
 - 운동·루틴·종목·프로필은 수정 버전으로 동시 덮어쓰기를 막는다. 서비스 트랜잭션은 복수 테이블 변경을 함께 처리한다.
 - 종료/취소 시각의 순서를 DB CHECK로 제한하고, 계정별 진행 중 운동은 부분 UNIQUE 인덱스로 최대 하나만 허용한다.
 - 운동/루틴의 하위 세트, 운동 완료 번호·저장 확인, 프로필 목표는 부모 삭제 시 함께 삭제한다. 종목 참조는 CASCADE 삭제가 아니며 종목은 보관 상태를 사용한다.
@@ -156,7 +156,7 @@ erDiagram
 | 구분 | 현재 상태 |
 | --- | --- |
 | 로컬 개발 구성 | Docker Compose의 PostgreSQL 17, DB `rufit`, 로컬 포트 5433, 데이터 볼륨 유지 |
-| 실제 기능 시험 | 별도 컨테이너의 `rufit_test` DB와 같은 이름의 계정, 로컬 포트 5435에서 검증 |
+| 실제 기능 시험 | 별도 컨테이너의 `rufit_test` DB와 같은 이름의 계정, 인증 작업은 독립 컨테이너5437에서 검증. 기존5435는 FE 인계 자원 |
 | 운영 DB | 생성·연결·배포하지 않음. 운영 제공자와 접속 정보 미설정 |
 | 연결 정보 | DB_URL / DB_USERNAME / DB_PASSWORD 환경변수. 비밀번호를 코드에 넣지 않음 |
 | 백업·복원 | 시험 DB를 임시 DB에 복원해 데이터/스키마 일치를 확인한 도구와 검사 존재 |
@@ -165,3 +165,16 @@ erDiagram
 운영 데이터는 시험에 사용하지 않는다. 시험 초기화 전에 루프백 주소, DB와 계정 이름 `rufit_test`를 검사한다. 운영 환경의 회원·탈퇴·계정 연결과 보존 정책은 후속 설계이며, 이 문서의 소유권 키 및 삭제 방지 메타데이터 처리에도 영향을 준다.
 
 관련 문서: [인증](authentication.md), [운동 API](workout-api.md), [백업·복원 검증](backup-restore.md), [컨테이너 실행](container-runtime.md).
+
+## 소셜 인증 원장 (V24/V25)
+
+| 테이블 | 주요 열·관계 | 보존/역할 |
+| --- | --- | --- |
+| auth_accounts | UUID id, UNIQUE owner_key(100), created_at | 기존69자 owner 키를 보존하는 회원 원장 |
+| auth_identities | PK(provider,issuer,subject), account_id → auth_accounts | 이메일 자동 연결 없음 |
+| auth_sessions | UUID id, account_id → auth_accounts, 생성/미사용/절대기한, revoked_at | JWT sid에 해당하는 grant. 매 인증마다 활성 검사 |
+| auth_refresh_tokens | PK token_hash, session_id → auth_sessions ON DELETE CASCADE, used_at | 원문 없음. 과거 해시는 절대기한+30초까지 보존 |
+| auth_login_attempts | state/nonce/handoff 해시, 암호화 provider verifier, challenge, status/기한 | 소비와 회원/세션 생성은 한 트랜잭션. 만료 비밀 제거, 메타데이터24시간 후 정리 |
+| auth_rate_events | bucket_hash, occurred_at | 공유 이동 구간 제한. 1시간 이후 카운터 정리 |
+
+업무 테이블의 owner_name을 auth_accounts로 강제 FK 전환하지 않았다. 기존 OIDC 소유권과 과거 기록을 유지하며 새 세션이 같은 owner_key를 principal로 사용한다. 계정·identity는 세션 정리로 삭제하지 않는다. 운영 탈퇴/보존 정책은 별도다. FE fake 로그인 preview는 자동 테스트 DB와 별도 전용 볼륨을 사용한다.

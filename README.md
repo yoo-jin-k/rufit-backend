@@ -5,7 +5,7 @@ Java 21 · Spring Boot 4.1.1 · PostgreSQL · Maven Wrapper.
 
 운동 시작부터 루틴·이력·세트/휴식·저장 복구까지의 API와 PostgreSQL 검증 기반을 구현했습니다. 현재 코드는 기능 브랜치의 검토 대상이며 운영 배포 상태가 아닙니다. [구현 현황과 남은 연결](docs/api-plan.md), [프론트 연결·검증 순서](docs/integration-guide.md)를 먼저 참고합니다.
 
-[백엔드 폴더와 처리 흐름](docs/backend-structure.md), [현재 DB 구조와 ERD](docs/database-erd.md)에서 실제 14개 테이블, 외래 키와 복사 출처의 차이, 개발·시험·운영 DB 상태를 확인할 수 있습니다.
+[백엔드 폴더와 처리 흐름](docs/backend-structure.md), [현재 DB 구조와 ERD](docs/database-erd.md)에서 실제 20개 테이블, 외래 키와 복사 출처의 차이, 개발·시험·운영 DB 상태를 확인할 수 있습니다.
 
 ## 실행
 
@@ -15,7 +15,7 @@ Java 21 · Spring Boot 4.1.1 · PostgreSQL · Maven Wrapper.
 4. `http://127.0.0.1:8080/actuator/health`에서 상태를 확인합니다.
 
 DB_URL(기본 localhost:5433/rufit), DB_USERNAME(기본 rufit), DB_PASSWORD로 연결을 지정합니다.
-운영 인증 연동 전에는 기본 프로필에서 업무 API를 차단합니다. 로컬 기능 테스트는 `local` 프로필과 Spring Security의 개발 인증을 사용하며 CSRF 보호를 유지합니다. OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·모바일 로그인은 후속 작업입니다.
+운영 인증 연동 전에는 기본 프로필에서 업무 API를 차단합니다. 로컬 기능 테스트는 `local` 프로필과 Spring Security의 개발 인증을 사용하며 CSRF 보호를 유지합니다. 기존 OIDC와 별도로 `social` 프로필의 코드 교환·자체 세션·갱신/로그아웃을 구현했습니다. 실제 제공자 등록·실기기 로그인은 후속 작업입니다.
 
 ## 검증
 
@@ -31,11 +31,11 @@ H2로 PostgreSQL 호환성 검증을 대체하지 않습니다.
 
 ## API 명세와 인증 구현 상태
 
-OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·모바일 로그인·운영 배포는 아직입니다. [인증 설정](docs/authentication.md)을 참고합니다.
+OIDC 검증과 `social` 프로필 로그인 API를 구현했습니다. 실제 제공자 등록·실기기 로그인·운영 배포는 아직입니다. [인증 설정](docs/authentication.md)을 참고합니다.
 
 `RUFIT_API_DOCS_ENABLED=true`로 명시적으로 켜면 인증 후 `/v3/api-docs`에서 OpenAPI 3.0 JSON을 조회할 수 있습니다. 기본값은 비활성입니다. 명세도 업무 API와 동일한 인증 보호를 받습니다. Swagger UI는 포함하지 않습니다.
 
-`./mvnw verify`는 응답 스키마 이름 충돌, 필드 존재 여부와 null 허용, 인증 방식을 검사합니다. `target/openapi.json`은 개발용 Basic 명세이고 `target/openapi-oidc.json`은 Bearer 명세입니다. 두 파일은 CI의 `backend-api-contract` 아티팩트에서 내려받을 수 있습니다. OIDC 명세에는 개발용 CSRF 경로가 없습니다.
+`./mvnw verify`는 응답 스키마 이름 충돌, 필드 존재 여부와 null 허용, 인증 방식을 검사합니다. `target/openapi.json`은 개발용 Basic 명세이고 `target/openapi-oidc.json`은 Bearer 명세입니다. `target/auth-openapi.json`은 신규 세션 인증 명세입니다. 세 파일은 CI의 `backend-api-contract` 아티팩트에서 내려받을 수 있습니다. OIDC 명세에는 개발용 CSRF 경로가 없습니다.
 
 응답의 `required`는 JSON에 필드가 항상 존재한다는 뜻이며 `nullable`은 그 값이 null일 수 있다는 뜻입니다. 예를 들어 운동 종료 전에도 `finishedAt` 필드는 존재하고 값은 null입니다. 요청의 선택 항목(`SetInput.exerciseId`, `Draft.note`)은 필수로 바꾸지 않습니다. 비공개 프로필의 `visibility`는 `PRIVATE`만 반환합니다.
 
@@ -60,3 +60,5 @@ OIDC 토큰 검증 기반은 구현했으며 실제 로그인 제공자 등록·
 [입력한 세트의 인접 복제 요청·응답](docs/api-contracts/set-duplication.md)
 
 [BE-02 카카오·구글 연결 공백과 추천안](docs/authentication-gap-analysis.md), [로그인 API 초안 v0.3 — PM 검토용·미구현](docs/api-contracts/social-login-draft.md), [FE A01~A07 대응·수치 결정표](docs/api-contracts/social-login-fe-alignment.md), [적대적 시나리오 검토](docs/authentication-adversarial-review.md)
+
+[소셜 로그인 v1 계약](docs/api-contracts/social-login-v1.md) · [FE fake 로그인 실행 안내](docs/fake-login-integration.md) · [세션 갱신/폐기 구현](docs/auth-session-lifecycle.md)

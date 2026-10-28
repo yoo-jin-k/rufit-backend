@@ -42,6 +42,7 @@ jobs:
           path: |
             target/openapi.json
             target/openapi-oidc.json
+            target/auth-openapi.json
           if-no-files-found: error
       - run: python3 scripts/smoke-restart.py
       - name: Verify recovery after PostgreSQL interruption

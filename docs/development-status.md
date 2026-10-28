@@ -1,5 +1,31 @@
 # 백엔드 개발 현황
 
+2026-10-29 현재 구현 기준. 운영 배포 완료를 뜻하지 않는다.
+
+| 단위 | 구현·검증 | 다음/한계 |
+| --- | --- | --- |
+| 기존 운동·루틴·이전 기록·세트/휴식·저장복구 | PR61까지 기존167시험 기반 보존 | 이전 기능 PR은 미병합 |
+| 로그인 계약 | PR63/f95ff9ce, 모바일 브라우저+서버 중계+자체 세션 | [v1 계약](api-contracts/social-login-v1.md)이 최신 기준 |
+| 계정·세션 기반 | PR64/b21615c7, sid DB 활성 검증/DB오류503, 기존 owner·oidc 유지 | 실제 제공자 등록 미완료 |
+| 코드 교환/handoff | PR65/eee22d5, 시작201·callback302·교환200, PKCE/state/nonce·원자 저장 | provider/JWKS는 fake HTTP로 검증 |
+| refresh/logout | codex/auth-session-lifecycle, 회전·재사용 grant 폐기·즉시 access 거부·정리 | [구현·검증](auth-session-lifecycle.md), developer 대상 draft PR 제출 단위 |
+| 전체 회귀 | Java21/PostgreSQL17 Maven verify196개, 실패0/오류0/건너뜀0, 패키징 성공 | 전체 시험 DB는 독립5437 |
+| FE 통합 fixture | 실제 API8096 + 별도 preview DB, Google/Kakao fake 흐름·갱신/폐기·동시 요청 smoke 통과 | [실행 안내](fake-login-integration.md), FE 검증 결과는 별도 |
+| 운동 목록 확장 | PM 콘텐츠 담당 후보 준비, 기존18 보존 총100종 이상 목표 | BE 검토·ID부여·계약 선커밋·새 마이그레이션 예정 |
+
+main/developer는 변경·병합하지 않는다. developer에서 만든 작은 codex 브랜치의 누적 의존성을 PR에 명시한다. FE 저장소/파일/서버8099와 인계DB5435는 변경하지 않는다. PM 전달은 사용자가 직접 승인했다. sources와 공통 coordination/status.md는 수정하지 않는다.
+
+GitHub CI는 계정 결제/사용 한도 사유로 job 시작 전에 차단됐다(PR65 run40740135583 annotation 확인). 로컬 검증 통과를 CI 통과로 표현하지 않는다. FE URI 정합화 후 관련22개도 통과했다.
+
+현재 Flyway V25, 앱 테이블20개. [DB 관계](database-erd.md), [폴더 구조](backend-structure.md)를 참조한다. 운영 DB는 미생성/미배포이며 개발용 테이블은 마이그레이션이 관리하므로 수동 생성할 필요가 없다.
+
+남은 외부 연결: 실제 Kakao/Google 등록/실키·실기기 브라우저/딥링크, 운영 도메인/TLS·신뢰 프록시·접속 IP·로그·키 관리, 운영 PostgreSQL/백업·복구 운영화. FE 보안 저장·로그아웃 미확인·재시작 복원은 서버 시험만으로 완료로 표시하지 않는다. 이메일 자동 계정 병합과 유료 운동 미디어 구매/전체 교체는 하지 않는다.
+
+## 2026-09-14 이전 기록
+
+아래 내용은 당시 단계의 이력이다. 로그인 미구현/수치 미확정/추가 DB시험 대기 등의 당시 설명은 위2026-10-29 구현 기준으로 대체되었다.
+
+
 2026-09-14 기준. 이 문서는 실제 구현·검증과 남은 작업을 구분한다.
 
 ## 담당 범위와 브랜치

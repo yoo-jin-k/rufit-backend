@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties="springdoc.api-docs.enabled=true")
+@SpringBootTest(properties={"springdoc.api-docs.enabled=true","rufit.auth.cleanup-delay-ms=3600000"})
 @AutoConfigureMockMvc
 @ActiveProfiles({"social","test"})
 class SessionFoundationTests {

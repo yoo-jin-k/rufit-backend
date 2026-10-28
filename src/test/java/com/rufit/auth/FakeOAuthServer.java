@@ -27,6 +27,7 @@ public final class FakeOAuthServer implements AutoCloseable {
     volatile String mode="valid";
     volatile String subject="fixture-alice";
     volatile Map<String,String> lastForm=Map.of();
+    String advertisedBase;
 
     public FakeOAuthServer(Clock clock,int port) {
         try {
@@ -35,7 +36,8 @@ public final class FakeOAuthServer implements AutoCloseable {
             server.setExecutor(executor);server.createContext("/",this::handle);server.start();
         } catch(Exception e) { throw new IllegalStateException("Fake OAuth setup failed"); }
     }
-    String base() {return "http://127.0.0.1:"+server.getAddress().getPort();}
+    String localBase() {return "http://127.0.0.1:"+server.getAddress().getPort();}
+    String base() {return advertisedBase==null?localBase():advertisedBase;}
     void reset() {mode="valid";subject="fixture-alice";lastForm=Map.of();codes.clear();tokenCalls.set(0);unexpectedCalls.set(0);}
     static Map<String,String> parameters(String query) {
         Map<String,String> result=new HashMap<>();
@@ -55,8 +57,9 @@ public final class FakeOAuthServer implements AutoCloseable {
                 var query=parameters(exchange.getRequestURI().getRawQuery());
                 // 고정된 로컬/테스트 콜백만 허용해 fixture가 임의 URL 리다이렉터가 되지 않게 한다.
                 URI callback=URI.create(query.get("redirect_uri"));
-                if(!Set.of("127.0.0.1","localhost").contains(callback.getHost()) || !callback.getPath().equals("/api/v1/auth/callback/"+provider)) {reply(exchange,400,"{}");return;}
-                String code=AuthCrypto.secret();var saved=new HashMap<>(query);saved.put("provider",provider);saved.put("subject",subject);codes.put(code,saved);
+                if(!"http".equals(callback.getScheme()) || !Set.of("127.0.0.1","localhost").contains(callback.getHost()) || !callback.getPath().equals("/api/v1/auth/callback/"+provider)) {reply(exchange,400,"{}");return;}
+                String code=AuthCrypto.secret();var saved=new HashMap<>(query);saved.put("provider",provider);
+                saved.put("subject","bob".equals(query.get("fixtureUser"))?"fixture-bob":subject);codes.put(code,saved);
                 exchange.getResponseHeaders().set("Location",callback+"?"+SocialProviders.query(Map.of("code",code,"state",query.get("state"))));
                 exchange.sendResponseHeaders(302,-1);return;
             }

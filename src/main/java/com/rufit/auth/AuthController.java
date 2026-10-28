@@ -18,7 +18,8 @@ import java.util.UUID;
 @SecurityRequirements
 public class AuthController {
     private final LoginAttempts attempts;
-    public AuthController(LoginAttempts attempts) {this.attempts=attempts;}
+    private final AuthSessions sessions;
+    public AuthController(LoginAttempts attempts,AuthSessions sessions) {this.attempts=attempts;this.sessions=sessions;}
     @PostMapping("/login-attempts")
     @ResponseStatus(HttpStatus.CREATED)
     ResponseEntity<Started> start(@Valid @RequestBody Start input,HttpServletRequest request) {
@@ -35,6 +36,14 @@ public class AuthController {
     }
     @PostMapping("/session-exchanges")
     SessionView exchange(@Valid @RequestBody Exchange input,HttpServletRequest request) {return attempts.exchange(input,request.getRemoteAddr());}
+    @PostMapping("/refresh")
+    SessionView refresh(@Valid @RequestBody Refresh input) {return sessions.refresh(input.refreshToken());}
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void logout(@Valid @RequestBody Refresh input) {sessions.logout(input.refreshToken());}
+    public record Refresh(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{43}") String refreshToken) {
+        @Override public String toString(){return "Refresh[redacted]";}
+    }
     public record Start(@NotBlank @Pattern(regexp="GOOGLE|KAKAO") String provider,@NotBlank @Pattern(regexp="IOS|ANDROID") String client,
                         @NotBlank @Pattern(regexp="APP_LOGIN") String returnRoute,@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{43}") String codeChallenge,
                         @NotBlank @Pattern(regexp="S256") String codeChallengeMethod) {}

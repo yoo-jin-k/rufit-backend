@@ -1,3 +1,5 @@
+> 2026-10-29: 이 문서는 기존 OIDC/개발 인증 설정을 설명한다. 신규 코드 교환·자체 세션·갱신/로그아웃은 [소셜 로그인 v1](api-contracts/social-login-v1.md), [구현 검증](auth-session-lifecycle.md), [FE 시험 서버](fake-login-integration.md)를 따른다. 실제 제공자 등록·운영 배포는 아직이다.
+
 # 인증 실행 방식
 
 ## 현재 기본값
