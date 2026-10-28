@@ -1,3 +1,5 @@
+> 2026-10-29: 아래는 V20의18종 보존 이력이다. 최신 공용110종과 서버 별칭 검색은 [v2 계약](api-contracts/exercise-catalog-v2.md) 및 `src/main/resources/catalog/exercises-v2.json`을 따른다. 기존18개 이미지/ID는 유지한다.
+
 # 모바일 종목 선택 목록
 
 V20에서 공용 종목 8개를 추가해 모바일의 사진 목록 18개와 ID·한국어 이름·부위·도구를 맞춘다. 기존 V10 종목과 기록은 수정하지 않는다.

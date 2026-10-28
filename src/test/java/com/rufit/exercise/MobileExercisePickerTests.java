@@ -36,8 +36,8 @@ class MobileExercisePickerTests {
             }
         }
         mvc.perform(get("/api/v1/exercises").param("query", "스쿼트").param("bodyPart", "LEGS").param("equipment", "DUMBBELL").with(user("picker")))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
-            .andExpect(jsonPath("$.items[0].id").value("00000000-0000-4000-8000-000000000012"));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.items[*].id").value(org.hamcrest.Matchers.hasItem("00000000-0000-4000-8000-000000000012")));
         mvc.perform(get("/api/v1/exercises").param("query", "스쿼트").param("bodyPart", "CHEST").with(user("picker")))
             .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
     }

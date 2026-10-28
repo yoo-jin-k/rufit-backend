@@ -11,13 +11,13 @@
 | refresh/logout | codex/auth-session-lifecycle, 회전·재사용 grant 폐기·즉시 access 거부·정리 | [구현·검증](auth-session-lifecycle.md), developer 대상 draft PR 제출 단위 |
 | 전체 회귀 | Java21/PostgreSQL17 Maven verify196개, 실패0/오류0/건너뜀0, 패키징 성공 | 전체 시험 DB는 독립5437 |
 | FE 통합 fixture | 실제 API8096 + 별도 preview DB, Google/Kakao fake 흐름·갱신/폐기·동시 요청 smoke 통과 | [실행 안내](fake-login-integration.md), FE 검증 결과는 별도 |
-| 운동 목록 확장 | PM 콘텐츠 담당 후보 준비, 기존18 보존 총100종 이상 목표 | BE 검토·ID부여·계약 선커밋·새 마이그레이션 예정 |
+| 운동 목록 확장 | 계약afa42b3→V26, 공용110종/검색키240개, 기존18/기록/루틴/개인휴식 보존 | 전체202시험/패키징 통과. [v2 계약](api-contracts/exercise-catalog-v2.md) |
 
 main/developer는 변경·병합하지 않는다. developer에서 만든 작은 codex 브랜치의 누적 의존성을 PR에 명시한다. FE 저장소/파일/서버8099와 인계DB5435는 변경하지 않는다. PM 전달은 사용자가 직접 승인했다. sources와 공통 coordination/status.md는 수정하지 않는다.
 
 GitHub CI는 계정 결제/사용 한도 사유로 job 시작 전에 차단됐다(PR65 run40740135583 annotation 확인). 로컬 검증 통과를 CI 통과로 표현하지 않는다. FE URI 정합화 후 관련22개도 통과했다.
 
-현재 Flyway V25, 앱 테이블20개. [DB 관계](database-erd.md), [폴더 구조](backend-structure.md)를 참조한다. 운영 DB는 미생성/미배포이며 개발용 테이블은 마이그레이션이 관리하므로 수동 생성할 필요가 없다.
+현재 Flyway V26, 앱 테이블21개. [DB 관계](database-erd.md), [폴더 구조](backend-structure.md)를 참조한다. 운영 DB는 미생성/미배포이며 개발용 테이블은 마이그레이션이 관리하므로 수동 생성할 필요가 없다.
 
 남은 외부 연결: 실제 Kakao/Google 등록/실키·실기기 브라우저/딥링크, 운영 도메인/TLS·신뢰 프록시·접속 IP·로그·키 관리, 운영 PostgreSQL/백업·복구 운영화. FE 보안 저장·로그아웃 미확인·재시작 복원은 서버 시험만으로 완료로 표시하지 않는다. 이메일 자동 계정 병합과 유료 운동 미디어 구매/전체 교체는 하지 않는다.
 
@@ -70,3 +70,5 @@ BE-02의 검증은 문서의 JSON 예제·내부 링크·기존 코드/공식 �
 2026-09-14 PM 후속 요청으로 [적대적 시나리오 검토 v0.2](authentication-adversarial-review.md)를 추가했다. 앱 시작 PKCE와 handoff 불변 결합, 동시 callback/교환, URL/로그 유출, WEB의 별도 쿠키·CSRF·저장 계약, 기존 owner key 전환, refresh 재사용 시 활성 grant 폐기, logout access 잔존/오프라인 문구를 보완했다. 이는 문서 검토이며 실제 공격 재현이나 신규 인증 구현을 완료한 것이 아니다. v0.1→v0.2에서 JSON 예제는 유지하고 WEB 예약값과 보안 경계를 명확히 했다.
 
 같은 날 FE PR #41/e89d7b6의 A01~A07을 지정 코드 c7503cf과 대조해 초안 v0.3에 반영했다. OIDC 키69자와 기존 FE100자 조건을 확인하고 ID 원문 보존·별도 인증 transport·/me 재검증·facade 재생성·epoch 직렬 보안 저장을 명시했다. D01~D07은 수치가 있는 PM 추천안이며 구현 확정이 아니다. 첫 연결 구현 순서와 등록값 없이 할 모의 시험/실제 등록 의존 시험을 분리했다. 이번에도 런타임·마이그레이션·DB 행·FE 코드는 변경하지 않았다.
+
+2026-10-29 FE 인계: 실제 FE createAuthApi/AuthCoordinator가8096에서 Google alice/bob·Kakao alice, PKCE교환/me/refresh/logout·기존access401을 검증했다는 PM 보고를 받았다(PR47). Node browser/PKCE/memorySecureStore 어댑터이며 실기기 보안저장 시험은 아니다. 첫 assertion 중단 실행의 fake grant1개가 남았을 수 있으나 안전한 식별 근거가 없어 추정 삭제하지 않았으며 전용fixture의 만료 대상으로 둔다. preview 유지/업데이트는 PM과 조율한다.

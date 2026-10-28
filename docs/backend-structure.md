@@ -17,7 +17,7 @@ src/main/resources/
 ├── application.properties        DB·JPA·상태 확인 등의 기본 설정
 ├── application-oidc.properties   외부 발급자 토큰 검증 설정
 ├── application-social.properties 자체 세션·소셜 제공자 환경 설정
-└── db/migration/                 Flyway V1~V25 SQL
+└── db/migration/                 Flyway V1~V26 SQL
 
 src/test/                        단위·HTTP·실제 PostgreSQL 검사
 scripts/                         재시작·DB 장애·백업/복원·컨테이너 검증

@@ -15,7 +15,8 @@ public class ExerciseController {
     private final ExerciseService service;
     ExerciseController(ExerciseService service) { this.service=service; }
     @GetMapping
-    public Results search(@RequestParam(defaultValue="") String query, @RequestParam(required=false) Exercise.BodyPart bodyPart,
+    public Results search(@io.swagger.v3.oas.annotations.Parameter(description="이름 및 공용 운동 별칭 검색. 공용 별칭은 NFKC·소문자·공백/밑줄/하이픈 제거 후 부분 일치")
+        @RequestParam(defaultValue="") String query, @RequestParam(required=false) Exercise.BodyPart bodyPart,
         @RequestParam(required=false) Exercise.Equipment equipment, @RequestParam(defaultValue="0") int page,
         @RequestParam(defaultValue="20") int size, @RequestParam(defaultValue="false") boolean includeArchived, Principal principal) { return service.search(principal.getName(),query,includeArchived,bodyPart,equipment,page,size); }
     @GetMapping("/{id}") public View get(@PathVariable UUID id,Principal principal) { return service.get(id,principal.getName()); }

@@ -31,11 +31,12 @@ class ExerciseCatalogTests {
         String key=UUID.randomUUID().toString();
         create("alice",key,"나만의 스쿼트");
         mvc.perform(get("/api/v1/exercises").param("query","스쿼트").with(user("alice")))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(5));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(7));
         mvc.perform(get("/api/v1/exercises").param("query","스쿼트").with(user("bob")))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(4));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(6));
         mvc.perform(get("/api/v1/exercises").param("bodyPart","CHEST").param("equipment","BODYWEIGHT").with(user("alice")))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].name").value("푸시업"));
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[*].name").value(org.hamcrest.Matchers.hasItem("푸시업")))
+            .andExpect(jsonPath("$.items[*].equipment").value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("BODYWEIGHT"))));
         mvc.perform(get("/api/v1/exercises/"+key).with(user("bob"))).andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/exercises")).andExpect(status().isUnauthorized());
     }

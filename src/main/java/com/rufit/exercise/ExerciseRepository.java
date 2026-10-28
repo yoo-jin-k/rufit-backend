@@ -9,9 +9,10 @@ interface ExerciseRepository extends JpaRepository<Exercise, UUID> {
     Optional<Exercise> findByIdAndOwnerName(UUID id, String owner);
     @Query("""
         select e from Exercise e where (:includeArchived=true or e.archivedAt is null) and (e.ownerName is null or e.ownerName=:owner)
-        and lower(e.name) like :pattern escape '!'
+        and (lower(e.name) like :pattern escape '!' or exists
+            (select a.id from ExerciseSearchAlias a where a.exerciseId=e.id and a.searchKey like :aliasPattern escape '!'))
         and (:part is null or e.bodyPart=:part) and (:equipment is null or e.equipment=:equipment)
         """)
-    Page<Exercise> search(@Param("owner") String owner, @Param("pattern") String pattern,
+    Page<Exercise> search(@Param("owner") String owner, @Param("pattern") String pattern,@Param("aliasPattern") String aliasPattern,
         @Param("includeArchived") boolean includeArchived, @Param("part") Exercise.BodyPart part, @Param("equipment") Exercise.Equipment equipment, Pageable pageable);
 }

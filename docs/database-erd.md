@@ -1,6 +1,6 @@
 # 루핏 데이터베이스 구조와 ERD
 
-기준: PostgreSQL용 Flyway V1~V25, 오프라인 운동 가져오기와 명시적 운동 정지, 종목별 휴식 설정 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 20개다.
+기준: PostgreSQL용 Flyway V1~V26, 오프라인 운동 가져오기와 명시적 운동 정지, 종목별 휴식 설정 포함. 운영 DB를 배포한 상태가 아니라 현재 구현된 스키마를 설명한다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 21개다.
 
 ## 운동·루틴 업무 데이터 관계
 
@@ -145,7 +145,7 @@ erDiagram
 
 ## 저장과 변경 규칙
 
-- Flyway의 V1~V25 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
+- Flyway의 V1~V26 SQL로 구조와 초기 종목을 관리한다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않는다.
 - 운동·루틴·종목·프로필은 수정 버전으로 동시 덮어쓰기를 막는다. 서비스 트랜잭션은 복수 테이블 변경을 함께 처리한다.
 - 종료/취소 시각의 순서를 DB CHECK로 제한하고, 계정별 진행 중 운동은 부분 UNIQUE 인덱스로 최대 하나만 허용한다.
 - 운동/루틴의 하위 세트, 운동 완료 번호·저장 확인, 프로필 목표는 부모 삭제 시 함께 삭제한다. 종목 참조는 CASCADE 삭제가 아니며 종목은 보관 상태를 사용한다.
@@ -178,3 +178,7 @@ erDiagram
 | auth_rate_events | bucket_hash, occurred_at | 공유 이동 구간 제한. 1시간 이후 카운터 정리 |
 
 업무 테이블의 owner_name을 auth_accounts로 강제 FK 전환하지 않았다. 기존 OIDC 소유권과 과거 기록을 유지하며 새 세션이 같은 owner_key를 principal로 사용한다. 계정·identity는 세션 정리로 삭제하지 않는다. 운영 탈퇴/보존 정책은 별도다. FE fake 로그인 preview는 자동 테스트 DB와 별도 전용 볼륨을 사용한다.
+
+## 운동 검색 색인 (V26)
+
+`exercise_search_aliases`는 공용110종의 정규화한 이름/별칭240개를 보관한다. id(bigserial PK), exercise_id(FK → exercises, 삭제 시 CASCADE), normalized_alias(varchar160), UNIQUE(exercise_id,normalized_alias)다. 검색은 EXISTS로 연결하므로 한 종목이 여러 별칭에 맞아도 페이지/총수가 중복되지 않는다. V26은 신규92종만 추가하며 기존18행·업무기록·개인휴식은 갱신하지 않는다. 전체21개는 기존 업무14+검색색인1+인증6개다.

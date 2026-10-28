@@ -5,7 +5,7 @@ Java 21 · Spring Boot 4.1.1 · PostgreSQL · Maven Wrapper.
 
 운동 시작부터 루틴·이력·세트/휴식·저장 복구까지의 API와 PostgreSQL 검증 기반을 구현했습니다. 현재 코드는 기능 브랜치의 검토 대상이며 운영 배포 상태가 아닙니다. [구현 현황과 남은 연결](docs/api-plan.md), [프론트 연결·검증 순서](docs/integration-guide.md)를 먼저 참고합니다.
 
-[백엔드 폴더와 처리 흐름](docs/backend-structure.md), [현재 DB 구조와 ERD](docs/database-erd.md)에서 실제 20개 테이블, 외래 키와 복사 출처의 차이, 개발·시험·운영 DB 상태를 확인할 수 있습니다.
+[백엔드 폴더와 처리 흐름](docs/backend-structure.md), [현재 DB 구조와 ERD](docs/database-erd.md)에서 실제 21개 테이블, 외래 키와 복사 출처의 차이, 개발·시험·운영 DB 상태를 확인할 수 있습니다.
 
 ## 실행
 
@@ -62,3 +62,5 @@ OIDC 검증과 `social` 프로필 로그인 API를 구현했습니다. 실제 �
 [BE-02 카카오·구글 연결 공백과 추천안](docs/authentication-gap-analysis.md), [로그인 API 초안 v0.3 — PM 검토용·미구현](docs/api-contracts/social-login-draft.md), [FE A01~A07 대응·수치 결정표](docs/api-contracts/social-login-fe-alignment.md), [적대적 시나리오 검토](docs/authentication-adversarial-review.md)
 
 [소셜 로그인 v1 계약](docs/api-contracts/social-login-v1.md) · [FE fake 로그인 실행 안내](docs/fake-login-integration.md) · [세션 갱신/폐기 구현](docs/auth-session-lifecycle.md)
+
+[공용 운동110종·별칭 검색 v2](docs/api-contracts/exercise-catalog-v2.md) — 기존18종 ID/이미지/기록 참조 보존.

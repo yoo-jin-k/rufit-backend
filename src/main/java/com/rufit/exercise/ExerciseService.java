@@ -19,8 +19,11 @@ public class ExerciseService {
     public Results search(String owner, String query, boolean includeArchived, Exercise.BodyPart part, Exercise.Equipment equipment, int page, int size) {
         if (query.length() > 80 || page < 0 || page > 10000 || size < 1 || size > 100)
             throw new IllegalArgumentException("검색어와 조회 범위를 확인해 주세요.");
-        String pattern="%"+query.trim().toLowerCase(Locale.ROOT).replace("!", "!!").replace("%", "!%").replace("_", "!_")+"%";
-        Page<Exercise> found=repository.search(owner, pattern, includeArchived, part, equipment, PageRequest.of(page,size,Sort.by("name","id")));
+        String pattern="%"+ExerciseSearchText.escape(query.trim().toLowerCase(Locale.ROOT))+"%";
+        String normalized=ExerciseSearchText.normalize(query);
+        // '_'처럼 정규화 뒤 비는 입력으로 전체 별칭을 검색하지 않는다. 원문 이름 검색은 계속 적용한다.
+        String aliasPattern=normalized.isEmpty()?"":"%"+ExerciseSearchText.escape(normalized)+"%";
+        Page<Exercise> found=repository.search(owner, pattern, aliasPattern, includeArchived, part, equipment, PageRequest.of(page,size,Sort.by("name","id")));
         return new Results(found.map(View::from).toList(), page, size, found.getTotalElements(), found.hasNext());
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
