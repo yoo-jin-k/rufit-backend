@@ -1,5 +1,7 @@
 # BE-02 소셜 로그인 API 초안 v0.3
 
+> 2026-10-29: 구현 기준은 [확정 계약 v1](social-login-v1.md)로 이동했다. 아래는 결정 전 검토 이력이다.
+
 상태: **PM 검토용 미확정 초안, 구현 전**. KAKAO·GOOGLE 제공자 요구는 확정됐지만 세션 발급 주체·로그인 진입 방식·계정 연결/이전 정책은 미확정이다. 이 문서는 [공백 점검](../authentication-gap-analysis.md)의 **RuFit 자체 세션 + 서버 authorization-code 중계 후보안**을 구체화한다. PM 채택 전 실제 FE 서버 호출·런타임 컨트롤러·DB 테이블·생성 OpenAPI에 반영하지 않는다. FE는 아래 상태/예시로 목업만 준비할 수 있다.
 
 v0.2(2026-09-14): [적대적 시나리오 검토](../authentication-adversarial-review.md)로 앱 시작 PKCE/handoff 불변 결합·동시 소비·유출, WEB 별도 계약, refresh 재사용 철회, logout 잔존 보장을 보완했다. v0.1의 JSON 모양은 유지하며, WEB은 활성화 가능한 확정 플랫폼이 아닌 예약값임을 명확히 했다. 실제 API 버전 변경은 아니다.
