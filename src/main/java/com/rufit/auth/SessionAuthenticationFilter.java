@@ -17,7 +17,7 @@ final class SessionAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper mapper;
     SessionAuthenticationFilter(AuthSessions sessions,ObjectMapper mapper) { this.sessions=sessions; this.mapper=mapper; }
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain) throws ServletException,IOException {
-        String path=request.getServletPath();
+        String path=request.getRequestURI().substring(request.getContextPath().length());
         if(path.startsWith("/api/v1/auth/")) {
             response.setHeader("Cache-Control","no-store"); response.setHeader("Referrer-Policy","no-referrer");
         } else {

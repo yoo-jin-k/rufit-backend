@@ -40,6 +40,7 @@ class SessionFoundationTests {
         } catch(Exception e) { throw new IllegalStateException("test key setup failed"); }
     }
     @DynamicPropertySource static void configuration(DynamicPropertyRegistry r) {
+        r.add("rufit.social.transient-key",()->Base64.getEncoder().encodeToString(new byte[32]));
         r.add("rufit.session.issuer",()->"https://session.rufit.test");
         r.add("rufit.session.audience",()->"rufit-api"); r.add("rufit.session.key-id",()->"test-key");
         r.add("rufit.session.private-key-path",()->KEY.toString());

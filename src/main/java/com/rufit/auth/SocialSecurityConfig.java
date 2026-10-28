@@ -17,7 +17,7 @@ public class SocialSecurityConfig {
         if(environment.acceptsProfiles(Profiles.of("oidc","local"))) throw new IllegalStateException("social profile must not be combined with oidc/local");
     }
     @Bean Clock authClock() { return Clock.systemUTC(); }
-    @Bean SecurityFilterChain socialSecurity(HttpSecurity http,AuthSessions sessions,ObjectMapper mapper,ApiSecurityErrors errors) throws Exception {
+    @Bean SecurityFilterChain socialSecurity(HttpSecurity http,AuthSessions sessions,ObjectMapper mapper,ApiSecurityErrors errors,AuthLimits limits) throws Exception {
         // 모바일 헤더 인증 전용이다. 쿠키 인증을 추가할 때 CSRF 정책부터 별도 설계해야 한다.
         return http.cors(org.springframework.security.config.Customizer.withDefaults())
             .sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).requestCache(c->c.disable()).csrf(c->c.disable())
@@ -26,6 +26,7 @@ public class SocialSecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.GET,"/api/v1/auth/callback/google","/api/v1/auth/callback/kakao").permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(h->h.authenticationEntryPoint(errors::bearer).accessDeniedHandler(errors))
+            .addFilterBefore(new AuthRequestFilter(limits,mapper),UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new SessionAuthenticationFilter(sessions,mapper),UsernamePasswordAuthenticationFilter.class).build();
     }
 }

@@ -24,7 +24,7 @@ public class ClientAccessConfig {
         cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CSRF-TOKEN"));
         cors.setAllowCredentials(!environment.acceptsProfiles(Profiles.of("oidc", "social"))
             && environment.acceptsProfiles(Profiles.of("local | test")));
-        cors.setExposedHeaders(List.of("X-Request-Id"));
+        cors.setExposedHeaders(List.of("X-Request-Id", "Retry-After"));
         cors.setMaxAge(600L);
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", cors);
