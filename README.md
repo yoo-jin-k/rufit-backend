@@ -64,3 +64,5 @@ OIDC 검증과 `social` 프로필 로그인 API를 구현했습니다. 실제 �
 [소셜 로그인 v1 계약](docs/api-contracts/social-login-v1.md) · [FE fake 로그인 실행 안내](docs/fake-login-integration.md) · [세션 갱신/폐기 구현](docs/auth-session-lifecycle.md)
 
 [공용 운동110종·별칭 검색 v2](docs/api-contracts/exercise-catalog-v2.md) — 기존18종 ID/이미지/기록 참조 보존.
+
+코드 구조와 유지보수 기준은 [코드 안내](docs/code-maintenance.md)를 참고해 주세요.

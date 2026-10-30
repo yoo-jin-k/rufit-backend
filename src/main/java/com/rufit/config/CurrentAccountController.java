@@ -7,8 +7,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class CurrentAccountController {
-    @GetMapping("/api/v1/me")
-    public Account me(Principal principal) { return new Account(principal.getName()); }
-    @Schema(requiredProperties={"id"})
-    public record Account(String id) {}
+
+  @GetMapping("/api/v1/me")
+  public Account me(Principal principal) {
+    return new Account(principal.getName());
+  }
+
+  @Schema(requiredProperties = { "id" })
+  public record Account(String id) {}
 }

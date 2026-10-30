@@ -9,8 +9,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Profile("!oidc & !social & (local | test)")
 public class DevelopmentCsrfController {
-    @GetMapping("/api/v1/csrf")
-    public Token token(CsrfToken token) { return new Token(token.getHeaderName(), token.getToken()); }
-    @Schema(requiredProperties={"headerName", "token"})
-    public record Token(String headerName, String token) {}
+
+  @GetMapping("/api/v1/csrf")
+  public Token token(CsrfToken token) {
+    return new Token(token.getHeaderName(), token.getToken());
+  }
+
+  @Schema(requiredProperties = { "headerName", "token" })
+  public record Token(String headerName, String token) {}
 }
