@@ -6,6 +6,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -49,7 +50,9 @@ public class WorkoutController {
     @NotNull @Size(max = 2000) String note,
     @NotNull @AssertTrue Boolean confirmed,
     @Schema(nullable = true) Instant pausedAt,
-    @Schema(nullable = true) @PositiveOrZero Long pausedDurationMs
+    @Schema(nullable = true) @PositiveOrZero Long pausedDurationMs,
+    @Schema(nullable = true) LocalDate recordDate,
+    @Schema(nullable = true) String entryMode
   ) {}
 
   @Schema(requiredProperties = { "workout", "importedVersion", "replayed" })
@@ -349,6 +352,8 @@ public class WorkoutController {
       "note",
       "pausedAt",
       "pausedDurationMs",
+      "recordDate",
+      "entryMode",
     }
   )
   public record View(
@@ -364,7 +369,9 @@ public class WorkoutController {
     @Schema(nullable = true) Integer restSetIndex,
     String note,
     @Schema(nullable = true) Instant pausedAt,
-    long pausedDurationMs
+    long pausedDurationMs,
+    @Schema(nullable = true) LocalDate recordDate,
+    @Schema(nullable = true) String entryMode
   ) {
     static View from(Workout w) {
       return new View(
@@ -384,7 +391,9 @@ public class WorkoutController {
         w.restSetIndex(),
         w.note(),
         w.pausedAt(),
-        w.pausedDurationMs()
+        w.pausedDurationMs(),
+        w.recordDate(),
+        w.entryMode()
       );
     }
   }

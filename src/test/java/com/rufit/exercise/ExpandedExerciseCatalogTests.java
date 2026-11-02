@@ -264,7 +264,7 @@ class ExpandedExerciseCatalogTests {
         before.put(
           table,
           jdbc.queryForList(
-            "select row_to_json(t)::text from " +
+            "select (to_jsonb(t) - 'record_date' - 'entry_mode')::text from " +
               schema +
               "." +
               table +
@@ -281,13 +281,22 @@ class ExpandedExerciseCatalogTests {
       assertThat(
         jdbc.queryForObject("select count(*) from " + schema + ".exercises", Integer.class)
       ).isEqualTo(110);
+      // V27이 추가한 선택 필드는 기존 기록에서 비어 있어야 하며 기존 열은 모두 보존되어야 합니다.
+      assertThat(
+        jdbc.queryForObject(
+          "select count(*) from " +
+            schema +
+            ".workouts where record_date is not null or entry_mode is not null",
+          Integer.class
+        )
+      ).isZero();
       for (String table : tables) {
         String where = table.equals("exercises")
           ? " where id::text like '00000000-0000-4000-8000-%'"
           : "";
         assertThat(
           jdbc.queryForList(
-            "select row_to_json(t)::text from " +
+            "select (to_jsonb(t) - 'record_date' - 'entry_mode')::text from " +
               schema +
               "." +
               table +

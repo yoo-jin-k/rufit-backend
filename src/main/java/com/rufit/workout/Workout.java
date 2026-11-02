@@ -28,6 +28,8 @@ public class Workout {
   private Instant startedAt;
 
   private Instant finishedAt;
+  private java.time.LocalDate recordDate;
+  private String entryMode;
   private Instant cancelledAt;
   private Instant pausedAt;
 
@@ -78,6 +80,9 @@ public class Workout {
     return sourceRoutineId;
   }
 
+  java.time.LocalDate recordDate() { return recordDate; }
+  String entryMode() { return entryMode; }
+
   String importFingerprint() {
     return importFingerprint;
   }
@@ -110,6 +115,16 @@ public class Workout {
       owner,
       request.startedAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS)
     );
+    // 수동 기록의 운동 날짜와 작성 시각을 분리합니다. 기존 실시간 기록은 그대로 유지합니다.
+    if (request.recordDate() != null || request.entryMode() != null) {
+      if (!"manual".equals(request.entryMode()) || request.recordDate() == null
+          || request.recordDate().isBefore(java.time.LocalDate.of(1900,1,1))
+          || request.recordDate().isAfter(now.atZone(java.time.ZoneId.of("Asia/Seoul")).toLocalDate())
+          || !request.startedAt().equals(request.finishedAt()) || request.pausedAt() != null
+          || (request.pausedDurationMs() != null && request.pausedDurationMs() != 0))
+        throw new IllegalArgumentException("수동 기록의 날짜와 시간 미측정 상태를 확인해 주세요.");
+      workout.recordDate = request.recordDate(); workout.entryMode = "manual";
+    }
     workout.pausedAt =
       request.pausedAt() == null
         ? null

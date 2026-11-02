@@ -34,13 +34,14 @@ interface WorkoutRepository extends JpaRepository<Workout, UUID> {
   @org.springframework.data.jpa.repository.Query(
     """
     select w from Workout w where w.ownerName=:owner and w.finishedAt is not null
-    and w.startedAt>=:from and w.startedAt<:until
+    and ((w.recordDate is null and w.startedAt>=:from and w.startedAt<:until) or w.recordDate=:date)
     """
   )
   Page<Workout> findDailyHistory(
     @org.springframework.data.repository.query.Param("owner") String owner,
     @org.springframework.data.repository.query.Param("from") java.time.Instant from,
     @org.springframework.data.repository.query.Param("until") java.time.Instant until,
+    @org.springframework.data.repository.query.Param("date") java.time.LocalDate date,
     Pageable pageable
   );
 

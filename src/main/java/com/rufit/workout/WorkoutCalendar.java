@@ -77,21 +77,21 @@ public class WorkoutCalendar {
     Instant from = startDate.atStartOfDay(zone).toInstant();
     Instant until = untilDate.atStartOfDay(zone).toInstant();
     var sessions = jdbc.query("""
-    SELECT w.started_at, w.finished_at, w.paused_duration_ms, count(e.entry_order) AS sets,
+    SELECT w.record_date, w.started_at, w.finished_at, w.paused_duration_ms, count(e.entry_order) AS sets,
            coalesce(sum(e.weight * e.reps), 0) AS volume
     FROM workouts w
     LEFT JOIN completed_workout_sets c ON c.workout_id = w.id
     LEFT JOIN workout_entries e ON e.workout_id = c.workout_id AND e.entry_order = c.set_index
     WHERE w.owner_name = :owner AND w.finished_at IS NOT NULL
-      AND w.started_at >= :from AND w.started_at < :until
+      AND ((w.record_date IS NULL AND w.started_at >= :from AND w.started_at < :until) OR (w.record_date >= :startDate AND w.record_date < :untilDate))
     GROUP BY w.id, w.started_at, w.finished_at
-    """, Map.of("owner", owner, "from", Timestamp.from(from), "until", Timestamp.from(until)), (row, index) -> new Session(row.getTimestamp("started_at").toInstant(), row.getTimestamp("finished_at").toInstant(), row.getLong("sets"), row.getBigDecimal("volume"), row.getLong("paused_duration_ms")));
+    """, Map.of("owner", owner, "from", Timestamp.from(from), "until", Timestamp.from(until), "startDate", startDate, "untilDate", untilDate), (row, index) -> new Session(row.getTimestamp("started_at").toInstant(), row.getTimestamp("finished_at").toInstant(), row.getLong("sets"), row.getBigDecimal("volume"), row.getLong("paused_duration_ms"), row.getObject("record_date", LocalDate.class)));
     SortedMap<LocalDate, Day> days = new TreeMap<>();
     for (LocalDate date = startDate; date.isBefore(untilDate); date = date.plusDays(1)) {
       days.put(date, new Day(date, 0, 0, BigDecimal.ZERO, 0));
     }
     for (Session session : sessions) {
-      LocalDate date = session.start.atZone(zone).toLocalDate();
+      LocalDate date = session.recordDate != null ? session.recordDate : session.start.atZone(zone).toLocalDate();
       Day previous = days.get(date);
       days.put(
         date,
@@ -158,7 +158,8 @@ public class WorkoutCalendar {
     Instant finish,
     long sets,
     BigDecimal volume,
-    long pausedMs
+    long pausedMs,
+    LocalDate recordDate
   ) {}
 
   @Schema(

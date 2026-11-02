@@ -61,7 +61,7 @@ public class WorkoutService {
     if (date == null) records = repository.findByOwnerNameAndFinishedAtIsNotNull(owner, pagination);
     else {
       WorkoutDateRange range = WorkoutDateRange.day(date, zone);
-      records = repository.findDailyHistory(owner, range.from(), range.until(), pagination);
+      records = repository.findDailyHistory(owner, range.from(), range.until(), java.time.LocalDate.parse(date), pagination);
     }
     return new History(
       records.map(View::from).toList(),

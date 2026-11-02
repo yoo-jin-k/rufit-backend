@@ -20,7 +20,7 @@ final class OfflineImportFingerprint {
         boolean hasPause =
           request.pausedAt() != null ||
           (request.pausedDurationMs() != null && request.pausedDurationMs() != 0);
-        out.writeInt(hasPause ? 2 : 1);
+        out.writeInt((request.recordDate() != null || request.entryMode() != null) ? 3 : hasPause ? 2 : 1);
         out.writeUTF(request.startedAt().toString());
         nullable(out, request.finishedAt());
         out.writeUTF(request.note());
@@ -35,10 +35,11 @@ final class OfflineImportFingerprint {
         }
         nullable(out, request.restSetIndex());
         nullable(out, request.restEndsAt());
-        if (hasPause) {
+        if (hasPause || (request.recordDate() != null || request.entryMode() != null)) {
           nullable(out, request.pausedAt());
           out.writeLong(request.pausedDurationMs() == null ? 0 : request.pausedDurationMs());
         }
+        if ((request.recordDate() != null || request.entryMode() != null)) { nullable(out, request.recordDate()); nullable(out, request.entryMode()); }
       }
       return HexFormat.of().formatHex(
         MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray())
