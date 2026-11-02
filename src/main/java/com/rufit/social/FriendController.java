@@ -16,7 +16,7 @@ public class FriendController {
   public enum Action { ACCEPT, REJECT, CANCEL }
   public record Send(@NotNull UUID requestId, @NotNull UUID targetId) {}
   public record Respond(@NotNull Action action) {}
-  public record Request(UUID id, UUID requesterId, UUID targetId, String state) {}
+  public record Request(UUID id, UUID requesterId, UUID targetId, String state, String requesterNickname, String targetNickname) {}
   public record Requests(List<Request> incoming, List<Request> outgoing) {}
   public record Members(List<SocialDirectoryController.Member> items) {}
 

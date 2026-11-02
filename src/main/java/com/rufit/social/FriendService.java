@@ -31,8 +31,8 @@ public class FriendService {
     return count("SELECT count(*) FROM social_blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)",a,b,b,a)>0;
   }
   private Optional<Request> find(UUID id) {
-    return jdbc.query("SELECT id,requester_id,target_id,state FROM friend_requests WHERE id=?",
-        (r,i)->new Request(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class),r.getString(4)),id).stream().findFirst();
+    return jdbc.query("SELECT r.id,r.requester_id,r.target_id,r.state,a.nickname,b.nickname FROM friend_requests r JOIN social_directory a ON a.member_id=r.requester_id JOIN social_directory b ON b.member_id=r.target_id WHERE r.id=?",
+        (r,i)->new Request(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class),r.getString(4),r.getString(5),r.getString(6)),id).stream().findFirst();
   }
   private long friendCount(UUID id) { return count("SELECT count(*) FROM friendships WHERE first_id=? OR second_id=?",id,id); }
   private long pendingCount(UUID id) { return count("SELECT count(*) FROM friend_requests WHERE state='PENDING' AND (requester_id=? OR target_id=?)",id,id); }
@@ -80,8 +80,8 @@ public class FriendService {
   @Transactional(readOnly=true)
   public Requests requests(String owner) {
     UUID me=member(owner);
-    var list=jdbc.query("SELECT id,requester_id,target_id,state FROM friend_requests WHERE state='PENDING' AND (requester_id=? OR target_id=?) ORDER BY created_at,id LIMIT 100",
-        (r,i)->new Request(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class),r.getString(4)),me,me);
+    var list=jdbc.query("SELECT r.id,r.requester_id,r.target_id,r.state,a.nickname,b.nickname FROM friend_requests r JOIN social_directory a ON a.member_id=r.requester_id JOIN social_directory b ON b.member_id=r.target_id WHERE r.state='PENDING' AND (r.requester_id=? OR r.target_id=?) ORDER BY r.created_at,r.id LIMIT 100",
+        (r,i)->new Request(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getObject(3,UUID.class),r.getString(4),r.getString(5),r.getString(6)),me,me);
     return new Requests(list.stream().filter(r->r.targetId().equals(me)).toList(),list.stream().filter(r->r.requesterId().equals(me)).toList());
   }
   @Transactional(readOnly=true)
