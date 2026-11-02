@@ -52,9 +52,10 @@ public class SocialDirectoryService {
     if (q.length() < 2 || q.length() > 30 || page < 0 || page > 1000 || size < 1 || size > 50)
       throw new IllegalArgumentException("검색어는 2~30자, 페이지와 조회 개수는 허용 범위로 입력해 주세요.");
     String pattern = "%" + q.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
-    var rows = jdbc.query("SELECT member_id,nickname FROM social_directory WHERE discoverable=true AND owner_name<>?"
+    var rows = jdbc.query("SELECT member_id,nickname FROM social_directory d WHERE discoverable=true AND owner_name<>?"
+        + " AND NOT EXISTS (SELECT 1 FROM social_blocks b JOIN social_directory me ON me.owner_name=? WHERE (b.blocker_id=me.member_id AND b.blocked_id=d.member_id) OR (b.blocker_id=d.member_id AND b.blocked_id=me.member_id))"
         + " AND lower(nickname) LIKE lower(?) ESCAPE '!' ORDER BY lower(nickname),member_id LIMIT ? OFFSET ?",
-        (rs, index) -> new Member(rs.getObject(1, UUID.class), rs.getString(2)), owner, pattern, size + 1, page * size);
+        (rs, index) -> new Member(rs.getObject(1, UUID.class), rs.getString(2)), owner, owner, pattern, size + 1, page * size);
     return new Results(List.copyOf(rows.subList(0, Math.min(size, rows.size()))), page, size, rows.size() > size);
   }
 }
