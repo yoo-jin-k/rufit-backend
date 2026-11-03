@@ -83,4 +83,21 @@ class ProviderConfigurationTests {
       AuthFailure.class
     );
   }
+  @Test
+  void webRouteIsOptInAndRestrictedToExactLocalCallback() {
+    var env = new MockEnvironment();
+    var providers = new SocialProviders(env);
+    env.setProperty("rufit.social.web-return-uri", "http://localhost:8100/auth/callback.html");
+    assertThatThrownBy(() -> providers.returnUri("WEB", "WEB_LOGIN")).isInstanceOf(AuthFailure.class);
+    env.setProperty("rufit.social.web-enabled", "true");
+    assertThat(providers.returnUri("WEB", "WEB_LOGIN"))
+      .isEqualTo("http://localhost:8100/auth/callback.html");
+    assertThatThrownBy(() -> providers.returnUri("IOS", "WEB_LOGIN")).isInstanceOf(AuthFailure.class);
+    for (String value : List.of("https://evil.test/auth/callback.html", "http://localhost.evil:8100/auth/callback.html",
+      "http://localhost:8100/other", "http://localhost:8100/auth/callback.html?next=evil",
+      "http://user@localhost:8100/auth/callback.html", "http://localhost/auth/callback.html", "")) {
+      env.setProperty("rufit.social.web-return-uri", value);
+      assertThatThrownBy(() -> providers.returnUri("WEB", "WEB_LOGIN")).isInstanceOf(AuthFailure.class);
+    }
+  }
 }

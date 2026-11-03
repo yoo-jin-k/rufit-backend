@@ -80,8 +80,8 @@ public class AuthController {
 
   public record Start(
     @NotBlank @Pattern(regexp = "GOOGLE|KAKAO") String provider,
-    @NotBlank @Pattern(regexp = "IOS|ANDROID") String client,
-    @NotBlank @Pattern(regexp = "APP_LOGIN") String returnRoute,
+    @NotBlank @Pattern(regexp = "IOS|ANDROID|WEB") String client,
+    @NotBlank @Pattern(regexp = "APP_LOGIN|WEB_LOGIN") String returnRoute,
     @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{43}") String codeChallenge,
     @NotBlank @Pattern(regexp = "S256") String codeChallengeMethod
   ) {}
