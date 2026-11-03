@@ -90,4 +90,49 @@ class FriendRelationshipTests {
       assertThat(service.requests("alice").incoming().size()+service.requests("alice").outgoing().size()).isEqualTo(1);
     }
   }
+
+  @Test void unfriendIsScopedAndOldAcceptDoesNotRestore() {
+    UUID id=UUID.randomUUID(); service.send("alice",new FriendController.Send(id,b));
+    service.respond("bob",id,FriendController.Action.ACCEPT);
+    service.remove("carol",b);
+    assertThat(service.friends("bob").items()).hasSize(1);
+    service.remove("alice",b); service.remove("alice",b);
+    service.respond("bob",id,FriendController.Action.ACCEPT);
+    assertThat(service.friends("bob").items()).isEmpty();
+    assertThatThrownBy(()->service.remove("alice",a)).isInstanceOf(IllegalArgumentException.class);
+  }
+  @Test void profileHonorsPrivacyAndBothBlockDirections() {
+    assertThat(service.profile("alice",b).relationship()).isEqualTo("NONE");
+    jdbc.update("UPDATE social_directory SET discoverable=false WHERE member_id=?",b);
+    assertThatThrownBy(()->service.profile("alice",b)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    UUID id=UUID.randomUUID(); service.send("bob",new FriendController.Send(id,a));
+    assertThat(service.profile("alice",b).relationship()).isEqualTo("INCOMING");
+    service.respond("alice",id,FriendController.Action.ACCEPT);
+    assertThat(service.profile("alice",b).relationship()).isEqualTo("FRIEND");
+    service.block("bob",a,true);
+    assertThatThrownBy(()->service.profile("alice",b)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    assertThatThrownBy(()->service.profile("bob",a)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+  }
+  @Test void reportsAreIdempotentOwnedLimitedAndIndependentOfFriendship() {
+    UUID id=UUID.randomUUID(); var body=new FriendController.Report(id,b,FriendController.ReportReason.SPAM);
+    assertThat(service.report("alice",body).status()).isEqualTo("RECEIVED");
+    service.report("alice",body);
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM social_reports",Long.class)).isEqualTo(1L);
+    assertThatThrownBy(()->service.report("carol",body)).isInstanceOf(com.rufit.workout.WorkoutConflict.class);
+    assertThatThrownBy(()->service.report("alice",new FriendController.Report(id,b,FriendController.ReportReason.OTHER))).isInstanceOf(com.rufit.workout.WorkoutConflict.class);
+    assertThat(service.blocks("alice").items()).isEmpty();
+    service.block("alice",b,true);
+    service.report("alice",new FriendController.Report(UUID.randomUUID(),b,FriendController.ReportReason.OTHER));
+    for(int n=0;n<18;n++) service.report("alice",new FriendController.Report(UUID.randomUUID(),b,FriendController.ReportReason.SPAM));
+    assertThatThrownBy(()->service.report("alice",new FriendController.Report(UUID.randomUUID(),b,FriendController.ReportReason.SPAM))).isInstanceOf(com.rufit.workout.WorkoutConflict.class);
+  }
+  @Test void memberHttpResponseDoesNotExposeOwnerOrPrivateRecords() throws Exception {
+    mvc.perform(get("/api/v1/social/members/"+b).with(user("alice")))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.nickname").value("테스트둘"))
+      .andExpect(jsonPath("$.ownerName").doesNotExist()).andExpect(jsonPath("$.workouts").doesNotExist());
+    mvc.perform(post("/api/v1/social/reports").with(user("alice")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+      .content("{\"requestId\":\""+UUID.randomUUID()+"\",\"targetId\":\""+b+"\",\"reason\":\"INVALID\"}"))
+      .andExpect(status().isBadRequest());
+    mvc.perform(delete("/api/v1/social/friends/"+b).with(user("alice")).with(csrf())).andExpect(status().isNoContent());
+  }
 }

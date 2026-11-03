@@ -20,6 +20,18 @@ public class FriendController {
   public record Requests(List<Request> incoming, List<Request> outgoing) {}
   public record Members(List<SocialDirectoryController.Member> items) {}
 
+  public enum ReportReason { SPAM, HARASSMENT, INAPPROPRIATE, OTHER }
+  public record Report(@NotNull UUID requestId, @NotNull UUID targetId, @NotNull ReportReason reason) {}
+  public record Receipt(UUID id, String status) {}
+  public record MemberProfile(UUID memberId, String nickname, String relationship) {}
+
+  @DeleteMapping("/friends/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void remove(Principal p, @PathVariable UUID id) { service.remove(p.getName(), id); }
+  @GetMapping("/members/{id}")
+  public MemberProfile profile(Principal p, @PathVariable UUID id) { return service.profile(p.getName(), id); }
+  @PostMapping("/reports")
+  public Receipt report(Principal p, @Valid @RequestBody Report body) { return service.report(p.getName(), body); }
+
   @PostMapping("/requests")
   public Request send(Principal p, @Valid @RequestBody Send body) { return service.send(p.getName(), body); }
   @GetMapping("/requests")

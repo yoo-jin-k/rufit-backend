@@ -27,7 +27,7 @@ public class ClientAccessConfig {
     origins.forEach(ClientAccessConfig::validateOrigin);
     var cors = new CorsConfiguration();
     cors.setAllowedOrigins(origins);
-    cors.setAllowedMethods(List.of("GET", "POST", "PUT", "OPTIONS"));
+    cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     cors.setAllowedHeaders(
       List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CSRF-TOKEN")
     );

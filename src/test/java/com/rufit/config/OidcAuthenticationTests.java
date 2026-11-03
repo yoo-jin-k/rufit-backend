@@ -282,10 +282,19 @@ class OidcAuthenticationTests {
       .andExpect(header().string("Access-Control-Expose-Headers", "X-Request-Id"));
     mvc
       .perform(
-        options("/api/v1/workouts")
+        options("/api/v1/social/friends/00000000-0000-0000-0000-000000000001")
           .header("Origin", "https://app.rufit.test")
           .header("Access-Control-Request-Method", "DELETE")
       )
+      .andExpect(status().isOk());
+    // 친구 해제의 DELETE는 허용하지만 다른 출처와 미지원 메서드는 계속 차단합니다.
+    mvc.perform(options("/api/v1/social/friends/00000000-0000-0000-0000-000000000001")
+        .header("Origin", "https://untrusted.test")
+        .header("Access-Control-Request-Method", "DELETE"))
+      .andExpect(status().isForbidden());
+    mvc.perform(options("/api/v1/workouts")
+        .header("Origin", "https://app.rufit.test")
+        .header("Access-Control-Request-Method", "PATCH"))
       .andExpect(status().isForbidden());
   }
 

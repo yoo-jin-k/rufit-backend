@@ -21,3 +21,11 @@
 - GET /api/v1/social/members/{memberId} →200 `{memberId,nickname,relationship}`. relationship은 SELF/FRIEND/INCOMING/OUTGOING/NONE입니다. 공개 검색 허용 또는 기존 친구/대기 신청 관계만 조회 가능하며 양방향 차단은404입니다. 비공개 운동/사진/계정 식별자는 제공하지 않습니다.
 - POST /api/v1/social/reports `{requestId:UUID,targetId:UUID,reason:"SPAM"|"HARASSMENT"|"INAPPROPRIATE"|"OTHER"}` →200 `{id:UUID,status:"RECEIVED"}`. 본인 신고400, 조회 가능한 대상 또는 본인이 차단한 대상만 가능하며 그 외404. 동일 신고번호와 내용 재시도는 동일 접수 결과, 다른 사용자/내용으로 재사용409. 본인당 하루 최대20건, 초과409. 신고는 차단과 별개이며 운영 검토 완료를 뜻하지 않습니다. 신고 내용/신고자 목록 조회 API는 공개하지 않습니다.
 - CORS 허용 메서드에 DELETE를 추가하여 웹의 차단 해제·친구 해제가 작동하도록 합니다. 인증 및 기존 ProblemDetail 오류 형식은 유지합니다.
+
+### 2026-11-04 검증 결과
+- 전용 PostgreSQL `rufit_test`에서 전체 220개 테스트 통과, 패키지 빌드 성공.
+- 다른 회원의 친구 관계 보호, 삭제 재시도, 과거 수락 재전송에 의한 관계 미복원을 검증했습니다.
+- 프로필 공개 동의·친구 및 신청 상태·양방향 차단 제한, 사유 검증과 신고 소유권·중복·24시간 한도를 검증했습니다.
+- CORS에서 허용 출처의 DELETE만 허용하며 비허용 출처와 미지원 메서드 차단을 확인했습니다.
+- 로컬 로그인 테스트 서버에 V30과 API를 반영했고 health UP 및 미인증 요청 401을 확인했습니다. 실제 회원 관계에는 검증용 변경을 수행하지 않았습니다.
+- 신고 관리자의 검토·제재·결과 알림, 운동 기록·사진 공개 API는 이번 범위에 포함되지 않습니다.

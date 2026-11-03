@@ -105,4 +105,45 @@ public class FriendService {
     jdbc.update("DELETE FROM friendships WHERE first_id=? AND second_id=?",pair.get(0),pair.get(1));
     jdbc.update("UPDATE friend_requests SET state='CANCELLED' WHERE state='PENDING' AND ((requester_id=? AND target_id=?) OR (requester_id=? AND target_id=?))",me,target,target,me);
   }
+
+  /** 인증한 본인과 대상 사이의 친구 관계만 제거합니다. */
+  public void remove(String owner, UUID target) {
+    UUID me=member(owner);
+    if (me.equals(target)) throw new IllegalArgumentException("자신을 친구 해제할 수 없습니다.");
+    var pair=lock(me,target);
+    if (count("SELECT count(*) FROM social_directory WHERE member_id=?",target)==0) throw missing();
+    jdbc.update("DELETE FROM friendships WHERE first_id=? AND second_id=?",pair.get(0),pair.get(1));
+  }
+
+  /** 공개 동의와 관계를 확인한 뒤 최소 프로필만 반환합니다. 차단 여부는 노출하지 않습니다. */
+  @Transactional(readOnly=true)
+  public MemberProfile profile(String owner, UUID target) {
+    UUID me=member(owner);
+    if (blocked(me,target)) throw missing();
+    String relation="NONE";
+    if (me.equals(target)) relation="SELF";
+    else if (count("SELECT count(*) FROM friendships WHERE (first_id=? AND second_id=?) OR (first_id=? AND second_id=?)",me,target,target,me)>0) relation="FRIEND";
+    else if (count("SELECT count(*) FROM friend_requests WHERE requester_id=? AND target_id=? AND state='PENDING'",target,me)>0) relation="INCOMING";
+    else if (count("SELECT count(*) FROM friend_requests WHERE requester_id=? AND target_id=? AND state='PENDING'",me,target)>0) relation="OUTGOING";
+    if (relation.equals("NONE") && count("SELECT count(*) FROM social_directory WHERE member_id=? AND discoverable=true",target)==0) throw missing();
+    String name=jdbc.query("SELECT nickname FROM social_directory WHERE member_id=?",(r,n)->r.getString(1),target).stream().findFirst().orElseThrow(this::missing);
+    return new MemberProfile(target,name,relation);
+  }
+
+  /** 신고번호를 잠가 중복 접수를 방지하며, 신고만으로 친구 관계를 변경하지 않습니다. */
+  public Receipt report(String owner, Report body) {
+    UUID me=member(owner), target=body.targetId();
+    if (me.equals(target)) throw new IllegalArgumentException("자신을 신고할 수 없습니다.");
+    jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(?,0))", r -> {}, "social-report:"+body.requestId());
+    lock(me,target);
+    var existing=jdbc.query("SELECT reporter_id,target_id,reason FROM social_reports WHERE id=?",(r,n)->List.of(r.getString(1),r.getString(2),r.getString(3)),body.requestId());
+    if (!existing.isEmpty()) {
+      if (!existing.getFirst().equals(List.of(me.toString(),target.toString(),body.reason().name()))) throw new WorkoutConflict("다른 신고에 사용한 요청 번호입니다.");
+      return new Receipt(body.requestId(),"RECEIVED");
+    }
+    if (count("SELECT count(*) FROM social_blocks WHERE blocker_id=? AND blocked_id=?",me,target)==0) profile(owner,target);
+    if (count("SELECT count(*) FROM social_reports WHERE reporter_id=? AND created_at >= now()-interval '24 hours'",me)>=20) throw new WorkoutConflict("신고 접수 한도를 초과했습니다. 나중에 다시 시도해 주세요.");
+    jdbc.update("INSERT INTO social_reports(id,reporter_id,target_id,reason) VALUES (?,?,?,?)",body.requestId(),me,target,body.reason().name());
+    return new Receipt(body.requestId(),"RECEIVED");
+  }
 }
