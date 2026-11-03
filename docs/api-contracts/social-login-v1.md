@@ -111,3 +111,12 @@
 ## 확인한 공식 자료
 
 2026-10-29 [Google Web Server OAuth](https://developers.google.com/identity/protocols/oauth2/web-server), [Google OIDC](https://developers.google.com/identity/openid-connect/openid-connect), [Kakao REST/OIDC](https://developers.kakao.com/docs/ko/kakaologin/rest-api), [RFC9700 refresh 회전](https://www.rfc-editor.org/rfc/rfc9700.html#section-4.14.2)를 확인했다. 양쪽 OIDC 문서의 S256 지원과 issuer/JWKS/nonce 요구를 반영한다. 실제 등록값/앱 복귀의 성공은 별도 실기기 시험 전까지 미검증이다.
+
+## 2026-11-04 로컬 웹 로그인 검증
+- POST /api/v1/auth/login-attempts: WEB client와 WEB_LOGIN returnRoute를 추가합니다. IOS/ANDROID는 APP_LOGIN만 허용합니다. 나머지 Request/201 Response는 기존과 동일합니다.
+- 서버 고정 설정 RUFIT_WEB_LOGIN_RETURN_URI만 복귀 주소로 사용합니다. 임의 URL을 요청으로 받지 않습니다.
+- rufit.social.web-enabled=true인 경우에만 활성화합니다. 현재 로컬 검증 전용이며 http://localhost:<port>/auth/callback.html 또는 http://127.0.0.1:<port>/auth/callback.html만 허용합니다. userinfo/query/fragment는 금지합니다.
+- 설정 오류/비활성은 503 AUTH_PROVIDER_UNAVAILABLE, client/route 불일치는 400 INVALID_INPUT입니다. 에러 형식은 기존 계약을 유지합니다.
+- 카카오의 HTTPS callback은 유지합니다. 웹 복귀 후 attemptId/일회성 handoffCode와 PKCE로 교환하며 기존 만료/재사용 차단 규칙을 유지합니다.
+- session-exchanges/refresh/logout 및 Bearer /me 계약은 동일합니다. access token은 메모리, 갱신 정보는 탭 sessionStorage에만 저장합니다. 운영 웹 장기 세션이 아닌 로컬 검증용입니다.
+- CORS는 지정 원점만 허용하며 쿠키를 보내지 않습니다. 교환/갱신 응답 유실은 자동 재시도하지 않습니다.
