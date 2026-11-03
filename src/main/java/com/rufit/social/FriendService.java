@@ -54,6 +54,8 @@ public class FriendService {
     if (count("SELECT count(*) FROM friend_requests WHERE state='PENDING' AND ((requester_id=? AND target_id=?) OR (requester_id=? AND target_id=?))",me,target,target,me)>0)
       throw new WorkoutConflict("이미 대기 중인 친구 신청이 있습니다.");
     jdbc.update("INSERT INTO friend_requests(id,requester_id,target_id,state) VALUES (?,?,?,'PENDING')",body.requestId(),me,target);
+    // 신청과 알림은 같은 트랜잭션에서 생성하므로 일부만 저장되지 않습니다.
+    jdbc.update("INSERT INTO social_notifications(recipient_id,actor_id,request_id,type) VALUES (?,?,?,'FRIEND_REQUEST') ON CONFLICT DO NOTHING",target,me,body.requestId());
     return find(body.requestId()).orElseThrow();
   }
 
@@ -74,6 +76,10 @@ public class FriendService {
       jdbc.update("INSERT INTO friendships(first_id,second_id) VALUES (?,?) ON CONFLICT DO NOTHING",pair.get(0),pair.get(1));
     }
     jdbc.update("UPDATE friend_requests SET state=? WHERE id=?",desired,id);
+    jdbc.update("UPDATE social_notifications SET read_at=COALESCE(read_at,now()) WHERE request_id=? AND type='FRIEND_REQUEST'",id);
+    if (action==Action.ACCEPT) {
+      jdbc.update("INSERT INTO social_notifications(recipient_id,actor_id,request_id,type) VALUES (?,?,?,'FRIEND_ACCEPTED') ON CONFLICT DO NOTHING",current.requesterId(),me,id);
+    }
     return find(id).orElseThrow();
   }
 
@@ -103,6 +109,7 @@ public class FriendService {
     if (!enabled) { jdbc.update("DELETE FROM social_blocks WHERE blocker_id=? AND blocked_id=?",me,target); return; }
     jdbc.update("INSERT INTO social_blocks(blocker_id,blocked_id) VALUES (?,?) ON CONFLICT DO NOTHING",me,target);
     jdbc.update("DELETE FROM friendships WHERE first_id=? AND second_id=?",pair.get(0),pair.get(1));
+    jdbc.update("DELETE FROM social_notifications WHERE (recipient_id=? AND actor_id=?) OR (recipient_id=? AND actor_id=?)",me,target,target,me);
     jdbc.update("UPDATE friend_requests SET state='CANCELLED' WHERE state='PENDING' AND ((requester_id=? AND target_id=?) OR (requester_id=? AND target_id=?))",me,target,target,me);
   }
 
@@ -113,6 +120,7 @@ public class FriendService {
     var pair=lock(me,target);
     if (count("SELECT count(*) FROM social_directory WHERE member_id=?",target)==0) throw missing();
     jdbc.update("DELETE FROM friendships WHERE first_id=? AND second_id=?",pair.get(0),pair.get(1));
+    jdbc.update("DELETE FROM social_notifications WHERE (recipient_id=? AND actor_id=?) OR (recipient_id=? AND actor_id=?)",me,target,target,me);
   }
 
   /** 공개 동의와 관계를 확인한 뒤 최소 프로필만 반환합니다. 차단 여부는 노출하지 않습니다. */
