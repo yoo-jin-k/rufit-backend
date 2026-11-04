@@ -26,6 +26,7 @@ public class NotificationService {
     String actorNickname,
     UUID requestId,
     UUID postId,
+    String workoutId,
     Instant createdAt,
     boolean read
   ) {}
@@ -45,7 +46,7 @@ public class NotificationService {
     AND (((n.type='FRIEND_REQUEST' AND r.state='PENDING') OR
       (n.type='FRIEND_ACCEPTED' AND EXISTS (SELECT 1 FROM friendships f WHERE
         f.first_id=least(n.recipient_id,n.actor_id) AND f.second_id=greatest(n.recipient_id,n.actor_id))))
-      OR (n.type='POST_LIKED' AND p.visibility='FRIENDS' AND EXISTS(SELECT 1 FROM friendships f WHERE
+      OR (((n.type='POST_LIKED' AND p.visibility='FRIENDS') OR n.type='WORKOUT_CHEER') AND EXISTS(SELECT 1 FROM friendships f WHERE
         f.first_id=least(n.recipient_id,n.actor_id) AND f.second_id=greatest(n.recipient_id,n.actor_id))))
     """;
 
@@ -68,6 +69,7 @@ public class NotificationService {
           r.getString("nickname"),
           r.getObject("request_id", UUID.class),
           r.getObject("post_id", UUID.class),
+          r.getString("workout_id"),
           r.getTimestamp("created_at").toInstant(),
           r.getTimestamp("read_at") != null
         ),
