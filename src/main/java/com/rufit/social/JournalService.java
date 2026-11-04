@@ -200,6 +200,7 @@ public class JournalService {
     );
   }
 
+  /** 동일 내용 재시도는 중복 저장하지 않고, 다른 변경은 버전을 비교한 뒤 원자적으로 반영합니다. */
   public Post save(String owner, String source, JournalController.Edit edit) {
     if (source.isBlank() || source.length() > 120) throw new IllegalArgumentException(
       "운동 식별자를 확인해 주세요."

@@ -139,6 +139,27 @@ class LiveWorkoutTests {
   }
 
   @Test
+  void concurrentRetriesProduceOneCheerAndOneNotification() throws Exception {
+    start();
+    try (var pool = java.util.concurrent.Executors.newFixedThreadPool(6)) {
+      var tasks = new java.util.ArrayList<java.util.concurrent.Callable<Void>>();
+      for (int i = 0; i < 12; i++) tasks.add(() -> {
+        live.cheer("bob", a, "workout-1");
+        return null;
+      });
+      for (var result : pool.invokeAll(tasks)) result.get();
+    }
+    assertThat(live.snapshot("alice").received()).hasSize(1);
+    assertThat(
+      notifications
+        .inbox("alice", null)
+        .items()
+        .stream()
+        .filter(n -> n.type().equals("WORKOUT_CHEER"))
+    ).hasSize(1);
+  }
+
+  @Test
   void httpValidationAuthenticationAndMissingDirectory() throws Exception {
     mvc.perform(get("/api/v1/social/live")).andExpect(status().isUnauthorized());
     mvc.perform(get("/api/v1/social/live").with(user("unknown"))).andExpect(status().isNotFound());

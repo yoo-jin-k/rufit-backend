@@ -8,6 +8,7 @@ import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+/** 계정 게시물의 조회·편집·삭제 진입점입니다. 소유권과 충돌 검사는 서비스에서 수행합니다. */
 @RestController
 @RequestMapping("/api/v1/social/posts")
 public class JournalController {

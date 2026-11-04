@@ -1,7 +1,7 @@
 package com.rufit.social;
 
-import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.security.Principal;
 import java.util.*;
@@ -11,12 +11,17 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/social/directory")
 public class SocialDirectoryController {
+
   private final SocialDirectoryService service;
 
-  SocialDirectoryController(SocialDirectoryService service) { this.service = service; }
+  SocialDirectoryController(SocialDirectoryService service) {
+    this.service = service;
+  }
 
   @GetMapping("/me")
-  public Settings get(Principal principal) { return service.get(principal.getName()); }
+  public Settings get(Principal principal) {
+    return service.get(principal.getName());
+  }
 
   @PutMapping("/me")
   public Settings update(Principal principal, @Valid @RequestBody Edit edit) {
@@ -24,16 +29,30 @@ public class SocialDirectoryController {
   }
 
   @GetMapping("/search")
-  public Results search(Principal principal, @RequestParam String q,
-      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+  public Results search(
+    Principal principal,
+    @RequestParam String q,
+    @RequestParam(defaultValue = "0") int page,
+    @RequestParam(defaultValue = "20") int size
+  ) {
     return service.search(principal.getName(), q, page, size);
   }
 
-  public record Edit(@NotBlank @Size(max = 30) String nickname,
-      @NotNull Boolean discoverable, @NotNull @PositiveOrZero Long version) {}
+  public record Edit(
+    @NotBlank @Size(max = 30) String nickname,
+    @NotNull Boolean discoverable,
+    @NotNull @PositiveOrZero Long version
+  ) {}
+
   @Schema(requiredProperties = { "memberId", "nickname", "discoverable", "version" })
-  public record Settings(@Schema(nullable = true) UUID memberId,
-      @Schema(nullable = true) String nickname, boolean discoverable, long version) {}
+  public record Settings(
+    @Schema(nullable = true) UUID memberId,
+    @Schema(nullable = true) String nickname,
+    boolean discoverable,
+    long version
+  ) {}
+
   public record Member(UUID memberId, String nickname) {}
+
   public record Results(List<Member> items, int page, int size, boolean hasNext) {}
 }
