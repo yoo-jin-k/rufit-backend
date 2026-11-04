@@ -55,8 +55,8 @@ public class AuthSessions {
     // 같은 외부 계정의 첫 동시 로그인도 회원 원장 하나만 만듭니다.
     jdbc.queryForList("select pg_advisory_xact_lock(hashtextextended(?,0))", owner);
     var existing = jdbc.query(
-      "select a.id from auth_identities i join auth_accounts a on a.id=i.account_id where i.provider=? and i.issuer=? and i.subject=?",
-      (rs, n) -> rs.getObject(1, UUID.class),
+      "select a.id,a.owner_key from auth_identities i join auth_accounts a on a.id=i.account_id where i.provider=? and i.issuer=? and i.subject=?",
+      (rs, n) -> new AccountOwner(rs.getObject(1, UUID.class), rs.getString(2)),
       provider,
       issuer,
       subject
@@ -86,7 +86,12 @@ public class AuthSessions {
         subject,
         account
       );
-    } else account = existing.getFirst();
+    } else {
+      // 연결된 제공자로 로그인해도 최초 회원의 기록 소유권을 그대로 사용합니다.
+      // 외부 식별자로 다시 계산하면 세션 응답과 실제 인증 소유자가 달라질 수 있습니다.
+      account = existing.getFirst().id();
+      owner = existing.getFirst().owner();
+    }
     UUID session = UUID.randomUUID();
     Instant expires = now.plus(Duration.ofDays(14));
     jdbc.update(
@@ -247,6 +252,8 @@ public class AuthSessions {
     );
     return rows.isEmpty() ? null : rows.getFirst();
   }
+
+  private record AccountOwner(UUID id, String owner) {}
 
   private record Grant(
     UUID account,

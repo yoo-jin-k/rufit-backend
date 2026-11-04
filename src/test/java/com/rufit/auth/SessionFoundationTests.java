@@ -144,6 +144,30 @@ class SessionFoundationTests {
     }
   }
 
+  /** 회원 연결 후 다른 제공자로 로그인해도 응답·토큰·갱신이 같은 원장을 가리켜야 합니다. */
+  @Test
+  void linkedProviderUsesStoredOwnerForResponseAndAuthentication() throws Exception {
+    var original = open("linked-original");
+    UUID account = jdbc.queryForObject(
+      "select id from auth_accounts where owner_key=?", UUID.class, original.account().id()
+    );
+    jdbc.update(
+      "insert into auth_identities(provider,issuer,subject,account_id) values(?,?,?,?)",
+      "KAKAO", "https://kauth.kakao.com", "linked-kakao", account
+    );
+    var linked = sessions.open("KAKAO", "https://kauth.kakao.com", "linked-kakao");
+    assertThat(linked.account().id()).isEqualTo(original.account().id());
+    assertThat(linked.account().isNewAccount()).isFalse();
+    assertThat(sessions.authenticate(linked.accessToken())).isEqualTo(original.account().id());
+    assertThat(sessions.refresh(linked.refreshToken()).account().id())
+      .isEqualTo(original.account().id());
+    assertThat(jdbc.queryForObject("select count(*) from auth_accounts", Integer.class))
+      .isEqualTo(1);
+    mvc.perform(get("/api/v1/me").header("Authorization", "Bearer " + linked.accessToken()))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.id").value(original.account().id()));
+  }
+
   @Test
   void concurrentFirstLoginCreatesOneAccountAndDistinctGrants() throws Exception {
     try (var executor = Executors.newFixedThreadPool(2)) {
