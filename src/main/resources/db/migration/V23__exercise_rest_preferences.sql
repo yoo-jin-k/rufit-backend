@@ -1,7 +1,7 @@
 ALTER TABLE exercises ADD COLUMN recommended_rest_seconds integer
     CHECK (recommended_rest_seconds BETWEEN 0 AND 3600);
 
--- RuFit editable starting values, not imported GymWork recommendations.
+-- 루핏에서 사용자가 조정할 수 있는 휴식시간 초기값입니다.
 -- Rationale and source: docs/exercise-rest.md.
 UPDATE exercises SET recommended_rest_seconds = CASE
     WHEN id IN ('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003',
