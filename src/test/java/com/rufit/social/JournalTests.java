@@ -168,6 +168,44 @@ class JournalTests {
   }
 
   @Test
+  void deletionChecksOwnerAndVersionAndRemovesOnlyThePost() throws Exception {
+    connect();
+    var p = posts.save("alice", "delete-me", edit(0, true, List.of(image())));
+    var keep = posts.save("alice", "keep-me", edit(0, true, List.of()));
+    posts.like("bob", p.id(), true);
+    assertThatThrownBy(() -> posts.delete("bob", p.id(), p.version())).isInstanceOf(
+      org.springframework.web.server.ResponseStatusException.class
+    );
+    assertThatThrownBy(() -> posts.delete("alice", p.id(), 0)).isInstanceOf(
+      com.rufit.workout.WorkoutConflict.class
+    );
+    mvc
+      .perform(
+        delete("/api/v1/social/posts/" + p.id() + "?version=" + p.version())
+          .with(user("alice"))
+          .with(csrf())
+      )
+      .andExpect(status().isNoContent());
+    posts.delete("alice", p.id(), p.version());
+    assertThat(posts.list("alice", null, 0).items())
+      .extracting(JournalService.Post::id)
+      .containsExactly(keep.id());
+    assertThat(
+      jdbc.queryForObject("SELECT count(*) FROM journal_photos WHERE post_id=?", Long.class, p.id())
+    ).isZero();
+    assertThat(
+      jdbc.queryForObject("SELECT count(*) FROM journal_likes WHERE post_id=?", Long.class, p.id())
+    ).isZero();
+    assertThat(notifications.inbox("alice", null).items()).noneMatch(n ->
+      p.id().equals(n.postId())
+    );
+    assertThatThrownBy(() ->
+      posts.save("alice", "delete-me", edit(p.version(), true, List.of()))
+    ).isInstanceOf(com.rufit.workout.WorkoutConflict.class);
+    assertThat(friends.friends("alice").items()).hasSize(1);
+  }
+
+  @Test
   void invalidInputsAndUnauthenticatedRequestsAreRejected() throws Exception {
     mvc.perform(get("/api/v1/social/posts")).andExpect(status().isUnauthorized());
     mvc

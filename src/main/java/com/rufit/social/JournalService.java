@@ -305,6 +305,24 @@ public class JournalService {
     return read(me, id, true);
   }
 
+  /** 본인 최신 게시물만 삭제합니다. 연결 사진·좋아요·알림은 FK CASCADE로 함께 제거됩니다. */
+  public void delete(String owner, UUID id, long version) {
+    if (version < 0) throw new IllegalArgumentException("게시물 버전이 올바르지 않습니다.");
+    UUID me = member(owner);
+    lock(me);
+    var rows = jdbc.query(
+      "SELECT member_id,version FROM journal_posts WHERE id=?",
+      (r, n) -> new Object[] { r.getObject(1, UUID.class), r.getLong(2) },
+      id
+    );
+    if (rows.isEmpty()) return;
+    if (!me.equals(rows.getFirst()[0])) throw missing();
+    if (version != (Long) rows.getFirst()[1]) throw new WorkoutConflict(
+      "다른 곳에서 수정된 게시물입니다. 최신 내용을 확인한 뒤 삭제해 주세요."
+    );
+    jdbc.update("DELETE FROM journal_posts WHERE id=? AND member_id=?", id, me);
+  }
+
   public void hide(String owner, UUID id) {
     UUID me = member(owner);
     lock(me);

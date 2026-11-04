@@ -71,6 +71,12 @@ public class JournalController {
     return service.like(p.getName(), id, like.liked());
   }
 
+  @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(Principal p, @PathVariable UUID id, @RequestParam long version) {
+    service.delete(p.getName(), id, version);
+  }
+
   @PostMapping("/{id}/hide")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void hide(Principal p, @PathVariable UUID id) {
