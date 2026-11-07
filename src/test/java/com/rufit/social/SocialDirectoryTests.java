@@ -162,4 +162,63 @@ class SocialDirectoryTests {
       org.assertj.core.api.Assertions.assertThat(b.version()).isEqualTo(1);
     }
   }
+
+  /** 대소문자·앞뒤 공백만 다른 닉네임은 같은 닉네임으로 보고, 본인 닉네임은 계속 사용할 수 있어야 합니다. */
+  @Test
+  void nicknamesAreUniqueIgnoringCaseAndSurroundingSpaces() throws Exception {
+    save("alice", "Rufit", true, 0);
+    mvc
+      .perform(
+        get("/api/v1/social/directory/nickname-availability")
+          .param("nickname", "  rufit ")
+          .with(user("bob"))
+      )
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.nickname").value("rufit"))
+      .andExpect(jsonPath("$.available").value(false));
+    mvc
+      .perform(
+        get("/api/v1/social/directory/nickname-availability")
+          .param("nickname", "RUFIT")
+          .with(user("alice"))
+      )
+      .andExpect(jsonPath("$.available").value(true));
+    mvc
+      .perform(
+        get("/api/v1/social/directory/nickname-availability")
+          .param("nickname", "새닉네임")
+          .with(user("bob"))
+      )
+      .andExpect(jsonPath("$.available").value(true));
+    mvc
+      .perform(
+        get("/api/v1/social/directory/nickname-availability").param("nickname", " a ").with(user("bob"))
+      )
+      .andExpect(status().isBadRequest());
+    mvc
+      .perform(
+        put("/api/v1/social/directory/me")
+          .with(user("bob"))
+          .with(csrf())
+          .contentType(MediaType.APPLICATION_JSON)
+          .content("{\"nickname\":\" RUFIT \",\"discoverable\":true,\"version\":0}")
+      )
+      .andExpect(status().isConflict())
+      .andExpect(jsonPath("$.code").value("NICKNAME_TAKEN"));
+    // 본인은 대소문자만 바꿔 다시 저장할 수 있습니다.
+    save("alice", "RUFIT", true, 1);
+  }
+
+  /** DB 규칙도 같은 기준으로 중복을 막아 서비스 검사를 우회한 저장을 거부해야 합니다. */
+  @Test
+  void databaseRejectsDuplicateNicknames() {
+    jdbc.update(
+      "INSERT INTO social_directory(owner_name,member_id,nickname) VALUES ('a',gen_random_uuid(),'루핏회원')"
+    );
+    org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+      jdbc.update(
+        "INSERT INTO social_directory(owner_name,member_id,nickname) VALUES ('b',gen_random_uuid(),' 루핏회원 ')"
+      )
+    ).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+  }
 }

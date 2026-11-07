@@ -28,6 +28,12 @@ public class SocialDirectoryController {
     return service.update(principal.getName(), edit);
   }
 
+  /** 입력 중인 닉네임의 사용 가능 여부를 반환합니다. 대소문자와 앞뒤 공백은 구분하지 않습니다. */
+  @GetMapping("/nickname-availability")
+  public Availability nicknameAvailability(Principal principal, @RequestParam String nickname) {
+    return service.availability(principal.getName(), nickname);
+  }
+
   @GetMapping("/search")
   public Results search(
     Principal principal,
@@ -53,6 +59,9 @@ public class SocialDirectoryController {
   ) {}
 
   public record Member(UUID memberId, String nickname) {}
+
+  /** 확인한 닉네임(앞뒤 공백 제거)과 사용 가능 여부입니다. */
+  public record Availability(String nickname, boolean available) {}
 
   public record Results(List<Member> items, int page, int size, boolean hasNext) {}
 }

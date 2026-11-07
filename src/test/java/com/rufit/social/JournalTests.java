@@ -151,9 +151,15 @@ class JournalTests {
     assertThatThrownBy(() ->
       notifications.read("carol", Long.parseLong(likes.getFirst().id()))
     ).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
-    assertThatThrownBy(() -> posts.like("alice", p.id(), true)).isInstanceOf(
-      IllegalArgumentException.class
-    );
+    // 작성자 본인의 좋아요는 집계에 포함되지만 본인 알림은 생기지 않아야 합니다.
+    posts.like("alice", p.id(), true);
+    assertThat(posts.get("alice", p.id()).likes()).isEqualTo(2);
+    assertThat(posts.get("alice", p.id()).liked()).isTrue();
+    assertThat(
+      notifications.inbox("alice", null).items().stream().filter(n -> n.type().equals("POST_LIKED"))
+    ).hasSize(1);
+    posts.like("alice", p.id(), false);
+    assertThat(posts.get("alice", p.id()).likes()).isEqualTo(1);
     posts.like("bob", p.id(), false);
     posts.like("bob", p.id(), false);
     assertThat(posts.get("alice", p.id()).likes()).isZero();

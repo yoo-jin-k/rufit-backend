@@ -286,14 +286,14 @@ public class JournalService {
       .orElseThrow(this::missing);
     lock(me, target);
     Post p = read(me, id, false);
-    if (p.mine) throw new IllegalArgumentException("내 게시물에는 좋아요를 누를 수 없습니다.");
     if (enabled) {
       int added = jdbc.update(
         "INSERT INTO journal_likes VALUES (?,?) ON CONFLICT DO NOTHING",
         id,
         me
       );
-      if (added > 0) jdbc.update(
+      // 본인 게시물에도 좋아요를 누를 수 있지만, 자기 자신에게는 알림을 보내지 않습니다.
+      if (added > 0 && !p.mine) jdbc.update(
         "INSERT INTO social_notifications(recipient_id,actor_id,post_id,type) VALUES (?,?,?,'POST_LIKED') ON CONFLICT DO NOTHING",
         target,
         me,

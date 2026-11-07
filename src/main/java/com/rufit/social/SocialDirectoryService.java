@@ -41,16 +41,51 @@ public class SocialDirectoryService {
       .findFirst();
   }
 
-  /** 최초 동시 생성도 계정별로 직렬화하고 응답 유실 재시도에서 버전을 중복 증가시키지 않습니다. */
-  public Settings update(String owner, Edit edit) {
-    String nickname = edit.nickname().trim();
+  /** 닉네임 길이 규칙을 확인하고 앞뒤 공백을 제거한 값을 돌려줍니다. */
+  private static String normalized(String raw) {
+    String nickname = raw == null ? "" : raw.trim();
     if (nickname.length() < 2 || nickname.length() > 30) throw new IllegalArgumentException(
       "닉네임은 2~30자로 입력해 주세요."
     );
+    return nickname;
+  }
+
+  /** 대소문자와 앞뒤 공백을 무시하고, 본인을 제외한 다른 회원이 같은 닉네임을 쓰는지 확인합니다. */
+  private boolean taken(String owner, String nickname) {
+    return Boolean.TRUE.equals(
+      jdbc.queryForObject(
+        "SELECT EXISTS(SELECT 1 FROM social_directory WHERE lower(trim(nickname))=lower(?) AND owner_name<>?)",
+        Boolean.class,
+        nickname,
+        owner
+      )
+    );
+  }
+
+  /** 프로필 편집 화면에서 입력 중인 닉네임을 사용할 수 있는지 미리 알려 줍니다. 실제 저장 시에도 같은 기준으로 다시 검사합니다. */
+  @Transactional(readOnly = true)
+  public Availability availability(String owner, String raw) {
+    String nickname = normalized(raw);
+    return new Availability(nickname, !taken(owner, nickname));
+  }
+
+  /** 최초 동시 생성도 계정별로 직렬화하고 응답 유실 재시도에서 버전을 중복 증가시키지 않습니다. */
+  public Settings update(String owner, Edit edit) {
+    String nickname = normalized(edit.nickname());
     jdbc.query(
       "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))",
       rs -> {},
       "social-directory:" + owner
+    );
+    // 같은 닉네임을 동시에 저장하는 두 요청도 순서대로 검사되도록 닉네임 기준 잠금을 함께 겁니다.
+    jdbc.query(
+      "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))",
+      rs -> {},
+      "social-nickname:" + nickname.toLowerCase(java.util.Locale.ROOT)
+    );
+    if (taken(owner, nickname)) throw new WorkoutConflict(
+      "NICKNAME_TAKEN",
+      "이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요."
     );
     var current = read(owner, true);
     if (current.isPresent()) {
