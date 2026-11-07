@@ -52,7 +52,12 @@ public class SocialSecurityConfig {
             "/api/v1/auth/login-attempts",
             "/api/v1/auth/session-exchanges",
             "/api/v1/auth/refresh",
-            "/api/v1/auth/logout"
+            "/api/v1/auth/logout",
+            "/api/v1/auth/email/registrations",
+            "/api/v1/auth/email/registrations/confirm",
+            "/api/v1/auth/email/login",
+            "/api/v1/auth/email/password-resets",
+            "/api/v1/auth/email/password-resets/confirm"
           )
           .permitAll()
           .requestMatchers(

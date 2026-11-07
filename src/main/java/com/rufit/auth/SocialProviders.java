@@ -192,6 +192,11 @@ public class SocialProviders {
     }
 
     String authorize(String state, String nonce, String challenge) {
+      return authorize(state, nonce, challenge, false);
+    }
+
+    /** 이메일 동의는 계정을 구분해야 하는 카카오 연결에서만 요청합니다. */
+    String authorize(String state, String nonce, String challenge, boolean linking) {
       return (
         authorization +
         "?" +
@@ -204,7 +209,7 @@ public class SocialProviders {
             "response_type",
             "code",
             "scope",
-            "openid",
+            linking && "KAKAO".equals(name) ? "openid,account_email" : "openid",
             "state",
             state,
             "nonce",
@@ -214,7 +219,7 @@ public class SocialProviders {
             "code_challenge_method",
             "S256"
           )
-        )
+        ) + ("KAKAO".equals(name) ? "&prompt=login" : "")
       );
     }
   }

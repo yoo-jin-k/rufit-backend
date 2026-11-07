@@ -80,7 +80,7 @@ class SessionFoundationTests {
 
   @BeforeEach
   void clear() {
-    jdbc.update("truncate auth_refresh_tokens,auth_sessions,auth_identities,auth_accounts");
+    jdbc.update("truncate auth_account_merges,auth_email_credentials,auth_email_requests,auth_refresh_tokens,auth_sessions,auth_identities,auth_accounts");
   }
 
   @AfterAll

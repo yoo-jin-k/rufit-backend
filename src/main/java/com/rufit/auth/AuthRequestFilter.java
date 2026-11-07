@@ -28,7 +28,7 @@ final class AuthRequestFilter extends OncePerRequestFilter {
     FilterChain chain
   ) throws ServletException, IOException {
     String path = request.getRequestURI().substring(request.getContextPath().length());
-    if (!path.startsWith("/api/v1/auth/")) {
+    if (!path.startsWith("/api/v1/auth/") && !path.startsWith("/api/v1/account/")) {
       chain.doFilter(request, response);
       return;
     }

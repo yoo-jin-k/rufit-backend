@@ -6,6 +6,8 @@ public final class AuthFailure extends RuntimeException {
   private final int status;
   private final String code;
   private final long retryAfter;
+  private String verifiedKakaoEmail;
+  private boolean kakaoEmailUnavailable;
 
   public AuthFailure(int status, String code) {
     this(status, code, 0);
@@ -17,6 +19,19 @@ public final class AuthFailure extends RuntimeException {
     this.code = code;
     this.retryAfter = retryAfter;
   }
+
+  /** 인증 완료된 연결 요청에만 이메일을 전달하며 예외 메시지에는 넣지 않습니다. */
+  static AuthFailure verifiedLinkConflict(String provider, String email) {
+    var failure = new AuthFailure(409, "LOGIN_METHOD_CONFLICT");
+    if ("KAKAO".equals(provider)) {
+      failure.verifiedKakaoEmail = ProviderGateway.displayEmail(email);
+      failure.kakaoEmailUnavailable = failure.verifiedKakaoEmail == null;
+    }
+    return failure;
+  }
+
+  public String verifiedKakaoEmail() { return verifiedKakaoEmail; }
+  public boolean kakaoEmailUnavailable() { return kakaoEmailUnavailable; }
 
   public int status() {
     return status;

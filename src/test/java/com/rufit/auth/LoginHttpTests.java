@@ -82,7 +82,7 @@ class LoginHttpTests {
     CLOCK.now = SessionFoundationTests.NOW;
     PROVIDER.reset();
     jdbc.update(
-      "truncate auth_login_attempts,auth_rate_events,auth_refresh_tokens,auth_sessions,auth_identities,auth_accounts"
+      "truncate auth_account_merges,auth_email_credentials,auth_email_requests,auth_login_attempts,auth_rate_events,auth_refresh_tokens,auth_sessions,auth_identities,auth_accounts"
     );
   }
 

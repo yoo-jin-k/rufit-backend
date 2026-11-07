@@ -98,7 +98,8 @@ public class ProviderGateway {
         nonce == null ||
         !AuthCrypto.same(AuthCrypto.hash(nonce), nonceHash)
       ) throw AuthFailure.proof();
-      return new Identity(provider.issuer(), subject);
+      return new Identity(provider.issuer(), subject, "KAKAO".equals(provider.name())
+        ? displayEmail(c.getClaim("email")) : null);
     } catch (AuthFailure e) {
       throw e;
     } catch (Exception e) {
@@ -197,7 +198,16 @@ public class ProviderGateway {
     }
   }
 
-  record Identity(String issuer, String subject) {}
+  /** 검증된 토큰의 이메일도 표시 형식을 확인하며 계정 연결 키로 사용하지 않습니다. */
+  static String displayEmail(Object value) {
+    if (!(value instanceof String email) || email.length() > 254 ||
+        !email.matches("[^\\s@\\p{Cntrl}]+@[^\\s@\\p{Cntrl}]+\\.[^\\s@\\p{Cntrl}]+")) return null;
+    return email;
+  }
+
+  record Identity(String issuer, String subject, String email) {
+    @Override public String toString() { return "Identity[redacted]"; }
+  }
 
   private record Keys(String url, Instant fetched, JWKSet set) {}
 }

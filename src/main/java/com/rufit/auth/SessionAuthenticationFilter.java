@@ -29,10 +29,11 @@ final class SessionAuthenticationFilter extends OncePerRequestFilter {
     FilterChain chain
   ) throws ServletException, IOException {
     String path = request.getRequestURI().substring(request.getContextPath().length());
-    if (path.startsWith("/api/v1/auth/")) {
+    if (path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/account/")) {
       response.setHeader("Cache-Control", "no-store");
       response.setHeader("Referrer-Policy", "no-referrer");
-    } else {
+    }
+    if (!path.startsWith("/api/v1/auth/")) {
       String authorization = request.getHeader("Authorization");
       if (authorization != null) {
         try {

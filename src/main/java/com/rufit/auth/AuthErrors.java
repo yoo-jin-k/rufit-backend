@@ -6,7 +6,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-@RestControllerAdvice(assignableTypes = AuthController.class)
+@RestControllerAdvice(assignableTypes = {AuthController.class, EmailAccountController.class})
 @Profile("social")
 @Order(-10)
 public class AuthErrors {
@@ -29,14 +29,11 @@ public class AuthErrors {
     headers.set("Referrer-Policy", "no-referrer");
     if (error.retryAfter() > 0) headers.set("Retry-After", Long.toString(error.retryAfter()));
     if (error.status() == 401) headers.set("WWW-Authenticate", "Bearer realm=\"rufit\"");
-    return new ResponseEntity<>(
-      ApiErrors.problem(
-        HttpStatusCode.valueOf(error.status()),
-        error.code(),
-        AuthResponses.detail(error.status())
-      ),
-      headers,
-      error.status()
-    );
+    ProblemDetail problem = ApiErrors.problem(
+      HttpStatusCode.valueOf(error.status()), error.code(), AuthResponses.detail(error.status()));
+    if (error.verifiedKakaoEmail() != null)
+      problem.setProperty("verifiedKakaoEmail", error.verifiedKakaoEmail());
+    if (error.kakaoEmailUnavailable()) problem.setProperty("kakaoEmailUnavailable", true);
+    return new ResponseEntity<>(problem, headers, error.status());
   }
 }

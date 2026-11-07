@@ -24,8 +24,12 @@ public class LoginAttempts {
   private final SocialProviders providers;
   private final ProviderGateway gateway;
   private final TransientSecrets secrets;
+  // 카카오 콘솔의 이메일 권한과 동의항목이 준비된 후에만 추가 동의를 요청합니다.
+  @org.springframework.beans.factory.annotation.Value("${rufit.social.kakao.email-consent-enabled:false}")
+  private boolean kakaoEmailConsentEnabled;
   private final AuthSessions sessions;
   private final AuthLimits limits;
+  private final AccountMerge merger;
 
   public LoginAttempts(
     JdbcTemplate jdbc,
@@ -35,7 +39,8 @@ public class LoginAttempts {
     ProviderGateway gateway,
     TransientSecrets secrets,
     AuthSessions sessions,
-    AuthLimits limits
+    AuthLimits limits,
+    AccountMerge merger
   ) {
     this.jdbc = jdbc;
     this.clock = clock;
@@ -45,9 +50,18 @@ public class LoginAttempts {
     this.secrets = secrets;
     this.sessions = sessions;
     this.limits = limits;
+    this.merger = merger;
   }
 
   public AuthController.Started start(AuthController.Start input, String ip) {
+    return startInternal(input,ip,null,null);
+  }
+
+  public AuthController.Started startLink(AuthController.Start input,String ip,String owner,UUID session) {
+    return startInternal(input,ip,owner,session);
+  }
+
+  private AuthController.Started startInternal(AuthController.Start input, String ip,String owner,UUID session) {
     if (
       !AuthCrypto.secretFormat(input.codeChallenge()) || !"S256".equals(input.codeChallengeMethod())
     ) throw new AuthFailure(400, "INVALID_INPUT");
@@ -56,6 +70,7 @@ public class LoginAttempts {
     limits.take("start-minute:" + ip, 20, 60);
     limits.take("start-hour:" + ip, 100, 3600);
     return tx.execute(status -> {
+      if (session != null) sessions.requireAccount(session,owner);
       Instant now = clock.instant();
       String ipHash = AuthCrypto.hash(ip);
       jdbc.queryForList("select pg_advisory_xact_lock(hashtextextended(?,2))", ipHash);
@@ -98,9 +113,10 @@ public class LoginAttempts {
         secrets.encrypt(id, verifier),
         Timestamp.from(expires)
       );
+      if (session != null) jdbc.update("update auth_login_attempts set link_session_id=? where id=?",session,id);
       return new AuthController.Started(
         id,
-        provider.authorize(state, nonce, AuthCrypto.challenge(verifier)),
+        provider.authorize(state, nonce, AuthCrypto.challenge(verifier), session != null && kakaoEmailConsentEnabled),
         expires
       );
     });
@@ -180,11 +196,13 @@ public class LoginAttempts {
         ? now.plusSeconds(60)
         : current.expires();
       jdbc.update(
-        "update auth_login_attempts set status='READY',verifier_cipher=null,handoff_hash=?,handoff_expires_at=?,identity_issuer=?,identity_subject=? where id=?",
+        "update auth_login_attempts set status='READY',verifier_cipher=null,handoff_hash=?,handoff_expires_at=?,identity_issuer=?,identity_subject=?,identity_email_cipher=? where id=?",
         AuthCrypto.hash(handoff),
         Timestamp.from(expires),
         identity.issuer(),
         identity.subject(),
+        attempt.linkSession() != null && identity.email() != null
+          ? secrets.encrypt(attempt.id(), identity.email()) : null,
         attempt.id()
       );
     });
@@ -196,12 +214,29 @@ public class LoginAttempts {
   }
 
   public SessionView exchange(AuthController.Exchange input, String ip) {
+    return exchangeInternal(input,ip,null,null,false);
+  }
+
+  public void exchangeLink(AuthController.Exchange input,String ip,String owner,UUID session) {
+    exchangeInternal(input,ip,owner,session,false);
+  }
+
+  public void exchangeMerge(AuthController.Exchange input,String ip,String owner,UUID session) {
+    try { exchangeInternal(input,ip,owner,session,true); }
+    catch (org.springframework.dao.DataIntegrityViolationException failure) {
+      // 고유키·관계 충돌은 전체 롤백 후 데이터 내용을 노출하지 않는 오류로 안내합니다.
+      throw AccountMerge.conflict();
+    }
+  }
+
+  private SessionView exchangeInternal(AuthController.Exchange input, String ip,String owner,UUID session,boolean merge) {
     if (
       !AuthCrypto.secretFormat(input.handoffCode()) ||
       input.codeVerifier() == null ||
       !input.codeVerifier().matches("[A-Za-z0-9._~-]{43,128}")
     ) throw new AuthFailure(400, "INVALID_INPUT");
-    SessionView result = tx.execute(status -> {
+    ExchangeResult result = tx.execute(status -> {
+      if (merge) merger.lock();
       var rows = jdbc.query(
         "select * from auth_login_attempts where id=? for update",
         this::map,
@@ -221,17 +256,38 @@ public class LoginAttempts {
       ) throw AuthFailure.proof();
       if (a.status().equals("CONSUMED")) throw new AuthFailure(409, "LOGIN_ATTEMPT_CONFLICT");
       if (!a.status().equals("READY")) throw AuthFailure.proof();
-      SessionView view = sessions.open(a.provider(), a.issuer(), a.subject());
+      // 연결용 교환은 시작한 세션에서만 소비할 수 있고 일반 로그인으로 전환할 수 없습니다.
+      if (!Objects.equals(a.linkSession(),session)) throw AuthFailure.proof();
+      SessionView view = null;
+      if (session == null) view = sessions.open(a.provider(), a.issuer(), a.subject());
+      else {
+        UUID account=sessions.requireAccount(session,owner);
+        String identityOwner=AuthCrypto.owner(a.issuer(),a.subject());
+        jdbc.queryForList("select pg_advisory_xact_lock(hashtextextended(?,0))",identityOwner);
+        var existing=jdbc.query("select account_id from auth_identities where provider=? and issuer=? and subject=?",
+          (rs,n)->rs.getObject(1,UUID.class),a.provider(),a.issuer(),a.subject());
+        if (!existing.isEmpty() && !existing.getFirst().equals(account)) {
+          if (merge) merger.merge(account,existing.getFirst(),session);
+          else throw AuthFailure.verifiedLinkConflict(a.provider(), a.emailCipher() == null ? null : secrets.decrypt(a.id(), a.emailCipher()));
+        }
+        if (existing.isEmpty()) {
+          if (Boolean.TRUE.equals(jdbc.queryForObject("select exists(select 1 from auth_identities where account_id=? and provider=?)",Boolean.class,account,a.provider())))
+            throw AuthFailure.verifiedLinkConflict(a.provider(), a.emailCipher() == null ? null : secrets.decrypt(a.id(), a.emailCipher()));
+          jdbc.update("insert into auth_identities(provider,issuer,subject,account_id) values(?,?,?,?)",a.provider(),a.issuer(),a.subject(),account);
+        }
+      }
       jdbc.update("update auth_login_attempts set status='CONSUMED' where id=?", a.id());
-      return view;
+      return new ExchangeResult(view);
     });
     // 행 잠금/연결을 반환한 뒤 별도 카운터를 갱신해 연결 풀 교착을 피합니다.
     if (result == null) {
       limits.take("bad-handoff:" + input.attemptId() + ":" + ip, 5, 60);
       throw AuthFailure.proof();
     }
-    return result;
+    return result.view();
   }
+
+  private record ExchangeResult(SessionView view) {}
 
   private Attempt map(ResultSet rs, int row) throws SQLException {
     Timestamp handoff = rs.getTimestamp("handoff_expires_at");
@@ -247,7 +303,9 @@ public class LoginAttempts {
       rs.getString("handoff_hash"),
       handoff == null ? null : handoff.toInstant(),
       rs.getString("identity_issuer"),
-      rs.getString("identity_subject")
+      rs.getString("identity_subject"),
+      rs.getString("identity_email_cipher"),
+      rs.getObject("link_session_id", UUID.class)
     );
   }
 
@@ -263,7 +321,9 @@ public class LoginAttempts {
     String handoffHash,
     Instant handoffExpires,
     String issuer,
-    String subject
+    String subject,
+    String emailCipher,
+    UUID linkSession
   ) {
     @Override
     public String toString() {

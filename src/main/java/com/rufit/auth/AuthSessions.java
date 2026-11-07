@@ -92,6 +92,12 @@ public class AuthSessions {
       account = existing.getFirst().id();
       owner = existing.getFirst().owner();
     }
+    return openAccount(account, owner, isNew);
+  }
+
+  /** 이메일 인증도 동일한 세션 정책을 적용하며 호출자의 트랜잭션 안에서 실행합니다. */
+  SessionView openAccount(UUID account, String owner, boolean isNew) {
+    Instant now = clock.instant();
     UUID session = UUID.randomUUID();
     Instant expires = now.plus(Duration.ofDays(14));
     jdbc.update(
@@ -251,6 +257,20 @@ public class AuthSessions {
       session
     );
     return rows.isEmpty() ? null : rows.getFirst();
+  }
+
+  /** 연결 요청에 사용한 세션을 잠가 로그아웃·비밀번호 재설정과 경합을 직렬화합니다. */
+  UUID requireAccount(UUID session, String owner) {
+    Grant grant = lock(session);
+    Instant now = clock.instant();
+    if (grant == null || grant.revoked() || !grant.owner().equals(owner)
+      || !now.isBefore(grant.idle()) || !now.isBefore(grant.absolute())) throw AuthFailure.expired();
+    return grant.account();
+  }
+
+  UUID sessionId(String access) {
+    authenticate(access);
+    return tokens.verify(access, clock.instant()).sessionId();
   }
 
   private record AccountOwner(UUID id, String owner) {}
