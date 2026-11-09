@@ -18,7 +18,7 @@
 | DB/role | `rufit_test`; DB 포트는 호스트에 공개하지 않음 |
 | 자동 회귀 DB | 별도 `rufit-auth-test-db`/host5437. preview를 테스트 초기화 대상으로 사용하지 않음 |
 
-사용 중인 BE 작업 공간에서 실행한다. 110종 갱신 후 현재 실행 작업공간은 `/Users/yoo-jinkim/.codex/.chatgpt-projects/g-p-6a70b6f73c488191a9444a0c848d5cea/rufit-backend-catalog`다. 로그인 이전 작업공간은 rufit-backend-auth이며 preview를 그 이전 코드로 다시 시작하지 않는다.
+사용 중인 BE 작업 공간에서 실행한다. 110종 갱신 후 현재 실행 작업공간은 `rufit-backend-catalog`다. 로그인 이전 작업공간은 rufit-backend-auth이며 preview를 그 이전 코드로 다시 시작하지 않는다.
 
 ```sh
 python3 scripts/fake-login-preview.py start
