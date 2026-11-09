@@ -1,0 +1,15 @@
+# 로컬 인증 메일을 수신합니다. 실제 외부 발송이나 공개 터널에 연결하지 않습니다.
+name: rufit-mail-dev
+services:
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    ports:
+      - "127.0.0.1:18025:8025"
+      - "127.0.0.1:11025:1025"
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 100
+    volumes:
+      - mail-data:/data
+volumes:
+  mail-data:

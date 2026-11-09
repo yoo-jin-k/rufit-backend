@@ -1,0 +1,25 @@
+services:
+  backend:
+    image: rufit-backend:local
+    build: .
+    ports:
+      - '127.0.0.1:${RUFIT_API_PORT:-8080}:8080'
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/rufit
+      DB_USERNAME: rufit
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in your environment}
+      SPRING_PROFILES_ACTIVE: oidc
+      RUFIT_AUTH_ISSUER: ${RUFIT_AUTH_ISSUER:?Set the trusted OIDC issuer}
+      RUFIT_AUTH_JWK_SET_URI: ${RUFIT_AUTH_JWK_SET_URI:?Set the issuer JWKS URL}
+      RUFIT_AUTH_AUDIENCE: ${RUFIT_AUTH_AUDIENCE:?Set the API token audience}
+      RUFIT_ALLOWED_ORIGINS: ${RUFIT_ALLOWED_ORIGINS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    mem_limit: 512m
+    restart: unless-stopped

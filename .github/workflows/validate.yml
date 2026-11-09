@@ -1,0 +1,88 @@
+name: Validate backend
+on:
+  pull_request:
+    branches: [developer, develop, main]
+  push:
+    branches: ['feature/**', 'codex/**']
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: rufit_test
+          POSTGRES_USER: rufit_test
+          POSTGRES_PASSWORD: ci-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U rufit_test -d rufit_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DB_URL: jdbc:postgresql://localhost:5432/rufit_test
+      DB_USERNAME: rufit_test
+      DB_PASSWORD: ci-test-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: python3 scripts/test_database_guard.py
+      - run: ./mvnw -B verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-api-contract
+          path: |
+            target/openapi.json
+            target/openapi-oidc.json
+            target/auth-openapi.json
+          if-no-files-found: error
+      - run: python3 scripts/smoke-restart.py
+      - name: Verify recovery after PostgreSQL interruption
+        run: python3 scripts/smoke-database-reconnect.py
+        timeout-minutes: 3
+        env:
+          RUFIT_TEST_CONTAINER: ${{ job.services.postgres.id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-database-reconnect
+          path: target/database-reconnect-result.json
+          if-no-files-found: error
+      - name: Verify database backup and isolated restore
+        run: python3 scripts/verify-backup-restore.py
+        timeout-minutes: 2
+        env:
+          RUFIT_TEST_CONTAINER: ${{ job.services.postgres.id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-data-recovery
+          path: target/backup-restore-result.json
+          if-no-files-found: error
+      - name: Build verified runtime image
+        run: docker build -t rufit-backend:verify .
+      - name: Verify container restart and default access policy
+        run: python3 scripts/smoke-container.py
+        timeout-minutes: 5
+        env:
+          RUFIT_TEST_CONTAINER: ${{ job.services.postgres.id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-container-runtime
+          path: target/container-runtime-result.json
+          if-no-files-found: error
+      - name: Verify isolated runtime longevity harness
+        run: python3 scripts/soak-backend.py --duration-seconds 40 --interval-seconds 5 --result target/runtime-soak-smoke.json
+        timeout-minutes: 4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-runtime-longevity
+          path: target/runtime-soak-smoke.json
+          if-no-files-found: warn

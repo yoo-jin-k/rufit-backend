@@ -1,0 +1,22 @@
+CREATE TABLE exercises (
+ id uuid PRIMARY KEY,
+ owner_name varchar(100),
+ name varchar(80) NOT NULL,
+ body_part varchar(24) NOT NULL,
+ equipment varchar(24) NOT NULL,
+ archived_at timestamptz,
+ version bigint NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX exercises_custom_active_name ON exercises(owner_name, lower(name))
+WHERE owner_name IS NOT NULL AND archived_at IS NULL;
+INSERT INTO exercises(id,name,body_part,equipment) VALUES
+('00000000-0000-4000-8000-000000000001','스쿼트','LEGS','BARBELL'),
+('00000000-0000-4000-8000-000000000002','벤치프레스','CHEST','BARBELL'),
+('00000000-0000-4000-8000-000000000003','데드리프트','FULL_BODY','BARBELL'),
+('00000000-0000-4000-8000-000000000004','오버헤드프레스','SHOULDERS','BARBELL'),
+('00000000-0000-4000-8000-000000000005','랫풀다운','BACK','MACHINE'),
+('00000000-0000-4000-8000-000000000006','레그프레스','LEGS','MACHINE'),
+('00000000-0000-4000-8000-000000000007','푸시업','CHEST','BODYWEIGHT'),
+('00000000-0000-4000-8000-000000000008','풀업','BACK','BODYWEIGHT'),
+('00000000-0000-4000-8000-000000000009','덤벨컬','ARMS','DUMBBELL'),
+('00000000-0000-4000-8000-000000000010','트라이셉스푸시다운','ARMS','CABLE');
