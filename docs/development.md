@@ -13,7 +13,7 @@ Java 21 · Spring Boot 4.1.1 · PostgreSQL · Maven Wrapper.
 
 1. Java 21을 선택합니다.
 2. 환경변수 `DB_PASSWORD`를 설정하고 `docker compose up -d`로 PostgreSQL을 실행합니다.
-3. `./mvnw spring-boot:run`을 실행합니다.
+3. `SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run`을 실행합니다. 프로필 없이 실행하면 health 외 업무 API는 막힙니다.
 4. `http://127.0.0.1:8080/actuator/health`에서 상태를 확인합니다.
 
 DB_URL(기본 localhost:5433/rufit), DB_USERNAME(기본 rufit), DB_PASSWORD로 연결을 지정합니다.
@@ -33,7 +33,7 @@ H2로 PostgreSQL 호환성 검증을 대체하지 않습니다.
 
 ## API 명세와 인증 구현 상태
 
-OIDC 검증과 `social` 프로필 로그인 API를 구현했습니다. 실제 제공자 등록·실기기 로그인·운영 배포는 아직입니다. [인증 설정](authentication.md)을 참고합니다.
+OIDC 검증과 `social` 프로필 로그인 API를 구현했습니다. 카카오·구글 제공자 등록, AWS 개발 서버 배포, 아이폰 개발 빌드 로그인 확인을 마쳤습니다. TestFlight·정식 운영 배포는 준비 중입니다. [인증 설정](authentication.md)을 참고합니다.
 
 `RUFIT_API_DOCS_ENABLED=true`로 명시적으로 켜면 인증 후 `/v3/api-docs`에서 OpenAPI 3.0 JSON을 조회할 수 있습니다. 기본값은 비활성입니다. 명세도 업무 API와 동일한 인증 보호를 받습니다. Swagger UI는 포함하지 않습니다.
 

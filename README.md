@@ -142,7 +142,7 @@ com.rufit
 ### 3. 동시 수정 충돌
 
 - 운동 기록에 **수정 버전**을 두어 두 기기에서 동시에 고쳐도 늦게 온 쪽이 덮어쓰지 않게 했습니다.
-- 종료된 운동은 엔티티 규칙으로 변경을 막습니다.
+- 운동 중 수정 API(세트 추가·수정·완료, 휴식, 일시정지 등)는 종료·취소된 운동이면 거절합니다. 완료된 기록은 전용 정정 API(`PUT /api/v1/workouts/{id}/history`)로만 고치며, 이때도 수정 버전을 검사합니다.
 
 ### 4. 종목 목록 확장 중 기존 기록 보존
 
@@ -161,6 +161,8 @@ com.rufit
 
 refresh 토큰은 한 번만 쓸 수 있습니다. **이미 쓴 토큰이 다시 오면 탈취로 보고 세션 전체를 폐기**합니다.
 같은 세션의 요청이 동시에 와도 세션 행을 잠가(`SELECT … FOR UPDATE`) 한 요청만 회전에 성공합니다.
+
+> 설명용으로 줄인 코드입니다. `/* … */ ...`는 생략한 부분이며, 전체 코드는 [실제 코드 168~216줄](src/main/java/com/rufit/auth/AuthSessions.java#L168-L216)에서 볼 수 있습니다.
 
 ```java
 public SessionView refresh(String refresh) {
@@ -191,6 +193,8 @@ public SessionView refresh(String refresh) {
 헬스장에서 통신이 끊기면 같은 요청이 여러 번 갈 수 있습니다. 앱이 만든 `Idempotency-Key`를 그대로 운동 ID로 쓰고,
 요청 원문의 **지문(fingerprint)** 을 함께 저장해 "같은 요청의 재시도"와 "같은 키로 다른 기록을 보낸 실수"를 구분합니다.
 
+> 설명용으로 줄인 코드입니다. `/* … */ ...`는 생략한 부분이며, 전체 코드는 [실제 코드 169~199줄](src/main/java/com/rufit/workout/WorkoutService.java#L169-L199)에서 볼 수 있습니다.
+
 ```java
 // 가져오기 원문 지문을 비교해 같은 요청 재시도는 덮어쓰기 없이 처리합니다.
 public ImportResult importOffline(String owner, UUID key, OfflineImport request) {
@@ -213,6 +217,8 @@ public ImportResult importOffline(String owner, UUID key, OfflineImport request)
 운동 엔티티에 `@Version`을 두고, 수정 요청마다 앱이 알고 있던 버전을 함께 보냅니다.
 버전이 다르면 덮어쓰지 않고 409로 알려 앱이 최신 기록을 다시 불러오게 합니다.
 
+> 설명용으로 줄인 코드입니다. `/* … */ ...`는 생략한 부분이며, 전체 코드는 [`@Version`](src/main/java/com/rufit/workout/Workout.java#L48)과 [`checkVersion`](src/main/java/com/rufit/workout/WorkoutService.java#L429-L433)에서 볼 수 있습니다.
+
 ```java
 @Entity
 class Workout {
@@ -229,6 +235,8 @@ checkVersion(workout, request.version());   // 앱이 본 버전과 다르면 Wo
 
 키보드가 올라올 때 화면 높이를 줄이면(하단 버튼까지 같이 올라감) iOS의 "입력칸 보이게 스크롤"과 부딪혀 목록이 흔들렸습니다.
 입력이 많은 화면은 **화면 크기는 그대로 두고 스크롤 여백만 키보드만큼 늘리는** 방식을 따로 두었습니다.
+
+> 설명용으로 줄인 코드입니다. 전체 코드는 위 제목의 링크에서 볼 수 있습니다.
 
 ```tsx
 /**
@@ -249,15 +257,29 @@ keyboard?: 'lift' | 'cover';
 
 ## 실행 방법
 
-```sh
-# 백엔드
-docker compose up -d          # PostgreSQL (DB_PASSWORD 환경변수 필요)
-./mvnw spring-boot:run        # http://127.0.0.1:8080/actuator/health
+### 백엔드 — 이 저장소 (Java 21, Docker)
 
-# 프론트엔드 (Node 24)
-npm ci
-npm start                     # 개발 서버, 아이폰 개발용 앱에서 접속
+```sh
+export DB_PASSWORD=<로컬 DB 비밀번호>     # 원하는 값. 코드에 넣지 않습니다
+docker compose up -d                     # PostgreSQL 17 (localhost:5433)
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
+curl http://127.0.0.1:8080/actuator/health
 ```
+
+- 프로필을 정하지 않으면 health만 열리고 운동 등 업무 API는 막힙니다. 로컬에서 API를 쓰려면 `local` 프로필(개발용 Basic 인증)로 실행합니다.
+- 카카오·구글·이메일 로그인까지 쓰려면 `social` 프로필과 세션 서명 키·제공자 환경변수가 필요합니다. [인증 설정](docs/authentication.md)을 참고해 주세요.
+- 테스트는 전용 `rufit_test` DB에서 `./mvnw -B verify`로 실행합니다. [개발 안내](docs/development.md#검증)를 참고해 주세요.
+
+### 프론트엔드 — [rufit-frontend](https://github.com/yoo-jin-k/rufit-frontend) 저장소 (Node 24)
+
+```sh
+git clone https://github.com/yoo-jin-k/rufit-frontend.git
+cd rufit-frontend
+npm ci
+npm start                    # 개발 서버. 아이폰 개발용 앱에서 접속
+```
+
+- 서버 주소는 `.env.local`의 `EXPO_PUBLIC_RUFIT_API_URL`로 지정합니다. 로그인 설정은 프론트 [로그인 연동 안내](https://github.com/yoo-jin-k/rufit-frontend/blob/main/docs/social-login-v1.md)를 참고해 주세요.
 
 ---
 
@@ -265,10 +287,12 @@ npm start                     # 개발 서버, 아이폰 개발용 앱에서 접
 
 | 상태 | 내용 |
 | --- | --- |
-| 완료 | 운동 기록 · 휴식 타이머 · 종목 110종 검색 · 달력 · 분석 · 오운완 · 세션 인증 API |
-| 진행 중 | 실제 카카오·구글 앱 등록과 실기기 로그인, 운영 서버 배포, 기기 기록 가져오기 화면 |
-| 예정 | 종목별 동작 이미지·GIF, 루틴 화면, App Store 출시 |
+| 완료 | 운동 기록 · 휴식 타이머 · 종목 110종 검색 · 달력 · 분석 · 오운완 · 친구·응원·알림 · 기기 기록 가져오기 |
+| 완료 | 카카오·구글·이메일 로그인과 계정 연결, refresh 토큰 회전 |
+| 완료 | AWS 개발 서버 배포(HTTPS 도메인), 아이폰 개발 빌드에서 로그인·주요 화면 확인 |
+| 준비 중 | TestFlight·App Store 출시, 정식 운영 서버와 DB 백업 정책 |
+| 예정 | 종목별 동작 이미지·GIF, 루틴 화면 |
 
-> 운영 배포 전 단계의 개인 프로젝트입니다. 위 기능은 로컬 서버와 실제 아이폰에서 확인했습니다.
+> 정식 출시 전 단계의 개인 프로젝트입니다. 실기기 확인은 개인 개발 서명으로 설치한 아이폰 개발 빌드 기준입니다.
 
 상세 개발 문서(API 계약·DB 구조·검증 방법)는 [docs/development.md](docs/development.md)에 정리했습니다.
