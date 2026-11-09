@@ -97,7 +97,7 @@
 flowchart LR
   App["모바일 앱<br/>React Native · Expo"] -->|HTTPS · 세션 토큰| API["API 서버<br/>Spring Boot 4 · Java 21"]
   App -->|오프라인 우선 저장| Local[("기기 저장소<br/>AsyncStorage")]
-  API --> DB[("PostgreSQL 17<br/>Flyway V1~V26")]
+  API --> DB[("PostgreSQL 17<br/>Flyway V1~V37")]
   API -->|코드 교환| Provider["카카오 · 구글"]
 ```
 
@@ -105,7 +105,7 @@ flowchart LR
 | --- | --- |
 | 프론트엔드 | React Native 0.86, Expo SDK 57, TypeScript, react-native-svg |
 | 백엔드 | Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA, JdbcTemplate |
-| DB | PostgreSQL 17, Flyway(마이그레이션 38개, 앱 테이블 21개) |
+| DB | PostgreSQL 17, Flyway(마이그레이션 V1~V37, 앱 테이블 37개) |
 | 테스트 | 백엔드 JUnit 257개(실제 PostgreSQL), 프론트 Node test 286개 |
 | 디자인 | Figma 디자인 시스템(색·간격·글자 토큰 → 코드 토큰으로 연결) |
 
