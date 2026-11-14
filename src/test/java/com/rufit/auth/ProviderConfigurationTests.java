@@ -100,4 +100,22 @@ class ProviderConfigurationTests {
       assertThatThrownBy(() -> providers.returnUri("WEB", "WEB_LOGIN")).isInstanceOf(AuthFailure.class);
     }
   }
+
+  @Test
+  void deployedWebCallbackMustUseHttpsOriginRegisteredForCors() {
+    var env = new MockEnvironment();
+    var providers = new SocialProviders(env);
+    env.setProperty("rufit.social.web-enabled", "true");
+    env.setProperty("rufit.social.web-return-uri", "https://app.rufit.test/auth/callback.html");
+    // CORS 허용 목록에 없으면 https 주소라도 거절합니다.
+    assertThatThrownBy(() -> providers.returnUri("WEB", "WEB_LOGIN")).isInstanceOf(AuthFailure.class);
+    env.setProperty("rufit.allowed-origins", "http://localhost:8081, https://app.rufit.test");
+    assertThat(providers.returnUri("WEB", "WEB_LOGIN")).isEqualTo("https://app.rufit.test/auth/callback.html");
+    for (String value : List.of("http://app.rufit.test/auth/callback.html", "https://app.rufit.test.evil/auth/callback.html",
+      "https://app.rufit.test:8443/auth/callback.html", "https://app.rufit.test/other",
+      "https://app.rufit.test/auth/callback.html?next=evil", "https://user@app.rufit.test/auth/callback.html")) {
+      env.setProperty("rufit.social.web-return-uri", value);
+      assertThatThrownBy(() -> providers.returnUri("WEB", "WEB_LOGIN")).isInstanceOf(AuthFailure.class);
+    }
+  }
 }

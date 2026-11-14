@@ -94,16 +94,20 @@ public class SocialProviders {
   }
 
   String returnUri(String client, String route) {
-    // 웹은 명시적으로 켠 로컬 시험 환경에서만 사용하며 임의 복귀 주소를 받지 않습니다.
+    // 웹은 명시적으로 켠 경우에만 사용하며 임의 복귀 주소를 받지 않습니다.
+    // http는 로컬 시험 주소만, https는 CORS 허용 목록에 등록한 배포 주소만 허용합니다.
     if ("WEB".equals(client)) {
       if (!"WEB_LOGIN".equals(route)) throw new AuthFailure(400, "INVALID_INPUT");
       if (!env.getProperty("rufit.social.web-enabled", Boolean.class, false))
         throw new AuthFailure(503, "AUTH_PROVIDER_UNAVAILABLE");
       String value = env.getProperty("rufit.social.web-return-uri", "");
       URI target = uri(value);
-      if (value.length() > 512 || !"http".equals(target.getScheme())
-        || !Set.of("localhost", "127.0.0.1").contains(target.getHost() == null ? "" : target.getHost())
-        || target.getPort() < 1 || target.getPort() > 65535
+      String host = target.getHost() == null ? "" : target.getHost();
+      boolean local = "http".equals(target.getScheme()) && Set.of("localhost", "127.0.0.1").contains(host)
+        && target.getPort() >= 1 && target.getPort() <= 65535;
+      boolean deployed = "https".equals(target.getScheme()) && !host.isEmpty()
+        && allowedOrigins().contains(target.getScheme() + "://" + target.getRawAuthority());
+      if (value.length() > 512 || !(local || deployed)
         || !"/auth/callback.html".equals(target.getPath())
         || target.getUserInfo() != null || target.getQuery() != null || target.getFragment() != null)
         throw new AuthFailure(503, "AUTH_PROVIDER_UNAVAILABLE");
@@ -139,6 +143,15 @@ public class SocialProviders {
     } catch (Exception e) {
       throw new AuthFailure(503, "AUTH_PROVIDER_UNAVAILABLE");
     }
+  }
+
+  // CORS와 같은 설정(rufit.allowed-origins)을 읽어 웹 복귀 주소의 출처를 한곳에서 관리합니다.
+  private Set<String> allowedOrigins() {
+    Set<String> origins = new HashSet<>();
+    for (String origin : env.getProperty("rufit.allowed-origins", "").split(",")) {
+      if (!origin.isBlank()) origins.add(origin.trim());
+    }
+    return origins;
   }
 
   static void validateHttps(URI u) {
