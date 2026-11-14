@@ -25,6 +25,18 @@
 | 플랫폼 | iOS 우선 (Android·웹 동시 지원) |
 | 저장소 | 백엔드 [rufit-backend](https://github.com/yoo-jin-k/rufit-backend) · 프론트엔드 [rufit-frontend](https://github.com/yoo-jin-k/rufit-frontend) |
 
+### 체험하기
+
+| 방법 | 링크 | 안내 |
+| --- | --- | --- |
+| 웹 | [app.rufit.yjinee.com](https://app.rufit.yjinee.com) | 설치 없이 브라우저에서 바로 사용 |
+| 안드로이드 | [rufit.apk 다운로드](https://github.com/yoo-jin-k/rufit-frontend/releases/latest/download/rufit.apk) | 설치 시 "출처를 알 수 없는 앱" 허용 필요 · [설치 방법](https://github.com/yoo-jin-k/rufit-frontend/releases/latest) |
+| 아이폰 | 준비 중 | TestFlight 공개 테스트 링크 예정 |
+
+- 이메일 가입이나 카카오·구글로 로그인할 수 있고, **로그인 없이 둘러보기**로 기기 안에서만 기록해 볼 수도 있습니다.
+- 개발 서버에 연결된 테스트 버전입니다. 데이터는 예고 없이 초기화될 수 있습니다.
+- 웹은 보안상 로그인 상태를 현재 탭에만 보관하므로, 탭을 닫으면 다시 로그인해야 합니다.
+
 ---
 
 ## 주요 화면
@@ -290,9 +302,11 @@ npm start                    # 개발 서버. 아이폰 개발용 앱에서 접�
 | 완료 | 운동 기록 · 휴식 타이머 · 종목 110종 검색 · 달력 · 분석 · 오운완 · 친구·응원·알림 · 기기 기록 가져오기 |
 | 완료 | 카카오·구글·이메일 로그인과 계정 연결, refresh 토큰 회전 |
 | 완료 | AWS 개발 서버 배포(HTTPS 도메인), 아이폰 개발 빌드에서 로그인·주요 화면 확인 |
+| 완료 | 웹 체험판 자동 배포(GitHub Pages), 안드로이드 테스트 앱(APK) 배포 |
+| 진행 중 | 종목별 동작 이미지·GIF (구매 라이선스 그림 5종 우선 적용, 안드로이드 테스트 앱에 포함) |
 | 준비 중 | TestFlight·App Store 출시, 정식 운영 서버와 DB 백업 정책 |
-| 예정 | 종목별 동작 이미지·GIF, 루틴 화면 |
+| 예정 | 루틴 화면 |
 
-> 정식 출시 전 단계의 개인 프로젝트입니다. 실기기 확인은 개인 개발 서명으로 설치한 아이폰 개발 빌드 기준입니다.
+> 정식 출시 전 단계의 개인 프로젝트입니다. 아이폰 실기기 확인은 개인 개발 서명으로 설치한 개발 빌드 기준입니다.
 
 상세 개발 문서(API 계약·DB 구조·검증 방법)는 [docs/development.md](docs/development.md)에 정리했습니다.
