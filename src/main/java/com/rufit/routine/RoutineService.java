@@ -86,7 +86,7 @@ public class RoutineService {
     );
     var entries = source.entries
       .stream()
-      .map(e -> new Workout.Entry(e.exerciseId(), e.name(), e.weight(), e.reps()))
+      .map(e -> new Workout.Entry(e.exerciseId(), e.name(), e.weight(), e.reps(), e.setType(), e.rpe()))
       .toList();
     Routine copy = new Routine(requestId, owner, request.title(), entries);
     copy.sourceRoutineId = source.id;
@@ -119,7 +119,7 @@ public class RoutineService {
       .completedSetIndexes()
       .stream()
       .map(index -> source.sets().get(index))
-      .map(set -> new Workout.Entry(set.exerciseId(), set.exerciseName(), set.weight(), set.reps()))
+      .map(set -> new Workout.Entry(set.exerciseId(), set.exerciseName(), set.weight(), set.reps(), set.setType(), set.rpe()))
       .toList();
     Routine routine = new Routine(requestId, owner, request.title(), entries);
     routine.sourceWorkoutId = workoutId;
@@ -189,7 +189,7 @@ public class RoutineService {
       r.id,
       r.entries
         .stream()
-        .map(e -> new Workout.Entry(e.exerciseId(), e.name(), e.weight(), e.reps()))
+        .map(e -> new Workout.Entry(e.exerciseId(), e.name(), e.weight(), e.reps(), e.setType(), e.rpe()))
         .toList()
     );
   }

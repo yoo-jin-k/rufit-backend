@@ -1,10 +1,10 @@
 # 루핏 데이터베이스 구조와 ERD
 
-기준: PostgreSQL용 Flyway V1~V37(2026-11-09). 운동·루틴·종목·프로필, 소셜 로그인·이메일 로그인·계정 병합, 기록 이전·체중/삼대 측정, 친구·오운완·알림·응원을 포함합니다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 37개입니다.
+기준: PostgreSQL용 Flyway V1~V40(2026-11-15). 운동·루틴·종목·프로필, 소셜 로그인·이메일 로그인·계정 병합, 기록 이전·체중/삼대 측정, 친구·오운완·알림·응원을 포함합니다. Flyway가 관리하는 `flyway_schema_history`를 제외한 애플리케이션 테이블은 39개입니다.
 
 | 묶음 | 테이블 수 | 도입 | 설명 위치 |
 | --- | --- | --- | --- |
-| 운동·루틴 업무 | 14 | V1~V23 | 아래 업무 도표 |
+| 운동·루틴 업무 | 16 | V1~V23, V38~V40 | 아래 업무 도표 |
 | 종목 검색 색인 | 1 | V26 | 운동 검색 색인 |
 | 인증(소셜·이메일·병합) | 9 | V24·V25·V34·V36 | 인증 원장 |
 | 측정 | 1 | V27 | 기록 이전과 측정 |
@@ -23,6 +23,7 @@ erDiagram
     exercises |o--o{ workout_entries : "선택한 종목"
     exercises |o--o{ routine_entries : "선택한 종목"
     exercises ||--o{ exercise_rest_preferences : "종목별 개인 휴식"
+    exercises ||--o{ exercise_favorites : "즐겨찾기(V40)"
     user_profiles ||--o{ profile_goals : "프로필 목표"
 
     workouts {
@@ -50,6 +51,8 @@ erDiagram
         numeric weight
         integer reps
         uuid exercise_id FK "nullable"
+        varchar set_type "NORMAL/WARMUP/DROP/FAILURE (V38)"
+        integer rpe "nullable, 5~10 (V38)"
     }
     completed_workout_sets {
         uuid workout_id PK,FK
@@ -104,6 +107,16 @@ erDiagram
         integer default_rest_seconds
         bigint version
     }
+    unit_preferences {
+        varchar owner_name PK
+        varchar weight_unit "KG/LB (V39)"
+        bigint version
+    }
+    exercise_favorites {
+        varchar owner_name PK
+        uuid exercise_id PK,FK
+        timestamptz created_at
+    }
     exercise_rest_preferences {
         varchar owner_name PK
         uuid exercise_id PK,FK
@@ -131,7 +144,7 @@ erDiagram
 | 테이블 | 보관하는 내용 |
 | --- | --- |
 | workouts | 한 번의 운동: 소유자, 시작·종료·취소·정지, 누적 정지시간, 메모, 휴식, 수정 버전 |
-| workout_entries | 운동에 입력한 순서별 세트: 종목, 무게, 횟수 |
+| workout_entries | 운동에 입력한 순서별 세트: 종목, 무게, 횟수, 세트 종류·운동 자각도(V38) |
 | completed_workout_sets | 운동에서 완료 표시한 세트 번호 |
 | workout_draft_operations | 같은 초안 요청을 재전송해도 중복 적용하지 않기 위한 저장 확인 |
 | routines / routine_entries | 루틴과 루틴에 속한 순서별 세트 |
@@ -139,6 +152,8 @@ erDiagram
 | user_profiles / profile_goals | 비공개 프로필과 운동 목표 |
 | rest_preferences | 계정별 기본 휴식 시간 |
 | exercise_rest_preferences | 종목별 개인 지정 휴식시간, 추천 사용 복귀 후에도 수정 버전 유지 |
+| unit_preferences | 계정별 무게 표시 단위(KG/LB, V39). 세트 무게는 항상 kg로 저장 |
+| exercise_favorites | 계정별 즐겨찾기 종목(V40). 종목 삭제 시 함께 삭제 |
 | retired_workout_keys / retired_routine_keys | 삭제된 기록의 UUID 재사용 방지. 운동 내용은 보관하지 않음 |
 | application_metadata | 애플리케이션 식별 정보 |
 
@@ -155,7 +170,7 @@ erDiagram
 
 ## 저장과 변경 규칙
 
-- Flyway의 V1~V37 SQL로 구조와 초기 종목을 관리합니다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않습니다.
+- Flyway의 V1~V40 SQL로 구조와 초기 종목을 관리합니다. Hibernate는 `ddl-auto=validate`로 구조를 검사하며 테이블을 임의 생성·수정하지 않습니다.
 - 운동·루틴·종목·프로필은 수정 버전으로 동시 덮어쓰기를 막습니다. 서비스 트랜잭션은 복수 테이블 변경을 함께 처리합니다.
 - 종료/취소 시각의 순서를 DB CHECK로 제한하고, 계정별 진행 중 운동은 부분 UNIQUE 인덱스로 최대 하나만 허용합니다.
 - 운동/루틴의 하위 세트, 운동 완료 번호·저장 확인, 프로필 목표는 부모 삭제 시 함께 삭제합니다. 종목 참조는 CASCADE 삭제가 아니며 종목은 보관 상태를 사용합니다.
@@ -301,3 +316,11 @@ erDiagram
 - 자기 자신에게 신청·차단·신고·알림·응원할 수 없습니다(CHECK).
 - 알림은 종류마다 연결 대상이 하나만 채워지도록 CHECK로 제한합니다. 같은 좋아요·응원 알림은 한 번만 만듭니다.
 - 오운완 사진은 DB에 `bytea`로 저장합니다. 게시물 하나에 최대 5장입니다.
+
+## 세트 종류·자각도, 단위, 즐겨찾기 (V38~V40)
+
+- **V38** `workout_entries`와 `routine_entries`에 `set_type`(NORMAL·WARMUP·DROP·FAILURE, 기본 NORMAL)과 `rpe`(5~10, NULL=미입력)를 추가했습니다. 세트 하나에 값이 하나이므로 별도 테이블 대신 세트 행에 둡니다. 루틴은 운동과 같은 세트 구조(`Workout.Entry`)를 공유하므로 함께 추가했습니다. 기존 세트는 일반 세트·미입력으로 남습니다. 세트를 복제하면 종류는 이어받고 자각도는 비웁니다.
+- **V39** `unit_preferences`는 계정별 무게 표시 단위입니다. 행이 없으면 KG이고, `rest_preferences`와 같은 방식으로 `version`을 비교해 저장합니다. 세트 무게는 단위와 관계없이 kg로 저장합니다.
+- **V40** `exercise_favorites`는 (owner_name, exercise_id) 복합 기본키로 중복을 막고, 종목이 지워지면 함께 지웁니다. 목록은 `created_at` 최근 순이며 지금 볼 수 없는 종목은 목록에서 뺍니다. 계정당 500개까지입니다.
+- 계정 통합 시 단위 설정은 현재 계정 값을 우선하고, 즐겨찾기는 두 계정 것을 합칩니다.
+- API 요약: [세트 종류·자각도, 단위, 즐겨찾기](api-contracts/set-detail-units-favorites-v1.md)

@@ -316,10 +316,22 @@ public class WorkoutController {
     @Digits(integer = 4, fraction = 2)
     BigDecimal weight,
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @Min(1) @Max(1000) int reps,
-    @Schema(nullable = true) UUID exerciseId
+    @Schema(nullable = true) UUID exerciseId,
+    @Schema(nullable = true, allowableValues = { "NORMAL", "WARMUP", "DROP", "FAILURE" }, description = "생략하면 NORMAL")
+    @Pattern(regexp = "NORMAL|WARMUP|DROP|FAILURE")
+    String setType,
+    @Schema(nullable = true, description = "운동 자각도 5~10, 생략하면 미입력") @Min(5) @Max(10) Integer rpe
   ) {
     public SetInput(String exerciseName, BigDecimal weight, int reps) {
       this(exerciseName, weight, reps, null);
+    }
+
+    public SetInput(String exerciseName, BigDecimal weight, int reps, UUID exerciseId) {
+      this(exerciseName, weight, reps, exerciseId, null, null);
+    }
+
+    public static SetInput of(Workout.Entry e) {
+      return new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId(), e.setType(), e.rpe());
     }
   }
 
@@ -384,7 +396,7 @@ public class WorkoutController {
         w
           .entries()
           .stream()
-          .map(e -> new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId()))
+          .map(SetInput::of)
           .toList(),
         w.completedSetIndexes(),
         w.restEndsAt(),

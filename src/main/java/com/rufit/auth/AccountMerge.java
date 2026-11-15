@@ -14,7 +14,7 @@ public class AccountMerge {
 
   /** 드문 계정 통합 동안 쓰기를 직렬화하여 다른 요청과 부분 이전이 섞이지 않도록 합니다. */
   void lock() {
-    jdbc.execute("lock table auth_accounts,auth_identities,auth_sessions,auth_email_credentials,auth_login_attempts,workouts,routines,retired_workout_keys,retired_routine_keys,exercises,measurements,user_profiles,profile_goals,rest_preferences,exercise_rest_preferences,social_directory,friend_requests,friendships,social_blocks,social_reports,social_notifications,journal_posts,journal_photos,journal_likes,social_live_settings,social_live_workouts,social_cheers in share row exclusive mode");
+    jdbc.execute("lock table auth_accounts,auth_identities,auth_sessions,auth_email_credentials,auth_login_attempts,workouts,routines,retired_workout_keys,retired_routine_keys,exercises,measurements,user_profiles,profile_goals,rest_preferences,exercise_rest_preferences,unit_preferences,exercise_favorites,social_directory,friend_requests,friendships,social_blocks,social_reports,social_notifications,journal_posts,journal_photos,journal_likes,social_live_settings,social_live_workouts,social_cheers in share row exclusive mode");
   }
 
   void merge(UUID target, UUID source, UUID retainedSession) {
@@ -39,6 +39,11 @@ public class AccountMerge {
     jdbc.update("delete from rest_preferences where owner_name=?",from);
     jdbc.update("insert into exercise_rest_preferences select ?,exercise_id,rest_seconds,version from exercise_rest_preferences where owner_name=? on conflict do nothing",to,from);
     jdbc.update("delete from exercise_rest_preferences where owner_name=?",from);
+    // 현재 계정의 단위 설정을 우선하고, 즐겨찾기는 두 계정 것을 합칩니다.
+    jdbc.update("insert into unit_preferences select ?,weight_unit,version from unit_preferences where owner_name=? on conflict do nothing",to,from);
+    jdbc.update("delete from unit_preferences where owner_name=?",from);
+    jdbc.update("insert into exercise_favorites select ?,exercise_id,created_at from exercise_favorites where owner_name=? on conflict do nothing",to,from);
+    jdbc.update("delete from exercise_favorites where owner_name=?",from);
     UUID src=member(from),dst=member(to);
     if (src!=null && dst==null) jdbc.update("update social_directory set owner_name=? where owner_name=?",to,from);
     else if (src!=null && dst!=null) mergeSocial(src,dst);

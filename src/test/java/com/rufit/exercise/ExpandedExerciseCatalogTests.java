@@ -290,13 +290,20 @@ class ExpandedExerciseCatalogTests {
           Integer.class
         )
       ).isZero();
+      // V38이 추가한 세트 종류·자각도는 기존 세트에서 일반 세트·미입력이어야 합니다.
+      for (String entries : List.of("workout_entries", "routine_entries")) assertThat(
+        jdbc.queryForObject(
+          "select count(*) from " + schema + "." + entries + " where set_type<>'NORMAL' or rpe is not null",
+          Integer.class
+        )
+      ).isZero();
       for (String table : tables) {
         String where = table.equals("exercises")
           ? " where id::text like '00000000-0000-4000-8000-%'"
           : "";
         assertThat(
           jdbc.queryForList(
-            "select (to_jsonb(t) - 'record_date' - 'entry_mode')::text from " +
+            "select (to_jsonb(t) - 'record_date' - 'entry_mode' - 'set_type' - 'rpe')::text from " +
               schema +
               "." +
               table +

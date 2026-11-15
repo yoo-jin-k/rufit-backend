@@ -32,6 +32,13 @@ final class OfflineImportFingerprint {
           out.writeUTF(set.weight().stripTrailingZeros().toPlainString());
           out.writeInt(set.reps());
           out.writeBoolean(row.completed());
+          // 세트 종류·자각도가 있을 때만 더해, 이 값이 없던 예전 요청의 지문은 그대로 유지합니다.
+          boolean detailed = (set.setType() != null && !"NORMAL".equals(set.setType())) || set.rpe() != null;
+          if (detailed) {
+            out.writeUTF("set-detail");
+            out.writeUTF(set.setType() == null ? "NORMAL" : set.setType());
+            out.writeInt(set.rpe() == null ? 0 : set.rpe());
+          }
         }
         nullable(out, request.restSetIndex());
         nullable(out, request.restEndsAt());
