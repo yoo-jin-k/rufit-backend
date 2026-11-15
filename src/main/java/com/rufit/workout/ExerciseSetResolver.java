@@ -27,9 +27,12 @@ public class ExerciseSetResolver {
       .stream()
       .map(input -> {
         if (input.exerciseId() == null) return new Workout.Entry(
+          null,
           input.exerciseName(),
           input.weight(),
-          input.reps()
+          input.reps(),
+          input.setType(),
+          input.rpe()
         );
         Workout.Entry snapshot = snapshots.get(input.exerciseId());
         String name;
@@ -41,7 +44,7 @@ public class ExerciseSetResolver {
           );
           name = selected.name();
         }
-        return new Workout.Entry(input.exerciseId(), name, input.weight(), input.reps());
+        return new Workout.Entry(input.exerciseId(), name, input.weight(), input.reps(), input.setType(), input.rpe());
       })
       .toList();
   }

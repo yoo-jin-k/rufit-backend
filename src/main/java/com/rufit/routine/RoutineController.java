@@ -150,7 +150,7 @@ public class RoutineController {
         r.version,
         r.entries
           .stream()
-          .map(e -> new WorkoutController.SetInput(e.name(), e.weight(), e.reps(), e.exerciseId()))
+          .map(WorkoutController.SetInput::of)
           .toList(),
         r.sourceRoutineId,
         r.sourceWorkoutId

@@ -269,7 +269,8 @@ public class Workout {
     Entry source = entries.get(index);
     entries.add(
       index + 1,
-      new Entry(source.exerciseId(), source.name(), source.weight(), source.reps())
+      // 복제한 세트는 종류만 이어받고, 자각도는 새로 느낀 값을 적도록 비웁니다.
+      new Entry(source.exerciseId(), source.name(), source.weight(), source.reps(), source.setType(), null)
     );
     Set<Integer> shifted = new HashSet<>();
     for (int completed : completedSetIndexes)
@@ -490,6 +491,16 @@ public class Workout {
     @Column(nullable = false)
     private int reps;
 
+    /** 세트 종류입니다. NORMAL·WARMUP·DROP·FAILURE 중 하나이며 기본은 NORMAL입니다. */
+    @Column(name = "set_type", nullable = false, length = 8)
+    private String setType = "NORMAL";
+
+    /** 운동 자각도(RPE) 5~10입니다. 입력하지 않았으면 null입니다. */
+    @Column(name = "rpe")
+    private Integer rpe;
+
+    public static final java.util.Set<String> SET_TYPES = java.util.Set.of("NORMAL", "WARMUP", "DROP", "FAILURE");
+
     protected Entry() {}
 
     public Entry(String name, BigDecimal weight, int reps) {
@@ -497,6 +508,19 @@ public class Workout {
     }
 
     public Entry(UUID exerciseId, String name, BigDecimal weight, int reps) {
+      this(exerciseId, name, weight, reps, null, null);
+    }
+
+    public Entry(UUID exerciseId, String name, BigDecimal weight, int reps, String setType, Integer rpe) {
+      String type = setType == null ? "NORMAL" : setType;
+      if (!SET_TYPES.contains(type)) throw new IllegalArgumentException(
+        "세트 종류는 NORMAL, WARMUP, DROP, FAILURE 중 하나여야 합니다."
+      );
+      if (rpe != null && (rpe < 5 || rpe > 10)) throw new IllegalArgumentException(
+        "운동 자각도는 5~10이어야 합니다."
+      );
+      this.setType = type;
+      this.rpe = rpe;
       this.exerciseId = exerciseId;
       if (
         name == null || name.isBlank() || name.trim().length() > 80
@@ -529,6 +553,14 @@ public class Workout {
 
     public int reps() {
       return reps;
+    }
+
+    public String setType() {
+      return setType == null ? "NORMAL" : setType;
+    }
+
+    public Integer rpe() {
+      return rpe;
     }
   }
 }

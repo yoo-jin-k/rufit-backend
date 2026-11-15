@@ -110,7 +110,7 @@ public class WorkoutService {
             .filter(e ->
               exerciseId == null ? e.name().equals(name) : exerciseId.equals(e.exerciseId())
             )
-            .map(e -> new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId()))
+            .map(SetInput::of)
             .toList()
         )
       )
