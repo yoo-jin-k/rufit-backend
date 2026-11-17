@@ -15,3 +15,14 @@
 
 ## 범위
 친구 관계·차단·응원·게시물 공개는 다음 계약에서 추가합니다. 현재 디렉터리는 프론트에 자동 연결하지 않으며 기존 비공개 프로필 설정을 변경하지 않습니다. 차단 기능 연동 전 실서비스 친구 검색 공개 기능으로 배포하지 않습니다.
+
+## v1.1 공개 프로필 (2026-11-17)
+친구 검색과 친구 목록에 보일 사진과 한 줄 소개입니다. 비공개 프로필(user_profiles)과 별도로 저장하며, 사용자가 프로필을 저장할 때만 올라갑니다.
+
+- PUT /api/v1/social/directory/me/profile 요청 `{bio:string, avatar:string|null}` → 200 `{bio, avatar}`.
+  - bio: 앞뒤 공백 제거 후 0~80자.
+  - avatar: `data:image/jpeg;base64,…` 또는 png, 2,800,000자 이하. 서버가 긴 변 160px JPEG로 다시 만들어 위치 정보 등 메타데이터를 지웁니다. null이면 사진을 지웁니다.
+  - 닉네임을 먼저 저장하지 않았으면 404. 같은 본문 재시도는 같은 결과입니다.
+- GET /me 응답에 `bio:string|null`, `hasAvatar:boolean`이 추가됩니다.
+- 검색 결과 items, GET /social/friends, GET /social/blocks, GET /social/members/{id} 응답에 `bio:string|null`, `avatar:string|null`(data URI)이 추가됩니다.
+  검색에는 기존처럼 검색을 허용한 회원만 나옵니다. 운동 장소, 비공개 프로필, 운동 기록은 응답하지 않습니다.

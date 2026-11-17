@@ -15,9 +15,12 @@ public class JournalBodyLimitFilter extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
+    // 오운완 글과 공개 프로필 사진만 큰 본문을 받습니다.
+    String uri = request.getRequestURI();
     return (
       !request.getMethod().equals("PUT") ||
-      !request.getRequestURI().startsWith("/api/v1/social/posts/mine/")
+      !(uri.startsWith("/api/v1/social/posts/mine/") ||
+        uri.equals("/api/v1/social/directory/me/profile"))
     );
   }
 

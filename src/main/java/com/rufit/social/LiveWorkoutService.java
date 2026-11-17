@@ -19,12 +19,22 @@ public class LiveWorkoutService {
     this.jdbc = jdbc;
   }
 
-  public record Member(UUID memberId, String nickname, String workoutId, boolean sent) {}
+  /** friend가 false면 친구는 아니지만 모두 공개를 고른 회원입니다. */
+  public record Member(
+    UUID memberId,
+    String nickname,
+    String workoutId,
+    boolean sent,
+    boolean friend,
+    double volume,
+    String avatar
+  ) {}
 
   public record Sender(UUID memberId, String nickname) {}
 
   public record Snapshot(
     boolean sharing,
+    LiveWorkoutController.Scope scope,
     String workoutId,
     List<Member> items,
     List<Sender> received
@@ -75,17 +85,52 @@ public class LiveWorkoutService {
     AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE (b.blocker_id=? AND b.blocked_id=d.member_id) OR (b.blocked_id=? AND b.blocker_id=d.member_id))
     """;
 
+  /** 운동 상태를 볼 수 있는 상대: 차단이 없고, 친구이거나 상대가 모두 공개(s.scope)를 골랐을 때. 인자 5개(me). */
+  private static final String VISIBLE = """
+    d.member_id<>? AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE (b.blocker_id=? AND b.blocked_id=d.member_id) OR (b.blocked_id=? AND b.blocker_id=d.member_id))
+    AND (s.scope='PUBLIC' OR EXISTS(SELECT 1 FROM friendships f WHERE f.first_id=least(?,d.member_id) AND f.second_id=greatest(?,d.member_id)))
+    """;
+
+  /** 내가 공개 중일 때 응원을 보낸 상대: 차단이 없고, 친구이거나 내가 모두 공개일 때. 인자 5개(me). */
+  private static final String SENDER = """
+    NOT EXISTS(SELECT 1 FROM social_blocks b WHERE (b.blocker_id=? AND b.blocked_id=d.member_id) OR (b.blocked_id=? AND b.blocker_id=d.member_id))
+    AND (EXISTS(SELECT 1 FROM social_live_settings mine WHERE mine.member_id=? AND mine.scope='PUBLIC')
+      OR EXISTS(SELECT 1 FROM friendships f WHERE f.first_id=least(?,d.member_id) AND f.second_id=greatest(?,d.member_id)))
+    """;
+
   @Transactional(readOnly = true)
   public Snapshot snapshot(String owner) {
     UUID me = member(owner);
-    boolean sharing =
-      count("SELECT count(*) FROM social_live_settings WHERE member_id=? AND sharing", me) > 0;
+    var setting = jdbc
+      .query(
+        "SELECT sharing,scope FROM social_live_settings WHERE member_id=?",
+        (r, i) -> Map.entry(r.getBoolean(1), LiveWorkoutController.Scope.valueOf(r.getString(2))),
+        me
+      )
+      .stream()
+      .findFirst()
+      .orElse(Map.entry(false, LiveWorkoutController.Scope.FRIENDS));
+    // 친구를 먼저 모으고, 같은 묶음 안에서는 지금 운동 볼륨이 큰 순서로 보여 줍니다.
     var items = jdbc.query(
-      "SELECT d.member_id,d.nickname,l.workout_id,EXISTS(SELECT 1 FROM social_cheers c WHERE c.recipient_id=d.member_id AND c.actor_id=? AND c.workout_id=l.workout_id) AS sent FROM social_directory d JOIN social_live_workouts l USING(member_id) JOIN social_live_settings s USING(member_id) WHERE s.sharing AND l.updated_at>now()-interval '120 seconds' AND " +
-        FRIEND +
-        " ORDER BY d.nickname,d.member_id LIMIT 100",
+      "SELECT d.member_id,d.nickname,l.workout_id,EXISTS(SELECT 1 FROM social_cheers c WHERE c.recipient_id=d.member_id AND c.actor_id=? AND c.workout_id=l.workout_id) AS sent," +
+        " EXISTS(SELECT 1 FROM friendships f WHERE f.first_id=least(?,d.member_id) AND f.second_id=greatest(?,d.member_id)) AS friend,l.volume,p.avatar" +
+        " FROM social_directory d JOIN social_live_workouts l USING(member_id) JOIN social_live_settings s USING(member_id) LEFT JOIN social_profiles p USING(member_id)" +
+        " WHERE s.sharing AND l.updated_at>now()-interval '120 seconds' AND " +
+        VISIBLE +
+        " ORDER BY friend DESC,l.volume DESC,d.nickname,d.member_id LIMIT 100",
       (r, i) ->
-        new Member(r.getObject(1, UUID.class), r.getString(2), r.getString(3), r.getBoolean(4)),
+        new Member(
+          r.getObject(1, UUID.class),
+          r.getString(2),
+          r.getString(3),
+          r.getBoolean(4),
+          r.getBoolean(5),
+          r.getDouble(6),
+          JournalImages.uri(r.getBytes(7))
+        ),
+      me,
+      me,
+      me,
       me,
       me,
       me,
@@ -94,9 +139,10 @@ public class LiveWorkoutService {
     );
     var received = jdbc.query(
       "SELECT d.member_id,d.nickname FROM social_cheers c JOIN social_directory d ON d.member_id=c.actor_id JOIN social_live_workouts l ON l.member_id=c.recipient_id AND l.workout_id=c.workout_id WHERE c.recipient_id=? AND l.updated_at>now()-interval '120 seconds' AND " +
-        FRIEND +
+        SENDER +
         " ORDER BY c.created_at,d.member_id LIMIT 100",
       (r, i) -> new Sender(r.getObject(1, UUID.class), r.getString(2)),
+      me,
       me,
       me,
       me,
@@ -112,21 +158,24 @@ public class LiveWorkoutService {
       .stream()
       .findFirst()
       .orElse(null);
-    return new Snapshot(sharing, workoutId, items, received);
+    return new Snapshot(setting.getKey(), setting.getValue(), workoutId, items, received);
   }
 
-  public void sharing(String owner, boolean enabled) {
+  /** scope가 null이면 지금 범위를 유지합니다(처음이면 FRIENDS). */
+  public void sharing(String owner, boolean enabled, LiveWorkoutController.Scope scope) {
     UUID me = member(owner);
     lock(me);
     jdbc.update(
-      "INSERT INTO social_live_settings(member_id,sharing) VALUES (?,?) ON CONFLICT(member_id) DO UPDATE SET sharing=excluded.sharing",
+      "INSERT INTO social_live_settings(member_id,sharing,scope) VALUES (?,?,COALESCE(?,'FRIENDS')) ON CONFLICT(member_id) DO UPDATE SET sharing=excluded.sharing,scope=COALESCE(?,social_live_settings.scope)",
       me,
-      enabled
+      enabled,
+      scope == null ? null : scope.name(),
+      scope == null ? null : scope.name()
     );
     if (!enabled) jdbc.update("DELETE FROM social_live_workouts WHERE member_id=?", me);
   }
 
-  public void heartbeat(String owner, String workout, boolean active) {
+  public void heartbeat(String owner, String workout, boolean active, Double volume) {
     valid(workout);
     UUID me = member(owner);
     lock(me);
@@ -143,9 +192,14 @@ public class LiveWorkoutService {
       count("SELECT count(*) FROM social_live_settings WHERE member_id=? AND sharing", me) == 0
     ) throw new WorkoutConflict("운동 중 상태 공개가 꺼져 있습니다.");
     jdbc.update(
-      "INSERT INTO social_live_workouts(member_id,workout_id) VALUES (?,?) ON CONFLICT(member_id) DO UPDATE SET workout_id=excluded.workout_id,updated_at=now()",
+      // 다른 운동으로 바뀌면 볼륨을 새로 시작합니다. volume을 생략한 이전 앱은 값을 유지합니다.
+      "INSERT INTO social_live_workouts(member_id,workout_id,volume) VALUES (?,?,COALESCE(?,0)) ON CONFLICT(member_id) DO UPDATE SET" +
+        " volume=COALESCE(?,CASE WHEN social_live_workouts.workout_id=excluded.workout_id THEN social_live_workouts.volume ELSE 0 END)," +
+        "workout_id=excluded.workout_id,updated_at=now()",
       me,
-      workout
+      workout,
+      volume,
+      volume
     );
   }
 
@@ -156,15 +210,19 @@ public class LiveWorkoutService {
     lock(me, target);
     if (
       count(
-        "SELECT count(*) FROM social_directory d WHERE d.member_id=? AND " + FRIEND,
+        "SELECT count(*) FROM social_directory d LEFT JOIN social_live_settings s USING(member_id) WHERE d.member_id=? AND (" +
+          FRIEND +
+          " OR (s.scope='PUBLIC' AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE (b.blocker_id=? AND b.blocked_id=d.member_id) OR (b.blocked_id=? AND b.blocker_id=d.member_id))))",
         target,
+        me,
+        me,
         me,
         me,
         me,
         me
       ) ==
       0
-    ) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "응원할 친구를 찾을 수 없습니다.");
+    ) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "응원할 회원을 찾을 수 없습니다.");
     // 성공 응답을 잃은 재시도는 운동 종료 후에도 같은 성공으로 처리합니다.
     if (
       count(

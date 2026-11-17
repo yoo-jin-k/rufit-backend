@@ -14,7 +14,7 @@ public class AccountMerge {
 
   /** 드문 계정 통합 동안 쓰기를 직렬화하여 다른 요청과 부분 이전이 섞이지 않도록 합니다. */
   void lock() {
-    jdbc.execute("lock table auth_accounts,auth_identities,auth_sessions,auth_email_credentials,auth_login_attempts,workouts,routines,retired_workout_keys,retired_routine_keys,exercises,measurements,user_profiles,profile_goals,rest_preferences,exercise_rest_preferences,unit_preferences,exercise_favorites,social_directory,friend_requests,friendships,social_blocks,social_reports,social_notifications,journal_posts,journal_photos,journal_likes,social_live_settings,social_live_workouts,social_cheers in share row exclusive mode");
+    jdbc.execute("lock table auth_accounts,auth_identities,auth_sessions,auth_email_credentials,auth_login_attempts,workouts,routines,retired_workout_keys,retired_routine_keys,exercises,measurements,user_profiles,profile_goals,rest_preferences,exercise_rest_preferences,unit_preferences,exercise_favorites,social_directory,social_profiles,friend_requests,friendships,social_blocks,social_reports,social_notifications,journal_posts,journal_photos,journal_likes,social_live_settings,social_live_workouts,social_cheers in share row exclusive mode");
   }
 
   void merge(UUID target, UUID source, UUID retainedSession) {
@@ -69,6 +69,8 @@ public class AccountMerge {
     jdbc.update("delete from social_live_workouts where member_id in (?,?)",from,to);
     jdbc.update("insert into social_live_settings(member_id,sharing) values(?,false) on conflict(member_id) do update set sharing=false",to);
     jdbc.update("delete from social_live_settings where member_id=?",from);
+    // 공개 프로필은 현재 계정 것을 우선하고, 없을 때만 이전 계정 것을 옮깁니다.
+    jdbc.update("insert into social_profiles select ?,bio,avatar from social_profiles where member_id=? on conflict do nothing",to,from);
     jdbc.update("delete from social_directory where member_id=?",from);
   }
   private UUID member(String owner) {

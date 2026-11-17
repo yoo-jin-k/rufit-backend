@@ -56,7 +56,13 @@ public class FriendController {
 
   public record Receipt(UUID id, String status) {}
 
-  public record MemberProfile(UUID memberId, String nickname, String relationship) {}
+  public record MemberProfile(
+    UUID memberId,
+    String nickname,
+    String relationship,
+    String bio,
+    String avatar
+  ) {}
 
   @DeleteMapping("/friends/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)

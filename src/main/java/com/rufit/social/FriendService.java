@@ -113,7 +113,8 @@ public class FriendService {
     if (
       blocked(me, target) ||
       count(
-        "SELECT count(*) FROM social_directory WHERE member_id=? AND discoverable=true",
+        // 검색을 허용했거나, 지금 모두 공개로 운동 중이어서 운동 중 목록에 보이는 회원만 엽니다.
+        "SELECT count(*) FROM social_directory d WHERE d.member_id=? AND (d.discoverable=true OR EXISTS(SELECT 1 FROM social_live_settings s JOIN social_live_workouts l USING(member_id) WHERE s.member_id=d.member_id AND s.sharing AND s.scope='PUBLIC' AND l.updated_at>now()-interval '120 seconds'))",
         target
       ) ==
       0
@@ -233,8 +234,12 @@ public class FriendService {
     UUID me = member(owner);
     return new Members(
       jdbc.query(
-        "SELECT d.member_id,d.nickname FROM social_directory d JOIN friendships f ON (f.first_id=? AND f.second_id=d.member_id) OR (f.second_id=? AND f.first_id=d.member_id) ORDER BY d.nickname,d.member_id LIMIT 100",
-        (r, i) -> new SocialDirectoryController.Member(r.getObject(1, UUID.class), r.getString(2)),
+        "SELECT " +
+          SocialDirectoryService.MEMBER_COLUMNS +
+          " FROM social_directory d" +
+          SocialDirectoryService.PROFILE_JOIN +
+          " JOIN friendships f ON (f.first_id=? AND f.second_id=d.member_id) OR (f.second_id=? AND f.first_id=d.member_id) ORDER BY d.nickname,d.member_id LIMIT 100",
+        (r, i) -> SocialDirectoryService.member(r),
         me,
         me
       )
@@ -245,8 +250,12 @@ public class FriendService {
   public Members blocks(String owner) {
     return new Members(
       jdbc.query(
-        "SELECT d.member_id,d.nickname FROM social_directory d JOIN social_blocks b ON b.blocked_id=d.member_id WHERE b.blocker_id=? ORDER BY d.nickname,d.member_id",
-        (r, i) -> new SocialDirectoryController.Member(r.getObject(1, UUID.class), r.getString(2)),
+        "SELECT " +
+          SocialDirectoryService.MEMBER_COLUMNS +
+          " FROM social_directory d" +
+          SocialDirectoryService.PROFILE_JOIN +
+          " JOIN social_blocks b ON b.blocked_id=d.member_id WHERE b.blocker_id=? ORDER BY d.nickname,d.member_id",
+        (r, i) -> SocialDirectoryService.member(r),
         member(owner)
       )
     );
@@ -347,21 +356,26 @@ public class FriendService {
     if (
       relation.equals("NONE") &&
       count(
-        "SELECT count(*) FROM social_directory WHERE member_id=? AND discoverable=true",
+        // 검색을 허용했거나, 지금 모두 공개로 운동 중이어서 운동 중 목록에 보이는 회원만 엽니다.
+        "SELECT count(*) FROM social_directory d WHERE d.member_id=? AND (d.discoverable=true OR EXISTS(SELECT 1 FROM social_live_settings s JOIN social_live_workouts l USING(member_id) WHERE s.member_id=d.member_id AND s.sharing AND s.scope='PUBLIC' AND l.updated_at>now()-interval '120 seconds'))",
         target
       ) ==
       0
     ) throw missing();
-    String name = jdbc
+    var row = jdbc
       .query(
-        "SELECT nickname FROM social_directory WHERE member_id=?",
-        (r, n) -> r.getString(1),
+        "SELECT " +
+          SocialDirectoryService.MEMBER_COLUMNS +
+          " FROM social_directory d" +
+          SocialDirectoryService.PROFILE_JOIN +
+          " WHERE d.member_id=?",
+        (r, n) -> SocialDirectoryService.member(r),
         target
       )
       .stream()
       .findFirst()
       .orElseThrow(this::missing);
-    return new MemberProfile(target, name, relation);
+    return new MemberProfile(target, row.nickname(), relation, row.bio(), row.avatar());
   }
 
   /** 신고번호를 잠가 중복 접수를 방지하며, 신고만으로 친구 관계를 변경하지 않습니다. */

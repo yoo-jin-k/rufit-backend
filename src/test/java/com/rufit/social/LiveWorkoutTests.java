@@ -56,14 +56,14 @@ class LiveWorkoutTests {
   }
 
   void start() {
-    live.sharing("alice", true);
-    live.heartbeat("alice", "workout-1", true);
+    live.sharing("alice", true, null);
+    live.heartbeat("alice", "workout-1", true, null);
   }
 
   @Test
   void optInFriendsExpiryAndStoppingAreEnforced() {
     assertThat(live.snapshot("alice").sharing()).isFalse();
-    assertThatThrownBy(() -> live.heartbeat("alice", "workout-1", true)).isInstanceOf(
+    assertThatThrownBy(() -> live.heartbeat("alice", "workout-1", true, null)).isInstanceOf(
       com.rufit.workout.WorkoutConflict.class
     );
     start();
@@ -74,10 +74,10 @@ class LiveWorkoutTests {
     assertThatThrownBy(() -> live.cheer("bob", a, "workout-1")).isInstanceOf(
       com.rufit.workout.WorkoutConflict.class
     );
-    live.heartbeat("alice", "workout-2", true);
-    live.heartbeat("alice", "workout-1", false);
+    live.heartbeat("alice", "workout-2", true, null);
+    live.heartbeat("alice", "workout-1", false, null);
     assertThat(live.snapshot("bob").items().getFirst().workoutId()).isEqualTo("workout-2");
-    live.sharing("alice", false);
+    live.sharing("alice", false, null);
     assertThat(live.snapshot("bob").items()).isEmpty();
     assertThat(live.snapshot("alice").sharing()).isFalse();
   }
@@ -112,7 +112,7 @@ class LiveWorkoutTests {
         .orElseThrow()
         .read()
     ).isTrue();
-    live.heartbeat("alice", "workout-1", false);
+    live.heartbeat("alice", "workout-1", false, null);
     live.cheer("bob", a, "workout-1");
     assertThat(live.snapshot("alice").received()).isEmpty();
   }
@@ -202,5 +202,91 @@ class LiveWorkoutTests {
     mvc
       .perform(post("/api/v1/social/live/" + a + "/valid-1/cheer").with(user("bob")).with(csrf()))
       .andExpect(status().isNoContent());
+  }
+
+  /** 친구는 위에 모으고, 각 묶음은 지금 운동 볼륨이 큰 순서입니다. 모두 공개만 친구가 아닌 회원에게 보입니다. */
+  @Test
+  void publicScopeShowsNonFriendsBelowFriendsOrderedByVolume() {
+    UUID d = directory
+      .update("dave", new SocialDirectoryController.Edit("응원넷", false, 0L))
+      .memberId();
+    live.sharing("alice", true, null);
+    live.heartbeat("alice", "workout-a", true, 100.0);
+    live.sharing("carol", true, LiveWorkoutController.Scope.PUBLIC);
+    live.heartbeat("carol", "workout-c", true, 5000.0);
+    live.sharing("dave", true, LiveWorkoutController.Scope.PUBLIC);
+    live.heartbeat("dave", "workout-d", true, 9000.0);
+
+    var seen = live.snapshot("bob").items();
+    assertThat(seen).extracting(LiveWorkoutService.Member::memberId).containsExactly(a, d, c);
+    assertThat(seen).extracting(LiveWorkoutService.Member::friend).containsExactly(true, false, false);
+    assertThat(seen.get(1).volume()).isEqualTo(9000.0);
+    assertThat(live.snapshot("alice").scope()).isEqualTo(LiveWorkoutController.Scope.FRIENDS);
+
+    // 친구 공개인 alice는 친구가 아닌 carol에게 보이지 않고 응원도 받을 수 없습니다.
+    assertThat(live.snapshot("carol").items()).extracting(LiveWorkoutService.Member::memberId).containsExactly(d);
+    assertThatThrownBy(() -> live.cheer("carol", a, "workout-a")).isInstanceOf(
+      org.springframework.web.server.ResponseStatusException.class
+    );
+    live.cheer("carol", d, "workout-d");
+    assertThat(live.snapshot("dave").received()).extracting(LiveWorkoutService.Sender::memberId).containsExactly(c);
+
+    // 검색을 허용하지 않은 dave도 모두 공개로 운동 중이면 운동 중 목록에서 프로필을 열 수 있습니다.
+    assertThat(friends.profile("bob", d).relationship()).isEqualTo("NONE");
+    // 운동 중 목록에서 본 회원에게 친구 신청도 보낼 수 있습니다.
+    friends.send("carol", new FriendController.Send(UUID.randomUUID(), d));
+    assertThat(friends.profile("carol", d).relationship()).isEqualTo("OUTGOING");
+    live.heartbeat("dave", "workout-d", false, null);
+    assertThatThrownBy(() -> friends.profile("bob", d)).isInstanceOf(
+      org.springframework.web.server.ResponseStatusException.class
+    );
+    live.heartbeat("dave", "workout-d", true, 9000.0);
+
+    // 차단하면 모두 공개여도 서로 보이지 않습니다.
+    friends.block("bob", d, true);
+    assertThat(live.snapshot("bob").items()).extracting(LiveWorkoutService.Member::memberId).containsExactly(a, c);
+
+    // 범위를 생략하면 유지하고, 친구 공개로 바꾸면 친구가 아닌 회원에게서 사라집니다.
+    live.sharing("carol", true, null);
+    assertThat(live.snapshot("carol").scope()).isEqualTo(LiveWorkoutController.Scope.PUBLIC);
+    live.sharing("carol", true, LiveWorkoutController.Scope.FRIENDS);
+    assertThat(live.snapshot("bob").items()).extracting(LiveWorkoutService.Member::memberId).containsExactly(a);
+  }
+
+  @Test
+  void volumeIsKeptWhenOmittedAndResetForNewWorkout() {
+    live.sharing("alice", true, null);
+    live.heartbeat("alice", "workout-1", true, 1200.5);
+    live.heartbeat("alice", "workout-1", true, null);
+    assertThat(live.snapshot("bob").items().getFirst().volume()).isEqualTo(1200.5);
+    live.heartbeat("alice", "workout-2", true, null);
+    assertThat(live.snapshot("bob").items().getFirst().volume()).isZero();
+  }
+
+  @Test
+  void heartbeatRejectsNegativeVolumeAndAcceptsOldBody() throws Exception {
+    live.sharing("alice", true, null);
+    mvc
+      .perform(
+        put("/api/v1/social/live/mine/workout-1")
+          .with(user("alice"))
+          .with(csrf())
+          .contentType(MediaType.APPLICATION_JSON)
+          .content("{\"active\":true,\"volume\":-1}")
+      )
+      .andExpect(status().isBadRequest());
+    mvc
+      .perform(
+        put("/api/v1/social/live/mine/workout-1")
+          .with(user("alice"))
+          .with(csrf())
+          .contentType(MediaType.APPLICATION_JSON)
+          .content("{\"active\":true}")
+      )
+      .andExpect(status().isNoContent());
+    mvc
+      .perform(get("/api/v1/social/live").with(user("bob")))
+      .andExpect(jsonPath("$.items[0].friend").value(true))
+      .andExpect(jsonPath("$.items[0].volume").value(0.0));
   }
 }

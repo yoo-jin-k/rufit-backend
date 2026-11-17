@@ -34,6 +34,12 @@ public class SocialDirectoryController {
     return service.availability(principal.getName(), nickname);
   }
 
+  /** 친구 검색·친구 목록에 보일 사진과 한 줄 소개를 통째로 바꿉니다. avatar가 null이면 사진을 지웁니다. */
+  @PutMapping("/me/profile")
+  public PublicProfile updateProfile(Principal principal, @Valid @RequestBody PublicProfile body) {
+    return service.updateProfile(principal.getName(), body);
+  }
+
   @GetMapping("/search")
   public Results search(
     Principal principal,
@@ -50,15 +56,31 @@ public class SocialDirectoryController {
     @NotNull @PositiveOrZero Long version
   ) {}
 
-  @Schema(requiredProperties = { "memberId", "nickname", "discoverable", "version" })
+  @Schema(
+    requiredProperties = { "memberId", "nickname", "discoverable", "version", "bio", "hasAvatar" }
+  )
   public record Settings(
     @Schema(nullable = true) UUID memberId,
     @Schema(nullable = true) String nickname,
     boolean discoverable,
-    long version
+    long version,
+    @Schema(nullable = true) String bio,
+    boolean hasAvatar
   ) {}
 
-  public record Member(UUID memberId, String nickname) {}
+  /** 공개 프로필입니다. avatar는 긴 변 160px JPEG data URI입니다. */
+  public record PublicProfile(
+    @NotNull @Size(max = 200) String bio,
+    @Schema(nullable = true) @Size(max = 2_800_000) String avatar
+  ) {}
+
+  /** 검색·친구 목록 한 줄입니다. 사진·소개는 본인이 공개 프로필을 저장한 경우에만 채워집니다. */
+  public record Member(
+    UUID memberId,
+    String nickname,
+    @Schema(nullable = true) String bio,
+    @Schema(nullable = true) String avatar
+  ) {}
 
   /** 확인한 닉네임(앞뒤 공백 제거)과 사용 가능 여부입니다. */
   public record Availability(String nickname, boolean available) {}
