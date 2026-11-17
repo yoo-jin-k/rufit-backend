@@ -3,10 +3,14 @@ package com.rufit.social;
 import static com.rufit.social.SocialDirectoryController.*;
 
 import com.rufit.workout.WorkoutConflict;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Transactional
@@ -20,25 +24,67 @@ public class SocialDirectoryService {
 
   @Transactional(readOnly = true)
   public Settings get(String owner) {
-    return read(owner, false).orElse(new Settings(null, null, false, 0));
+    return read(owner, false).orElse(new Settings(null, null, false, 0, null, false));
   }
 
   private Optional<Settings> read(String owner, boolean lock) {
     return jdbc
       .query(
-        "SELECT member_id,nickname,discoverable,version FROM social_directory WHERE owner_name=?" +
-          (lock ? " FOR UPDATE" : ""),
+        "SELECT d.member_id,d.nickname,d.discoverable,d.version,p.bio,p.avatar IS NOT NULL FROM social_directory d LEFT JOIN social_profiles p USING(member_id) WHERE d.owner_name=?" +
+          (lock ? " FOR UPDATE OF d" : ""),
         (rs, index) ->
           new Settings(
             rs.getObject(1, UUID.class),
             rs.getString(2),
             rs.getBoolean(3),
-            rs.getLong(4)
+            rs.getLong(4),
+            rs.getString(5),
+            rs.getBoolean(6)
           ),
         owner
       )
       .stream()
       .findFirst();
+  }
+
+  /** 검색·친구 목록 공통 열 순서입니다. 다른 쿼리도 같은 순서(member_id,nickname,bio,avatar)로 고릅니다. */
+  static final String MEMBER_COLUMNS = "d.member_id,d.nickname,p.bio,p.avatar";
+
+  static final String PROFILE_JOIN = " LEFT JOIN social_profiles p ON p.member_id=d.member_id";
+
+  static Member member(ResultSet rs) throws SQLException {
+    String bio = rs.getString(3);
+    return new Member(
+      rs.getObject(1, UUID.class),
+      rs.getString(2),
+      bio == null || bio.isEmpty() ? null : bio,
+      JournalImages.uri(rs.getBytes(4))
+    );
+  }
+
+  /** 사진은 목록에 여러 장 실리므로 작게 다시 만들어 저장합니다. 같은 본문 재시도도 같은 결과입니다. */
+  public PublicProfile updateProfile(String owner, PublicProfile body) {
+    String bio = body.bio().trim();
+    if (bio.length() > 80) throw new IllegalArgumentException("한 줄 소개는 80자 이하로 입력해 주세요.");
+    byte[] avatar = body.avatar() == null ? null : JournalImages.normalize(body.avatar(), 160);
+    UUID id = jdbc
+      .query(
+        "SELECT member_id FROM social_directory WHERE owner_name=?",
+        (rs, index) -> rs.getObject(1, UUID.class),
+        owner
+      )
+      .stream()
+      .findFirst()
+      .orElseThrow(() ->
+        new ResponseStatusException(HttpStatus.NOT_FOUND, "친구 화면에서 닉네임을 먼저 저장해 주세요.")
+      );
+    jdbc.update(
+      "INSERT INTO social_profiles(member_id,bio,avatar) VALUES (?,?,?) ON CONFLICT(member_id) DO UPDATE SET bio=excluded.bio,avatar=excluded.avatar",
+      id,
+      bio,
+      avatar
+    );
+    return new PublicProfile(bio, JournalImages.uri(avatar));
   }
 
   /** 닉네임 길이 규칙을 확인하고 앞뒤 공백을 제거한 값을 돌려줍니다. */
@@ -126,10 +172,14 @@ public class SocialDirectoryService {
     );
     String pattern = "%" + q.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
     var rows = jdbc.query(
-      "SELECT member_id,nickname FROM social_directory d WHERE discoverable=true AND owner_name<>?" +
+      "SELECT " +
+        MEMBER_COLUMNS +
+        " FROM social_directory d" +
+        PROFILE_JOIN +
+        " WHERE d.discoverable=true AND d.owner_name<>?" +
         " AND NOT EXISTS (SELECT 1 FROM social_blocks b JOIN social_directory me ON me.owner_name=? WHERE (b.blocker_id=me.member_id AND b.blocked_id=d.member_id) OR (b.blocker_id=d.member_id AND b.blocked_id=me.member_id))" +
-        " AND lower(nickname) LIKE lower(?) ESCAPE '!' ORDER BY lower(nickname),member_id LIMIT ? OFFSET ?",
-      (rs, index) -> new Member(rs.getObject(1, UUID.class), rs.getString(2)),
+        " AND lower(d.nickname) LIKE lower(?) ESCAPE '!' ORDER BY lower(d.nickname),d.member_id LIMIT ? OFFSET ?",
+      (rs, index) -> member(rs),
       owner,
       owner,
       pattern,
