@@ -254,4 +254,23 @@ public class LiveWorkoutService {
       workout
     );
   }
+
+  /** 내가 보낸 응원만 지웁니다. 응원 기록과 같은 운동의 응원 알림을 같은 트랜잭션에서 지워 재시도해도 결과가 같습니다. */
+  public void cancelCheer(String owner, UUID target, String workout) {
+    valid(workout);
+    UUID me = member(owner);
+    lock(me, target);
+    jdbc.update(
+      "DELETE FROM social_cheers WHERE recipient_id=? AND actor_id=? AND workout_id=?",
+      target,
+      me,
+      workout
+    );
+    jdbc.update(
+      "DELETE FROM social_notifications WHERE type='WORKOUT_CHEER' AND recipient_id=? AND actor_id=? AND workout_id=?",
+      target,
+      me,
+      workout
+    );
+  }
 }

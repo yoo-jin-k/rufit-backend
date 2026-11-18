@@ -221,7 +221,7 @@ class JournalTests {
           .with(csrf())
           .contentType(MediaType.APPLICATION_JSON)
           .content(
-            "{\"version\":0,\"memo\":\"\",\"date\":\"2026-11-04\",\"summary\":\"\",\"visibility\":\"PUBLIC\",\"photos\":[]}"
+            "{\"version\":0,\"memo\":\"\",\"date\":\"2026-11-04\",\"summary\":\"\",\"visibility\":\"EVERYONE\",\"photos\":[]}"
           )
       )
       .andExpect(status().isBadRequest());
@@ -238,4 +238,66 @@ class JournalTests {
       )
       .andExpect(status().isPayloadTooLarge());
   }
+
+  JournalController.Edit edit(JournalController.Visibility visibility) {
+    return new JournalController.Edit(
+      0L,
+      "운동 완료",
+      LocalDate.of(2026, 11, 4),
+      "3종목 · 9세트",
+      visibility,
+      List.of()
+    );
+  }
+
+  /** 전체 공개 글은 친구가 아니어도 보이고, 피드는 내 글을 빼고 최신순입니다. */
+  @Test
+  void publicPostsAppearInFeedForEveryoneNewestFirst() {
+    connect(); // alice-bob 친구, carol은 남
+    var friendsOnly = posts.save("alice", "w1", edit(JournalController.Visibility.FRIENDS));
+    var hidden = posts.save("alice", "w2", edit(JournalController.Visibility.PRIVATE));
+    var open = posts.save("alice", "w3", edit(JournalController.Visibility.PUBLIC));
+    var carolOpen = posts.save("carol", "w4", edit(JournalController.Visibility.PUBLIC));
+    jdbc.update("UPDATE journal_posts SET created_at=now()-interval '1 hour' WHERE id=?", open.id());
+
+    // bob(친구): carol 공개 → alice 친구 공개 → alice 공개(1시간 전), 나만 보기는 없음
+    assertThat(posts.feed("bob", null, false, 0).items())
+      .extracting(JournalService.Post::id)
+      .containsExactly(carolOpen.id(), friendsOnly.id(), open.id());
+    // carol(남): alice의 전체 공개만, 자기 글은 빠짐
+    assertThat(posts.feed("carol", null, false, 0).items())
+      .extracting(JournalService.Post::id)
+      .containsExactly(open.id());
+    assertThat(posts.get("carol", open.id()).visibility()).isEqualTo("PUBLIC");
+    assertThatThrownBy(() -> posts.get("carol", friendsOnly.id())).isInstanceOf(
+      org.springframework.web.server.ResponseStatusException.class
+    );
+    assertThatThrownBy(() -> posts.get("carol", hidden.id())).isInstanceOf(
+      org.springframework.web.server.ResponseStatusException.class
+    );
+    // 한 사람만 보기
+    assertThat(posts.feed("bob", a, false, 0).items())
+      .extracting(JournalService.Post::id)
+      .containsExactly(friendsOnly.id(), open.id());
+    // 팔로잉(친구 글만): bob에게는 친구 alice의 글만, 친구가 없는 carol에게는 아무것도 없음
+    assertThat(posts.feed("bob", null, true, 0).items())
+      .extracting(JournalService.Post::id)
+      .containsExactly(friendsOnly.id(), open.id());
+    assertThat(posts.feed("bob", null, true, 0).total()).isEqualTo(2);
+    assertThat(posts.feed("carol", null, true, 0).items()).isEmpty();
+
+    // 친구가 아닌 carol의 좋아요도 전체 공개 글이면 알림이 보입니다.
+    posts.like("carol", open.id(), true);
+    assertThat(notifications.inbox("alice", null).items()).anyMatch(n ->
+      n.type().equals("POST_LIKED") && n.actorId().equals(c)
+    );
+
+    // 차단하면 전체 공개 글도 피드와 상세에서 빠집니다.
+    friends.block("alice", c, true);
+    assertThat(posts.feed("carol", null, false, 0).items()).isEmpty();
+    assertThatThrownBy(() -> posts.get("carol", open.id())).isInstanceOf(
+      org.springframework.web.server.ResponseStatusException.class
+    );
+  }
 }
+

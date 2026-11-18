@@ -289,4 +289,52 @@ class LiveWorkoutTests {
       .andExpect(jsonPath("$.items[0].friend").value(true))
       .andExpect(jsonPath("$.items[0].volume").value(0.0));
   }
+
+  private long cheerNotices(String owner) {
+    return notifications
+      .inbox(owner, null)
+      .items()
+      .stream()
+      .filter(n -> n.type().equals("WORKOUT_CHEER"))
+      .count();
+  }
+
+  /** 다시 누르면 응원과 상대의 알림이 함께 사라지고, 재시도해도 같은 결과입니다. */
+  @Test
+  void cancelRemovesCheerAndNotificationAndCanCheerAgain() throws Exception {
+    start();
+    live.cheer("bob", a, "workout-1");
+    assertThat(cheerNotices("alice")).isEqualTo(1);
+    mvc
+      .perform(delete("/api/v1/social/live/" + a + "/workout-1/cheer").with(user("bob")).with(csrf()))
+      .andExpect(status().isNoContent());
+    live.cancelCheer("bob", a, "workout-1");
+    assertThat(cheerNotices("alice")).isZero();
+    assertThat(live.snapshot("alice").received()).isEmpty();
+    assertThat(live.snapshot("bob").items().getFirst().sent()).isFalse();
+    live.cheer("bob", a, "workout-1");
+    assertThat(cheerNotices("alice")).isEqualTo(1);
+    // 다른 사람의 응원은 지우지 않습니다.
+    live.cancelCheer("carol", a, "workout-1");
+    assertThat(cheerNotices("alice")).isEqualTo(1);
+  }
+
+  /** 모두 공개로 운동하면 친구가 아닌 회원의 응원도 알림 목록에 보입니다. */
+  @Test
+  void publicWorkoutShowsCheerNoticeFromNonFriend() {
+    live.sharing("alice", true, LiveWorkoutController.Scope.PUBLIC);
+    live.heartbeat("alice", "workout-1", true, 100.0);
+    live.cheer("carol", a, "workout-1");
+    var notice = notifications
+      .inbox("alice", null)
+      .items()
+      .stream()
+      .filter(n -> n.type().equals("WORKOUT_CHEER"))
+      .toList();
+    assertThat(notice).hasSize(1);
+    assertThat(notice.getFirst().actorNickname()).isEqualTo("응원셋");
+    live.cancelCheer("carol", a, "workout-1");
+    assertThat(cheerNotices("alice")).isZero();
+  }
 }
+

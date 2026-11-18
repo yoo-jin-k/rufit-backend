@@ -54,6 +54,13 @@ public class LiveWorkoutController {
     service.heartbeat(p.getName(), workoutId, body.active(), body.volume());
   }
 
+  /** 보낸 응원을 취소합니다. 응원 기록과 상대의 알림을 함께 지우며, 이미 없으면 그대로 204입니다. */
+  @DeleteMapping("/{memberId}/{workoutId}/cheer")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void cancelCheer(Principal p, @PathVariable UUID memberId, @PathVariable String workoutId) {
+    service.cancelCheer(p.getName(), memberId, workoutId);
+  }
+
   @PostMapping("/{memberId}/{workoutId}/cheer")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void cheer(Principal p, @PathVariable UUID memberId, @PathVariable String workoutId) {

@@ -78,9 +78,10 @@ public class JournalService {
       );
   }
 
+  /** 볼 수 있는 글: 내 글, 또는 차단 관계가 없으면서 전체 공개이거나 친구의 친구 공개. 인자 5개(me). */
   private static final String ALLOWED = """
-    (p.member_id=? OR (p.visibility='FRIENDS'
-      AND EXISTS(SELECT 1 FROM friendships f WHERE f.first_id=least(p.member_id,?) AND f.second_id=greatest(p.member_id,?))
+    (p.member_id=? OR ((p.visibility='PUBLIC' OR (p.visibility='FRIENDS'
+      AND EXISTS(SELECT 1 FROM friendships f WHERE f.first_id=least(p.member_id,?) AND f.second_id=greatest(p.member_id,?))))
       AND NOT EXISTS(SELECT 1 FROM social_blocks b WHERE (b.blocker_id=p.member_id AND b.blocked_id=?) OR (b.blocker_id=? AND b.blocked_id=p.member_id))))
     """;
 
@@ -196,6 +197,54 @@ public class JournalService {
         .map(id -> read(me, id, false))
         .toList(),
       ids.size() > 12,
+      total
+    );
+  }
+
+  /** 피드 한 페이지 크기입니다. 세 칸 격자에 맞춰 3의 배수로 둡니다. */
+  private static final int FEED_PAGE = 30;
+
+  /** 소셜 피드: 내 글은 빼고, 볼 수 있는 다른 회원의 글을 최신순으로 돌려줍니다. 목록에는 대표 사진만 담습니다. */
+  @Transactional(readOnly = true)
+  public Page feed(String owner, UUID target, boolean following, int page) {
+    if (page < 0 || page > 1000) throw new IllegalArgumentException(
+      "페이지 범위가 올바르지 않습니다."
+    );
+    UUID me = member(owner);
+    String filter = target == null ? "" : " AND p.member_id=?";
+    // 팔로잉: 친구 관계인 회원의 글만 남깁니다(공개 범위 검사는 ALLOWED가 그대로 합니다).
+    if (following) filter +=
+      " AND EXISTS(SELECT 1 FROM friendships f WHERE f.first_id=least(p.member_id,?) AND f.second_id=greatest(p.member_id,?))";
+    List<Object> args = new ArrayList<>(List.of(me, me, me, me, me, me));
+    if (target != null) args.add(target);
+    if (following) {
+      args.add(me);
+      args.add(me);
+    }
+    var countArgs = List.copyOf(args);
+    args.add(page * FEED_PAGE);
+    var ids = jdbc.query(
+      "SELECT p.id FROM journal_posts p WHERE p.member_id<>? AND " +
+        ALLOWED +
+        filter +
+        " ORDER BY p.created_at DESC,p.id DESC LIMIT " +
+        (FEED_PAGE + 1) +
+        " OFFSET ?",
+      (r, n) -> r.getObject(1, UUID.class),
+      args.toArray()
+    );
+    long total = jdbc.queryForObject(
+      "SELECT count(*) FROM journal_posts p WHERE p.member_id<>? AND " + ALLOWED + filter,
+      Long.class,
+      countArgs.toArray()
+    );
+    return new Page(
+      ids
+        .stream()
+        .limit(FEED_PAGE)
+        .map(id -> read(me, id, false))
+        .toList(),
+      ids.size() > FEED_PAGE,
       total
     );
   }
