@@ -16,6 +16,8 @@ public class JournalController {
   public enum Visibility {
     PRIVATE,
     FRIENDS,
+    /** 로그인한 모든 회원에게 보입니다(차단한·차단된 회원 제외). 소셜 피드에 나옵니다. */
+    PUBLIC,
   }
 
   public record Edit(
@@ -47,6 +49,20 @@ public class JournalController {
   @GetMapping("/mine/{sourceId}")
   public JournalService.Post mine(Principal p, @PathVariable String sourceId) {
     return service.mine(p.getName(), sourceId);
+  }
+
+  /**
+   * 소셜 피드: 내가 볼 수 있는 다른 회원의 글(전체 공개 + 친구의 친구 공개)을 최신순으로.
+   * following=true면 친구(팔로잉)의 글만, memberId를 주면 그 사람의 글만 돌려줍니다.
+   */
+  @GetMapping("/feed")
+  public JournalService.Page feed(
+    Principal p,
+    @RequestParam(required = false) UUID memberId,
+    @RequestParam(defaultValue = "false") boolean following,
+    @RequestParam(defaultValue = "0") int page
+  ) {
+    return service.feed(p.getName(), memberId, following, page);
   }
 
   @GetMapping("/{id}")

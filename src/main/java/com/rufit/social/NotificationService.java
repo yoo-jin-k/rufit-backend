@@ -46,8 +46,13 @@ public class NotificationService {
     AND (((n.type='FRIEND_REQUEST' AND r.state='PENDING') OR
       (n.type='FRIEND_ACCEPTED' AND EXISTS (SELECT 1 FROM friendships f WHERE
         f.first_id=least(n.recipient_id,n.actor_id) AND f.second_id=greatest(n.recipient_id,n.actor_id))))
+      -- 전체 공개 글의 좋아요는 친구가 아니어도 보입니다.
+      OR (n.type='POST_LIKED' AND p.visibility='PUBLIC')
       OR (((n.type='POST_LIKED' AND p.visibility='FRIENDS') OR n.type='WORKOUT_CHEER') AND EXISTS(SELECT 1 FROM friendships f WHERE
-        f.first_id=least(n.recipient_id,n.actor_id) AND f.second_id=greatest(n.recipient_id,n.actor_id))))
+        f.first_id=least(n.recipient_id,n.actor_id) AND f.second_id=greatest(n.recipient_id,n.actor_id)))
+      -- 모두 공개로 운동한 경우 친구가 아닌 회원의 응원도 보입니다. 응원을 취소하면 응원 기록과 함께 사라집니다.
+      OR (n.type='WORKOUT_CHEER' AND EXISTS(SELECT 1 FROM social_live_settings s WHERE s.member_id=n.recipient_id AND s.scope='PUBLIC')
+        AND EXISTS(SELECT 1 FROM social_cheers c WHERE c.recipient_id=n.recipient_id AND c.actor_id=n.actor_id AND c.workout_id=n.workout_id)))
     """;
 
   @Transactional(readOnly = true)
