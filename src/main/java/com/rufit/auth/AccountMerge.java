@@ -14,7 +14,7 @@ public class AccountMerge {
 
   /** 드문 계정 통합 동안 쓰기를 직렬화하여 다른 요청과 부분 이전이 섞이지 않도록 합니다. */
   void lock() {
-    jdbc.execute("lock table auth_accounts,auth_identities,auth_sessions,auth_email_credentials,auth_login_attempts,workouts,routines,retired_workout_keys,retired_routine_keys,exercises,measurements,user_profiles,profile_goals,rest_preferences,exercise_rest_preferences,unit_preferences,exercise_favorites,social_directory,social_profiles,friend_requests,friendships,social_blocks,social_reports,social_notifications,journal_posts,journal_photos,journal_likes,social_live_settings,social_live_workouts,social_cheers in share row exclusive mode");
+    jdbc.execute("lock table auth_accounts,auth_identities,auth_sessions,auth_email_credentials,auth_login_attempts,workouts,routines,retired_workout_keys,retired_routine_keys,exercises,measurements,user_profiles,profile_goals,rest_preferences,exercise_rest_preferences,unit_preferences,exercise_favorites,social_directory,social_profiles,friend_requests,friendships,social_blocks,social_reports,social_notifications,journal_posts,journal_photos,journal_likes,journal_views,social_live_settings,social_live_workouts,social_cheers in share row exclusive mode");
   }
 
   void merge(UUID target, UUID source, UUID retainedSession) {
@@ -57,6 +57,10 @@ public class AccountMerge {
     jdbc.update("update journal_posts set member_id=? where member_id=?",to,from);
     jdbc.update("insert into journal_likes select post_id,? from journal_likes where member_id=? on conflict do nothing",to,from);
     jdbc.update("delete from journal_likes where member_id=?",from);
+    // 조회 기록도 옮기되, 합친 뒤 자기 글을 본 기록은 조회수에서 뺍니다.
+    jdbc.update("insert into journal_views select post_id,?,viewed_at from journal_views where member_id=? on conflict do nothing",to,from);
+    jdbc.update("delete from journal_views where member_id=?",from);
+    jdbc.update("delete from journal_views v using journal_posts p where v.post_id=p.id and v.member_id=p.member_id");
     jdbc.update("insert into friendships select least(case when first_id=? then ? else first_id end,case when second_id=? then ? else second_id end),greatest(case when first_id=? then ? else first_id end,case when second_id=? then ? else second_id end) from friendships where first_id=? or second_id=? on conflict do nothing",from,to,from,to,from,to,from,to,from,from);
     jdbc.update("delete from friendships where first_id=? or second_id=?",from,from);
     jdbc.update("insert into social_blocks select case when blocker_id=? then ? else blocker_id end,case when blocked_id=? then ? else blocked_id end from social_blocks where blocker_id=? or blocked_id=? on conflict do nothing",from,to,from,to,from,from);
