@@ -88,7 +88,8 @@ class AccountDeletionTests {
     String mine = owner(me), theirs = owner(other);
     UUID a = directory.update(mine, new SocialDirectoryController.Edit("떠나는회원", true, 0L)).memberId();
     UUID b = directory.update(theirs, new SocialDirectoryController.Edit("남는회원", true, 0L)).memberId();
-    jdbc.update("insert into friendships values(?,?)", a.compareTo(b) < 0 ? a : b, a.compareTo(b) < 0 ? b : a);
+    // 자바 UUID 정렬과 DB uuid 정렬이 달라 순서는 DB가 정하게 합니다.
+    jdbc.update("insert into friendships values(least(?::uuid,?::uuid),greatest(?::uuid,?::uuid))", a, b, a, b);
     jdbc.update("insert into social_reports(id,reporter_id,target_id,reason) values(?,?,?,'SPAM')", UUID.randomUUID(), a, b);
     jdbc.update("insert into social_reports(id,reporter_id,target_id,reason) values(?,?,?,'OTHER')", UUID.randomUUID(), b, a);
     jdbc.update(

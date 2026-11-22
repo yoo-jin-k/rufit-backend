@@ -471,7 +471,7 @@ class LoginHttpTests {
   }
 
   @Test
-  void refreshRotatesAndOldTokenReuseImmediatelyRevokesOnlyItsGrant() throws Exception {
+  void refreshRotatesAndOldTokenReuseRevokesOnlyItsGrant() throws Exception {
     var first = login();
     var other = login();
     var response = refresh(first);
@@ -482,30 +482,67 @@ class LoginHttpTests {
     assertThat(rotated.at("/account/isNewAccount").asBoolean()).isFalse();
     assertThat(rotated.get("refreshToken")).isNotEqualTo(first.get("refreshToken"));
     assertThat(me(rotated).statusCode()).isEqualTo(200);
+    // 다음 토큰을 이미 쓴 뒤 옛 토큰이 다시 오면 탈취로 보고 그 세션만 폐기합니다.
+    var next = json(refresh(rotated));
     assertThat(refresh(first).statusCode()).isEqualTo(401);
     assertThat(me(first).statusCode()).isEqualTo(401);
-    assertThat(me(rotated).statusCode()).isEqualTo(401);
-    assertThat(refresh(rotated).statusCode()).isEqualTo(401);
+    assertThat(me(next).statusCode()).isEqualTo(401);
+    assertThat(refresh(next).statusCode()).isEqualTo(401);
     assertThat(me(other).statusCode()).isEqualTo(200);
   }
 
   @Test
-  void concurrentRefreshHasOneRotationAndReuseRevokesItsWinningTokens() throws Exception {
+  void lostRefreshResponseCanRetryOnceThenReuseRevokes() throws Exception {
+    var first = login();
+    // 서버는 교체했지만 기기가 응답을 받지 못한 경우: 같은 토큰으로 다시 갱신하면 한 번은 새 토큰을 줍니다.
+    var lost = json(refresh(first));
+    var retried = refresh(first);
+    assertThat(retried.statusCode()).isEqualTo(200);
+    var kept = json(retried);
+    assertThat(kept.get("sessionId")).isEqualTo(first.get("sessionId"));
+    // 받지 못한 토큰은 더 쓸 수 없고, 다시 받은 토큰으로 계속 이어집니다.
+    assertThat(refresh(lost).statusCode()).isEqualTo(401);
+    var after = json(refresh(kept));
+    assertThat(me(after).statusCode()).isEqualTo(200);
+    // 같은 옛 토큰을 또 보내면 두 번째 재시도는 허용하지 않고 세션을 폐기합니다.
+    assertThat(refresh(first).statusCode()).isEqualTo(401);
+    assertThat(me(after).statusCode()).isEqualTo(401);
+  }
+
+  @Test
+  void lostResponseGraceExpiresAndThenReuseRevokes() throws Exception {
+    var first = login();
+    json(refresh(first));
+    jdbc.update(
+      "update auth_refresh_tokens set used_at=used_at-interval '11 minutes', created_at=created_at-interval '11 minutes'"
+    );
+    assertThat(refresh(first).statusCode()).isEqualTo(401);
+    assertThat(
+      jdbc.queryForObject("select count(*) from auth_sessions where revoked_at is not null", Integer.class)
+    ).isEqualTo(1);
+  }
+
+  @Test
+  void concurrentRefreshKeepsOneUsableToken() throws Exception {
     var session = login();
     var responses = race(() -> refresh(session));
-    assertThat(responses).extracting(HttpResponse::statusCode).containsExactlyInAnyOrder(200, 401);
-    var winner = json(
-      responses
-        .stream()
-        .filter(r -> r.statusCode() == 200)
-        .findFirst()
-        .orElseThrow()
-    );
-    assertThat(me(winner).statusCode()).isEqualTo(401);
-    assertThat(refresh(winner).statusCode()).isEqualTo(401);
-    assertThat(
-      jdbc.queryForObject("select count(*) from auth_refresh_tokens", Integer.class)
-    ).isEqualTo(2);
+    // 같은 토큰이 동시에 오면 늦은 쪽은 응답 유실 재시도로 처리되어 새 토큰을 받고, 먼저 받은 토큰은 지워집니다.
+    assertThat(responses).extracting(HttpResponse::statusCode).containsExactly(200, 200);
+    var tokens = responses.stream().map(r -> {
+      try {
+        return json(r);
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    }).toList();
+    var usable = tokens.stream().filter(t -> {
+      try {
+        return refresh(t).statusCode() == 200;
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    }).count();
+    assertThat(usable).isEqualTo(1);
   }
 
   @Test
