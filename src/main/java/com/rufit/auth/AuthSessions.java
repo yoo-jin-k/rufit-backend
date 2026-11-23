@@ -182,38 +182,72 @@ public class AuthSessions {
         !now.isBefore(grant.absolute())
       ) return null;
       var used = jdbc.query(
-        "select used_at is not null from auth_refresh_tokens where token_hash=? and session_id=?",
-        (rs, n) -> rs.getBoolean(1),
+        "select used_at from auth_refresh_tokens where token_hash=? and session_id=?",
+        (rs, n) -> Optional.ofNullable(rs.getTimestamp(1)).map(Timestamp::toInstant),
         hash,
         session
       );
       if (used.isEmpty()) return null;
-      if (used.getFirst()) {
+      if (used.getFirst().isPresent()) {
+        boolean retry = lostResponse(session, hash, used.getFirst().get(), now);
+        if (!retry) {
+          jdbc.update(
+            "update auth_sessions set revoked_at=? where id=?",
+            Timestamp.from(now),
+            session
+          );
+          return null;
+        }
+        // 응답을 받지 못한 재시도: 아직 한 번도 쓰이지 않은 다음 토큰을 지우고 새로 발급합니다.
         jdbc.update(
-          "update auth_sessions set revoked_at=? where id=?",
-          Timestamp.from(now),
+          "delete from auth_refresh_tokens where session_id=? and used_at is null",
           session
         );
-        return null;
+      } else {
+        jdbc.update(
+          "update auth_refresh_tokens set used_at=? where token_hash=?",
+          Timestamp.from(now),
+          hash
+        );
       }
       Instant expires = now.plus(Duration.ofDays(14)).isBefore(grant.absolute())
         ? now.plus(Duration.ofDays(14))
         : grant.absolute();
       jdbc.update(
-        "update auth_refresh_tokens set used_at=? where token_hash=?",
-        Timestamp.from(now),
-        hash
-      );
-      jdbc.update(
         "update auth_sessions set idle_expires_at=? where id=?",
         Timestamp.from(expires),
         session
       );
-      return issue(grant.account(), grant.owner(), session, false, now, expires);
+      SessionView view = issue(grant.account(), grant.owner(), session, false, now, expires);
+      // 새 토큰에 부모 토큰을 기록합니다. 재시도로 다시 발급한 토큰은 부모를 남기지 않아 두 번째 재시도를 막습니다.
+      jdbc.update(
+        "update auth_refresh_tokens set parent_hash=? where session_id=? and used_at is null",
+        used.getFirst().isPresent() ? null : hash,
+        session
+      );
+      return view;
     });
     // 트랜잭션 안에서 예외를 던지면 폐기가 롤백되어 재사용 토큰이 계속 살아남습니다.
     if (result == null) throw AuthFailure.expired();
     return result;
+  }
+
+  /** 갱신 응답이 기기에 닿지 못했을 때(앱 종료·백그라운드 전환·네트워크 끊김) 한 번만 다시 발급을 허용하는 시간입니다. */
+  static final Duration LOST_RESPONSE_GRACE = Duration.ofMinutes(10);
+
+  /**
+   * 이미 쓴 토큰이 다시 왔을 때, 그 토큰으로 받은 다음 토큰이 아직 한 번도 쓰이지 않았고
+   * 짧은 시간 안이면 응답을 받지 못한 같은 기기의 재시도로 봅니다. 다시 발급한 토큰에는 부모를 남기지 않으므로
+   * 같은 옛 토큰의 두 번째 재시도와, 다음 토큰을 이미 쓴 뒤의 재사용은 이 조건을 통과하지 못하고 폐기됩니다.
+   */
+  private boolean lostResponse(UUID session, String hash, Instant usedAt, Instant now) {
+    if (!now.isBefore(usedAt.plus(LOST_RESPONSE_GRACE))) return false;
+    var unused = jdbc.query(
+      "select parent_hash from auth_refresh_tokens where session_id=? and used_at is null",
+      (rs, n) -> Optional.ofNullable(rs.getString(1)),
+      session
+    );
+    return unused.size() == 1 && unused.getFirst().map(hash::equals).orElse(false);
   }
 
   /** 이미 쓴 refresh도 같은 grant를 찾습니다. 다른 기기의 세션과 운동 기록은 건드리지 않습니다. */
