@@ -26,6 +26,11 @@ public class Exercise {
   @Column(nullable = false, length = 24)
   Equipment equipment;
 
+  /** 세트를 무게·횟수로 기록하는지, 시간(초)으로 기록하는지입니다. 직접 만든 종목은 무게·횟수입니다. */
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 16)
+  Tracking tracking = Tracking.WEIGHT_REPS;
+
   Instant archivedAt;
   Integer recommendedRestSeconds;
 
@@ -68,6 +73,12 @@ public class Exercise {
     ARMS,
     CORE,
     FULL_BODY,
+    STRETCH,
+  }
+
+  public enum Tracking {
+    WEIGHT_REPS,
+    DURATION,
   }
 
   public enum Equipment {

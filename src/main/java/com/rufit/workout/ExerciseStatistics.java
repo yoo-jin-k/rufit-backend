@@ -49,7 +49,7 @@ public class ExerciseStatistics {
       )
       SELECT t.*, best.workout_id, best.finished_at, best.entry_order, best.weight, best.reps
       FROM totals t LEFT JOIN LATERAL (
-          SELECT * FROM recorded ORDER BY weight DESC, reps DESC, finished_at DESC, workout_id DESC, entry_order ASC LIMIT 1
+          SELECT * FROM recorded ORDER BY weight DESC, reps DESC NULLS LAST, finished_at DESC, workout_id DESC, entry_order ASC LIMIT 1
       ) best ON true
       """, parameters, (row, index) -> {
       UUID workoutId = row.getObject("workout_id", UUID.class);

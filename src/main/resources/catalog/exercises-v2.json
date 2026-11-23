@@ -1,6 +1,6 @@
 {
-  "catalogVersion": "2026-10-29.v2",
-  "exerciseCount": 110,
+  "catalogVersion": "2026-11-23.v3",
+  "exerciseCount": 124,
   "exercises": [
     {
       "id": "00000000-0000-4000-8000-000000000001",
@@ -1126,6 +1126,166 @@
         "barbell clean and press"
       ],
       "recommendedRestSeconds": null
+    },
+    {
+      "id": "bcde79cc-553d-5d89-b395-62aa6d90145e",
+      "name": "목 옆 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "목 스트레칭",
+        "neck stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "d6d4f7a7-0c58-547a-9d03-4372ad808411",
+      "name": "어깨 뒤 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "어깨 스트레칭",
+        "shoulder stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "dfbd661a-71db-5b6c-b47f-48522c149ec5",
+      "name": "삼두 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "triceps stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "4982b093-04b2-571d-ae0c-f0fa15690a16",
+      "name": "가슴 문틀 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "가슴 스트레칭",
+        "chest stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "bdde936e-2e2e-5215-a431-d459a742b4ea",
+      "name": "광배 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "lat stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "cc25a015-472a-5bb0-91a1-4373ed672cec",
+      "name": "고양이 소 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "캣카우",
+        "cat cow"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "0bfe3733-de60-5487-b64f-d88d516ff4f6",
+      "name": "아기 자세",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "child's pose"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "96c626c9-013d-5085-a0fc-42b9f1a01625",
+      "name": "햄스트링 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "hamstring stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "308d48f3-e8dd-5443-a833-253f7cd8e61a",
+      "name": "대퇴사두 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "허벅지 앞 스트레칭",
+        "quad stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "01c00b76-203d-5ade-8057-f1e973d085d8",
+      "name": "종아리 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "calf stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "712a89cf-8363-59d6-abc1-4d78480e8727",
+      "name": "고관절 굴곡근 스트레칭",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "장요근 스트레칭",
+        "hip flexor stretch"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "10b97403-9de5-5965-bcc4-85c9d2ecaa99",
+      "name": "비둘기 자세",
+      "bodyPart": "STRETCH",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "pigeon pose"
+      ],
+      "recommendedRestSeconds": 15
+    },
+    {
+      "id": "be98d421-1e9d-5d87-bd98-530361afd8e4",
+      "name": "플랭크",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "plank"
+      ],
+      "recommendedRestSeconds": 60
+    },
+    {
+      "id": "c9d8f18c-5b75-5688-9e5c-45cc877f5f21",
+      "name": "사이드 플랭크",
+      "bodyPart": "CORE",
+      "equipment": "BODYWEIGHT",
+      "tracking": "DURATION",
+      "aliases": [
+        "side plank"
+      ],
+      "recommendedRestSeconds": 60
     }
   ]
 }

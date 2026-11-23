@@ -315,12 +315,16 @@ public class WorkoutController {
     @DecimalMax("1500")
     @Digits(integer = 4, fraction = 2)
     BigDecimal weight,
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED) @Min(1) @Max(1000) int reps,
+    @Schema(nullable = true, description = "횟수 1~1000. 시간으로 기록하는 세트는 null") @Min(1) @Max(1000) Integer reps,
     @Schema(nullable = true) UUID exerciseId,
     @Schema(nullable = true, allowableValues = { "NORMAL", "WARMUP", "DROP", "FAILURE" }, description = "생략하면 NORMAL")
     @Pattern(regexp = "NORMAL|WARMUP|DROP|FAILURE")
     String setType,
-    @Schema(nullable = true, description = "운동 자각도 5~10, 생략하면 미입력") @Min(5) @Max(10) Integer rpe
+    @Schema(nullable = true, description = "운동 자각도 5~10, 생략하면 미입력") @Min(5) @Max(10) Integer rpe,
+    @Schema(nullable = true, description = "시간(초) 1~3600. 스트레칭·플랭크처럼 시간 종목만 쓰고, 이때 reps는 null·weight는 0")
+    @Min(1)
+    @Max(3600)
+    Integer durationSeconds
   ) {
     public SetInput(String exerciseName, BigDecimal weight, int reps) {
       this(exerciseName, weight, reps, null);
@@ -330,8 +334,19 @@ public class WorkoutController {
       this(exerciseName, weight, reps, exerciseId, null, null);
     }
 
+    public SetInput(
+      String exerciseName,
+      BigDecimal weight,
+      Integer reps,
+      UUID exerciseId,
+      String setType,
+      Integer rpe
+    ) {
+      this(exerciseName, weight, reps, exerciseId, setType, rpe, null);
+    }
+
     public static SetInput of(Workout.Entry e) {
-      return new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId(), e.setType(), e.rpe());
+      return new SetInput(e.name(), e.weight(), e.reps(), e.exerciseId(), e.setType(), e.rpe(), e.durationSeconds());
     }
   }
 

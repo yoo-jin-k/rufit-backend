@@ -44,12 +44,12 @@ class ExpandedExerciseCatalogTests {
   }
 
   @Test
-  void all110CanonicalRowsAndSearchKeysMatchPublishedSource() throws Exception {
+  void allCanonicalRowsAndSearchKeysMatchPublishedSource() throws Exception {
     var catalog = catalog();
-    assertThat(catalog.size()).isEqualTo(110);
+    assertThat(catalog.size()).isEqualTo(124);
     assertThat(
       jdbc.queryForObject("select count(*) from exercises where owner_name is null", Integer.class)
-    ).isEqualTo(110);
+    ).isEqualTo(124);
     Set<String> keys = new HashSet<>();
     for (var entry : catalog) {
       UUID id = UUID.fromString(entry.get("id").asString());
@@ -57,6 +57,9 @@ class ExpandedExerciseCatalogTests {
       assertThat(actual.name()).isEqualTo(entry.get("name").asString());
       assertThat(actual.bodyPart().name()).isEqualTo(entry.get("bodyPart").asString());
       assertThat(actual.equipment().name()).isEqualTo(entry.get("equipment").asString());
+      assertThat(actual.tracking().name()).isEqualTo(
+        entry.has("tracking") ? entry.get("tracking").asString() : "WEIGHT_REPS"
+      );
       assertThat(actual.custom()).isFalse();
       assertThat(actual.archivedAt()).isNull();
       assertThat(actual.version()).isZero();
@@ -145,7 +148,7 @@ class ExpandedExerciseCatalogTests {
     List<UUID> received = new ArrayList<>();
     for (int page = 0; ; page++) {
       var result = service.search("catalog-v2-pages", "", false, null, null, page, 37);
-      assertThat(result.totalElements()).isEqualTo(110);
+      assertThat(result.totalElements()).isEqualTo(124);
       received.addAll(result.items().stream().map(ExerciseController.View::id).toList());
       if (!result.hasNext()) break;
     }
@@ -280,7 +283,7 @@ class ExpandedExerciseCatalogTests {
         .migrate();
       assertThat(
         jdbc.queryForObject("select count(*) from " + schema + ".exercises", Integer.class)
-      ).isEqualTo(110);
+      ).isEqualTo(124);
       // V27이 추가한 선택 필드는 기존 기록에서 비어 있어야 하며 기존 열은 모두 보존되어야 합니다.
       assertThat(
         jdbc.queryForObject(
@@ -297,13 +300,26 @@ class ExpandedExerciseCatalogTests {
           Integer.class
         )
       ).isZero();
+      // V46이 추가한 시간 기록은 기존 세트에서 비어 있고, 기존 종목은 모두 무게·횟수 방식이어야 합니다.
+      for (String entries : List.of("workout_entries", "routine_entries")) assertThat(
+        jdbc.queryForObject(
+          "select count(*) from " + schema + "." + entries + " where duration_seconds is not null or reps is null",
+          Integer.class
+        )
+      ).isZero();
+      assertThat(
+        jdbc.queryForObject(
+          "select count(*) from " + schema + ".exercises where id::text like '00000000-0000-4000-8000-%' and tracking<>'WEIGHT_REPS'",
+          Integer.class
+        )
+      ).isZero();
       for (String table : tables) {
         String where = table.equals("exercises")
           ? " where id::text like '00000000-0000-4000-8000-%'"
           : "";
         assertThat(
           jdbc.queryForList(
-            "select (to_jsonb(t) - 'record_date' - 'entry_mode' - 'set_type' - 'rpe')::text from " +
+            "select (to_jsonb(t) - 'record_date' - 'entry_mode' - 'set_type' - 'rpe' - 'duration_seconds' - 'tracking')::text from " +
               schema +
               "." +
               table +
