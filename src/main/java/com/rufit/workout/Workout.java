@@ -270,7 +270,7 @@ public class Workout {
     entries.add(
       index + 1,
       // 복제한 세트는 종류만 이어받고, 자각도는 새로 느낀 값을 적도록 비웁니다.
-      new Entry(source.exerciseId(), source.name(), source.weight(), source.reps(), source.setType(), null)
+      source.withRpe(null)
     );
     Set<Integer> shifted = new HashSet<>();
     for (int completed : completedSetIndexes)
@@ -488,8 +488,12 @@ public class Workout {
     @Column(nullable = false, precision = 6, scale = 2)
     private BigDecimal weight;
 
-    @Column(nullable = false)
-    private int reps;
+    /** 횟수입니다. 시간으로 기록하는 세트는 null입니다. */
+    private Integer reps;
+
+    /** 시간(초)입니다. 스트레칭·플랭크처럼 시간으로 기록하는 세트만 값이 있습니다. */
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
 
     /** 세트 종류입니다. NORMAL·WARMUP·DROP·FAILURE 중 하나이며 기본은 NORMAL입니다. */
     @Column(name = "set_type", nullable = false, length = 8)
@@ -512,6 +516,19 @@ public class Workout {
     }
 
     public Entry(UUID exerciseId, String name, BigDecimal weight, int reps, String setType, Integer rpe) {
+      this(exerciseId, name, weight, Integer.valueOf(reps), null, setType, rpe);
+    }
+
+    /** 횟수와 시간 중 하나만 받습니다. 시간 세트는 무게가 0이어야 합니다. */
+    public Entry(
+      UUID exerciseId,
+      String name,
+      BigDecimal weight,
+      Integer reps,
+      Integer durationSeconds,
+      String setType,
+      Integer rpe
+    ) {
       String type = setType == null ? "NORMAL" : setType;
       if (!SET_TYPES.contains(type)) throw new IllegalArgumentException(
         "세트 종류는 NORMAL, WARMUP, DROP, FAILURE 중 하나여야 합니다."
@@ -531,12 +548,22 @@ public class Workout {
         weight.compareTo(new BigDecimal("1500")) > 0 ||
         weight.scale() > 2
       ) throw new IllegalArgumentException("무게는 0~1500kg, 소수점 2자리까지 입력해 주세요.");
-      if (reps < 1 || reps > 1000) throw new IllegalArgumentException(
+      if ((reps == null) == (durationSeconds == null)) throw new IllegalArgumentException(
+        "세트에는 횟수와 시간 중 하나만 입력해 주세요."
+      );
+      if (reps != null && (reps < 1 || reps > 1000)) throw new IllegalArgumentException(
         "횟수는 1~1000이어야 합니다."
       );
+      if (durationSeconds != null) {
+        if (durationSeconds < 1 || durationSeconds > 3600) throw new IllegalArgumentException(
+          "시간은 1~3600초여야 합니다."
+        );
+        if (weight.signum() != 0) throw new IllegalArgumentException("시간 세트는 무게 없이 기록합니다.");
+      }
       this.exerciseName = name.trim();
       this.weight = weight;
       this.reps = reps;
+      this.durationSeconds = durationSeconds;
     }
 
     public UUID exerciseId() {
@@ -551,8 +578,18 @@ public class Workout {
       return weight;
     }
 
-    public int reps() {
+    /** 횟수입니다. 시간 세트는 null입니다. */
+    public Integer reps() {
       return reps;
+    }
+
+    public Integer durationSeconds() {
+      return durationSeconds;
+    }
+
+    /** 같은 값에 운동 자각도만 바꾼 세트입니다(복제·루틴 시작에 씁니다). */
+    public Entry withRpe(Integer nextRpe) {
+      return new Entry(exerciseId, exerciseName, weight, reps, durationSeconds, setType(), nextRpe);
     }
 
     public String setType() {

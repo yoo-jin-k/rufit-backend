@@ -28,22 +28,24 @@ public class WorkoutSummary {
       String key =
         set.exerciseId() == null ? "name:" + set.exerciseName() : "id:" + set.exerciseId();
       Exercise previous = groups.get(key);
-      BigDecimal volume = set.weight().multiply(BigDecimal.valueOf(set.reps()));
+      // 시간 세트(스트레칭·플랭크)는 횟수가 없으므로 횟수·볼륨에 0으로 더합니다.
+      int reps = set.reps() == null ? 0 : set.reps();
+      BigDecimal volume = set.weight().multiply(BigDecimal.valueOf(reps));
       boolean heavier =
         previous == null ||
         set.weight().compareTo(previous.heaviestWeight()) > 0 ||
         (set.weight().compareTo(previous.heaviestWeight()) == 0 &&
-          set.reps() > previous.repsAtHeaviestWeight());
+          reps > previous.repsAtHeaviestWeight());
       groups.put(
         key,
         new Exercise(
           set.exerciseId(),
           previous == null ? set.exerciseName() : previous.exerciseName(),
           (previous == null ? 0 : previous.completedSets()) + 1,
-          (previous == null ? 0 : previous.totalReps()) + set.reps(),
+          (previous == null ? 0 : previous.totalReps()) + reps,
           (previous == null ? BigDecimal.ZERO : previous.volumeKgReps()).add(volume),
           heavier ? set.weight() : previous.heaviestWeight(),
-          heavier ? set.reps() : previous.repsAtHeaviestWeight()
+          heavier ? reps : previous.repsAtHeaviestWeight()
         )
       );
     }

@@ -46,7 +46,7 @@ public class PreviousExerciseSets {
         where w.owner_name=:owner and w.finished_at is not null and e.exercise_id in (:ids)
         order by e.exercise_id,w.finished_at desc,w.id desc
     )
-    select l.exercise_id,l.id,l.finished_at,e.exercise_name,e.weight,e.reps,e.set_type,e.rpe
+    select l.exercise_id,l.id,l.finished_at,e.exercise_name,e.weight,e.reps,e.duration_seconds,e.set_type,e.rpe
     from latest l join workout_entries e on e.workout_id=l.id and e.exercise_id=l.exercise_id
     order by l.exercise_id,e.entry_order
     """, parameters, rs -> {
@@ -58,10 +58,11 @@ public class PreviousExerciseSets {
         new WorkoutController.SetInput(
           rs.getString("exercise_name"),
           rs.getBigDecimal("weight"),
-          rs.getInt("reps"),
+          rs.getObject("reps") == null ? null : rs.getInt("reps"),
           exerciseId,
           rs.getString("set_type"),
-          rs.getObject("rpe") == null ? null : rs.getInt("rpe")
+          rs.getObject("rpe") == null ? null : rs.getInt("rpe"),
+          rs.getObject("duration_seconds") == null ? null : rs.getInt("duration_seconds")
         )
       );
       records.putIfAbsent(

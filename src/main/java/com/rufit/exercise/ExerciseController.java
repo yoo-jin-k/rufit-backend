@@ -105,6 +105,7 @@ public class ExerciseController {
       "archivedAt",
       "version",
       "recommendedRestSeconds",
+      "tracking",
     }
   )
   public record View(
@@ -115,7 +116,8 @@ public class ExerciseController {
     boolean custom,
     @Schema(nullable = true) Instant archivedAt,
     long version,
-    @Schema(nullable = true) Integer recommendedRestSeconds
+    @Schema(nullable = true) Integer recommendedRestSeconds,
+    @Schema(description = "WEIGHT_REPS면 무게·횟수, DURATION이면 시간(초)으로 세트를 기록") Exercise.Tracking tracking
   ) {
     static View from(Exercise e) {
       return new View(
@@ -126,7 +128,8 @@ public class ExerciseController {
         e.ownerName != null,
         e.archivedAt,
         e.version,
-        e.recommendedRestSeconds
+        e.recommendedRestSeconds,
+        e.tracking
       );
     }
   }
