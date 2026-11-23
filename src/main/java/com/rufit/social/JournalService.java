@@ -39,8 +39,14 @@ public class JournalService {
     String thumbnail,
     long likes,
     boolean liked,
-    boolean mine
-  ) {}
+    boolean mine,
+    /** 상세를 연 다른 회원 수입니다. 같은 회원은 한 번만 셉니다. */
+    long views
+  ) {
+    Post withViews(long count) {
+      return new Post(id, sourceId, memberId, nickname, memo, date, summary, visibility, version, photos, thumbnail, likes, liked, mine, count);
+    }
+  }
 
   public record Page(List<Post> items, boolean hasNext, long total) {}
 
@@ -87,7 +93,7 @@ public class JournalService {
 
   private Post read(UUID me, UUID id, boolean photos) {
     var rows = jdbc.query(
-      "SELECT p.*,d.nickname,(SELECT count(*) FROM journal_likes l WHERE l.post_id=p.id) likes,EXISTS(SELECT 1 FROM journal_likes l WHERE l.post_id=p.id AND l.member_id=?) liked FROM journal_posts p JOIN social_directory d ON d.member_id=p.member_id WHERE p.id=? AND " +
+      "SELECT p.*,d.nickname,(SELECT count(*) FROM journal_likes l WHERE l.post_id=p.id) likes,EXISTS(SELECT 1 FROM journal_likes l WHERE l.post_id=p.id AND l.member_id=?) liked,(SELECT count(*) FROM journal_views v WHERE v.post_id=p.id) views FROM journal_posts p JOIN social_directory d ON d.member_id=p.member_id WHERE p.id=? AND " +
         ALLOWED,
       (r, n) ->
         new Post(
@@ -104,7 +110,8 @@ public class JournalService {
           JournalImages.uri(r.getBytes("thumbnail")),
           r.getLong("likes"),
           r.getBoolean("liked"),
-          me.equals(r.getObject("member_id", UUID.class))
+          me.equals(r.getObject("member_id", UUID.class)),
+          r.getLong("views")
         ),
       me,
       id,
@@ -135,13 +142,21 @@ public class JournalService {
       p.thumbnail,
       p.likes,
       p.liked,
-      p.mine
+      p.mine,
+      p.views
     );
   }
 
-  @Transactional(readOnly = true)
+  /** 상세 조회: 볼 수 있는 글이면 처음 연 다른 회원을 조회수에 한 번 더합니다. */
+  @Transactional
   public Post get(String owner, UUID id) {
-    return read(member(owner), id, true);
+    UUID me = member(owner);
+    Post p = read(me, id, true);
+    if (
+      !p.mine() &&
+      jdbc.update("INSERT INTO journal_views(post_id,member_id) VALUES (?,?) ON CONFLICT DO NOTHING", id, me) == 1
+    ) return p.withViews(p.views() + 1);
+    return p;
   }
 
   @Transactional(readOnly = true)

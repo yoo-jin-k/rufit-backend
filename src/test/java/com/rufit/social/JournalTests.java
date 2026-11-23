@@ -133,6 +133,24 @@ class JournalTests {
   }
 
   @Test
+  void viewsCountEachOtherViewerOnceAndShowInFeed() {
+    connect();
+    var p = posts.save("alice", "viewed", edit(0, true, List.of()));
+    assertThat(p.views()).isZero();
+    // 작성자 본인이 열면 세지 않습니다.
+    assertThat(posts.get("alice", p.id()).views()).isZero();
+    // 다른 회원은 처음 열 때 한 번만 셉니다. 응답에도 바로 반영됩니다.
+    assertThat(posts.get("bob", p.id()).views()).isEqualTo(1);
+    assertThat(posts.get("bob", p.id()).views()).isEqualTo(1);
+    // 볼 수 없는 회원의 요청은 조회수를 올리지 않습니다.
+    assertThatThrownBy(() -> posts.get("carol", p.id())).isInstanceOf(
+      org.springframework.web.server.ResponseStatusException.class
+    );
+    assertThat(posts.list("bob", a, 0).items().getFirst().views()).isEqualTo(1);
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM journal_views", Long.class)).isEqualTo(1);
+  }
+
+  @Test
   void likesAndNotificationsAreIdempotentOwnedAndCancelledTogether() {
     connect();
     var p = posts.save("alice", "liked", edit(0, true, List.of()));
